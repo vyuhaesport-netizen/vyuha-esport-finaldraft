@@ -7,9 +7,13 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  permissions: string[];
+  hasPermission: (permission: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshPermissions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -47,6 +53,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkSuperAdmin = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!error && data?.email === 'vyuhaesport@gmail.com') {
+        setIsSuperAdmin(true);
+        setIsAdmin(true);
+        // Super admin has all permissions
+        setPermissions([
+          'dashboard:view',
+          'users:view', 'users:manage',
+          'tournaments:view', 'tournaments:create', 'tournaments:edit', 'tournaments:delete',
+          'deposits:view', 'deposits:manage',
+          'withdrawals:view', 'withdrawals:manage',
+          'transactions:view',
+          'team:view', 'team:manage',
+          'settings:view', 'settings:manage',
+          'support:view', 'support:manage',
+          'notifications:view', 'notifications:manage',
+          'organizers:view', 'organizers:manage'
+        ]);
+      } else {
+        setIsSuperAdmin(false);
+        // Fetch team member permissions
+        await fetchPermissions(userId);
+      }
+    } catch {
+      setIsSuperAdmin(false);
+    }
+  };
+
+  const fetchPermissions = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_permissions')
+        .select('permission')
+        .eq('user_id', userId);
+      
+      if (!error && data) {
+        setPermissions(data.map(p => p.permission));
+      } else {
+        setPermissions([]);
+      }
+    } catch {
+      setPermissions([]);
+    }
+  };
+
+  const refreshPermissions = async () => {
+    if (user) {
+      await checkSuperAdmin(user.id);
+    }
+  };
+
+  const hasPermission = (permission: string): boolean => {
+    if (isSuperAdmin) return true;
+    return permissions.includes(permission);
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -56,9 +125,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setTimeout(() => {
             checkAdminRole(session.user.id);
+            checkSuperAdmin(session.user.id);
           }, 0);
         } else {
           setIsAdmin(false);
+          setIsSuperAdmin(false);
+          setPermissions([]);
         }
         
         setLoading(false);
@@ -71,6 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         checkAdminRole(session.user.id);
+        checkSuperAdmin(session.user.id);
       }
       
       setLoading(false);
@@ -103,10 +176,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    setIsSuperAdmin(false);
+    setPermissions([]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, session, loading, isAdmin, isSuperAdmin, permissions, 
+      hasPermission, signIn, signUp, signOut, refreshPermissions 
+    }}>
       {children}
     </AuthContext.Provider>
   );
