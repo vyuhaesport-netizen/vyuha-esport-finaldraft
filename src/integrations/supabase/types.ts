@@ -105,6 +105,7 @@ export type Database = {
           start_date: string
           status: string | null
           title: string
+          tournament_type: string
           updated_at: string
         }
         Insert: {
@@ -123,6 +124,7 @@ export type Database = {
           start_date: string
           status?: string | null
           title: string
+          tournament_type?: string
           updated_at?: string
         }
         Update: {
@@ -141,6 +143,7 @@ export type Database = {
           start_date?: string
           status?: string | null
           title?: string
+          tournament_type?: string
           updated_at?: string
         }
         Relationships: []

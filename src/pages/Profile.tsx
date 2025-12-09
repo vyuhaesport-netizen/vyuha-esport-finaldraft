@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { 
   User, 
-  Mail, 
-  Phone, 
   Edit2,
   ChevronRight,
   Shield,
@@ -25,7 +23,10 @@ import {
   Bell,
   Loader2,
   Save,
-  X
+  X,
+  Camera,
+  RefreshCw,
+  Info
 } from 'lucide-react';
 import {
   Dialog,
@@ -50,11 +51,14 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     full_name: '',
     phone: '',
   });
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { user, isAdmin, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -96,6 +100,69 @@ const ProfilePage = () => {
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image under 2MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: 'Avatar Updated',
+        description: 'Your profile picture has been updated.',
+      });
+
+      fetchProfile();
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Could not upload avatar. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -146,7 +213,9 @@ const ProfilePage = () => {
     { icon: Bell, label: 'Notifications', onClick: () => {} },
     { icon: Settings, label: 'Settings', onClick: () => {} },
     { icon: HelpCircle, label: 'Help & Support', onClick: () => {} },
-    { icon: FileText, label: 'Terms & Conditions', onClick: () => {} },
+    { icon: FileText, label: 'Terms & Conditions', onClick: () => navigate('/terms') },
+    { icon: RefreshCw, label: 'Refund Policy', onClick: () => navigate('/refund-policy') },
+    { icon: Info, label: 'About Us', onClick: () => navigate('/about') },
   ];
 
   if (authLoading || loading) {
@@ -164,12 +233,32 @@ const ProfilePage = () => {
       {/* Profile Header */}
       <div className="bg-gradient-to-br from-primary/10 to-primary/5 px-4 py-6">
         <div className="flex items-center gap-4">
-          <Avatar className="h-20 w-20 border-4 border-card">
-            <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-gaming">
-              {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-20 w-20 border-4 border-card">
+              <AvatarImage src={profile?.avatar_url || ''} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-gaming">
+                {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-2 border-card"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4 text-primary-foreground" />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+          </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h1 className="font-gaming text-xl font-bold">
