@@ -1,0 +1,514 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AdminLayout from '@/components/admin/AdminLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Plus, 
+  Loader2, 
+  UsersRound,
+  Edit2,
+  Trash2,
+  Shield
+} from 'lucide-react';
+import { format } from 'date-fns';
+
+interface TeamMember {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface Permission {
+  id: string;
+  label: string;
+  description: string;
+}
+
+const allPermissions: Permission[] = [
+  { id: 'dashboard:view', label: 'Dashboard', description: 'View dashboard metrics' },
+  { id: 'users:view', label: 'View Users', description: 'View user list' },
+  { id: 'users:manage', label: 'Manage Users', description: 'Ban/freeze users, manage wallets' },
+  { id: 'tournaments:view', label: 'View Tournaments', description: 'View tournament list' },
+  { id: 'tournaments:create', label: 'Create Tournaments', description: 'Create new tournaments' },
+  { id: 'tournaments:edit', label: 'Edit Tournaments', description: 'Edit existing tournaments' },
+  { id: 'tournaments:delete', label: 'Delete Tournaments', description: 'Delete tournaments' },
+  { id: 'deposits:view', label: 'View Deposits', description: 'View deposit transactions' },
+  { id: 'deposits:manage', label: 'Manage Deposits', description: 'Approve/reject deposits' },
+  { id: 'withdrawals:view', label: 'View Withdrawals', description: 'View withdrawal requests' },
+  { id: 'withdrawals:manage', label: 'Manage Withdrawals', description: 'Approve/reject withdrawals' },
+  { id: 'transactions:view', label: 'View Transactions', description: 'View all transactions' },
+  { id: 'support:view', label: 'View Support', description: 'View support tickets' },
+  { id: 'support:manage', label: 'Manage Support', description: 'Respond to support tickets' },
+  { id: 'notifications:view', label: 'View Notifications', description: 'View notifications' },
+  { id: 'notifications:manage', label: 'Send Notifications', description: 'Send push notifications' },
+  { id: 'organizers:view', label: 'View Organizers', description: 'View organizer verifications' },
+  { id: 'organizers:manage', label: 'Manage Organizers', description: 'Approve/reject organizers' },
+  { id: 'settings:view', label: 'View Settings', description: 'View app settings' },
+  { id: 'settings:manage', label: 'Manage Settings', description: 'Update app settings' },
+];
+
+const AdminTeam = () => {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [memberPermissions, setMemberPermissions] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [formData, setFormData] = useState({
+    email: '',
+    name: '',
+    role: 'team_member',
+  });
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const { user, isSuperAdmin, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/');
+      } else if (!isSuperAdmin) {
+        navigate('/admin');
+        toast({
+          title: 'Access Denied',
+          description: 'Only Super Admin can access team management.',
+          variant: 'destructive',
+        });
+      }
+    }
+  }, [user, isSuperAdmin, authLoading, navigate, toast]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchTeamMembers();
+    }
+  }, [isSuperAdmin]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data: members, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTeamMembers(members || []);
+
+      // Fetch permissions for each member
+      const perms: Record<string, string[]> = {};
+      for (const member of members || []) {
+        const { data: permData } = await supabase
+          .from('admin_permissions')
+          .select('permission')
+          .eq('user_id', member.user_id);
+        
+        perms[member.user_id] = permData?.map(p => p.permission) || [];
+      }
+      setMemberPermissions(perms);
+    } catch (error) {
+      console.error('Error fetching team:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ email: '', name: '', role: 'team_member' });
+    setSelectedPermissions([]);
+    setEditingMember(null);
+  };
+
+  const openEditDialog = async (member: TeamMember) => {
+    setEditingMember(member);
+    setFormData({
+      email: member.email,
+      name: member.name,
+      role: member.role,
+    });
+    setSelectedPermissions(memberPermissions[member.user_id] || []);
+    setDialogOpen(true);
+  };
+
+  const togglePermission = (permissionId: string) => {
+    setSelectedPermissions(prev => 
+      prev.includes(permissionId)
+        ? prev.filter(p => p !== permissionId)
+        : [...prev, permissionId]
+    );
+  };
+
+  const handleSave = async () => {
+    if (!formData.email || !formData.name) {
+      toast({
+        title: 'Error',
+        description: 'Please fill all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      if (editingMember) {
+        // Update existing member
+        const { error: memberError } = await supabase
+          .from('team_members')
+          .update({
+            name: formData.name,
+            role: formData.role,
+          })
+          .eq('id', editingMember.id);
+
+        if (memberError) throw memberError;
+
+        // Update permissions - delete existing and insert new
+        await supabase
+          .from('admin_permissions')
+          .delete()
+          .eq('user_id', editingMember.user_id);
+
+        if (selectedPermissions.length > 0) {
+          const { error: permError } = await supabase
+            .from('admin_permissions')
+            .insert(
+              selectedPermissions.map(p => ({
+                user_id: editingMember.user_id,
+                permission: p,
+                created_by: user?.id,
+              }))
+            );
+
+          if (permError) throw permError;
+        }
+
+        toast({ title: 'Success', description: 'Team member updated.' });
+      } else {
+        // Find user by email in profiles
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('email', formData.email)
+          .single();
+
+        if (profileError || !profile) {
+          toast({
+            title: 'Error',
+            description: 'User not found. They must have an account first.',
+            variant: 'destructive',
+          });
+          setSaving(false);
+          return;
+        }
+
+        // Add team member
+        const { error: memberError } = await supabase
+          .from('team_members')
+          .insert({
+            user_id: profile.user_id,
+            email: formData.email,
+            name: formData.name,
+            role: formData.role,
+            appointed_by: user?.id,
+          });
+
+        if (memberError) throw memberError;
+
+        // Add admin role
+        await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: profile.user_id,
+            role: 'admin',
+          });
+
+        // Add permissions
+        if (selectedPermissions.length > 0) {
+          const { error: permError } = await supabase
+            .from('admin_permissions')
+            .insert(
+              selectedPermissions.map(p => ({
+                user_id: profile.user_id,
+                permission: p,
+                created_by: user?.id,
+              }))
+            );
+
+          if (permError) throw permError;
+        }
+
+        toast({ title: 'Success', description: 'Team member added.' });
+      }
+
+      setDialogOpen(false);
+      resetForm();
+      fetchTeamMembers();
+    } catch (error) {
+      console.error('Error saving team member:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save team member.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (member: TeamMember) => {
+    if (!confirm(`Remove ${member.name} from the team?`)) return;
+
+    try {
+      // Remove permissions
+      await supabase
+        .from('admin_permissions')
+        .delete()
+        .eq('user_id', member.user_id);
+
+      // Remove admin role
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', member.user_id)
+        .eq('role', 'admin');
+
+      // Remove team member
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', member.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Removed', description: 'Team member removed successfully.' });
+      fetchTeamMembers();
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove team member.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <AdminLayout title="Team">
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (!isSuperAdmin) return null;
+
+  return (
+    <AdminLayout title="Team Management">
+      <div className="p-4 space-y-4">
+        {/* Add Button */}
+        <Button 
+          variant="gaming" 
+          className="w-full"
+          onClick={() => {
+            resetForm();
+            setDialogOpen(true);
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Team Member
+        </Button>
+
+        {/* Info Card */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Super Admin Access</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  As Super Admin, you have full access to all sections. Team members can only access sections based on their assigned permissions.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Team Members List */}
+        <div className="space-y-3">
+          {teamMembers.map((member) => (
+            <Card key={member.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-sm font-semibold text-primary">
+                        {member.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-xs text-muted-foreground">{member.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {member.role}
+                        </Badge>
+                        <Badge 
+                          className={`text-[10px] ${member.is_active ? 'bg-green-500/10 text-green-600' : 'bg-muted'}`}
+                        >
+                          {member.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(member)}>
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(member)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Permissions Preview */}
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Permissions:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(memberPermissions[member.user_id] || []).slice(0, 5).map(p => (
+                      <Badge key={p} variant="outline" className="text-[10px]">
+                        {p.split(':')[0]}
+                      </Badge>
+                    ))}
+                    {(memberPermissions[member.user_id] || []).length > 5 && (
+                      <Badge variant="outline" className="text-[10px]">
+                        +{(memberPermissions[member.user_id] || []).length - 5} more
+                      </Badge>
+                    )}
+                    {(memberPermissions[member.user_id] || []).length === 0 && (
+                      <span className="text-xs text-muted-foreground">No permissions assigned</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {teamMembers.length === 0 && (
+            <div className="text-center py-12">
+              <UsersRound className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+              <p className="text-muted-foreground">No team members yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Add team members to help manage the platform</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingMember ? 'Edit Team Member' : 'Add Team Member'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingMember ? 'Update member details and permissions' : 'Add a new team member with specific permissions'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-4">
+            {/* Basic Info */}
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="member@example.com"
+                  disabled={!!editingMember}
+                />
+                {!editingMember && (
+                  <p className="text-xs text-muted-foreground">User must have an existing account</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Name *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Team member name"
+                />
+              </div>
+            </div>
+
+            {/* Permissions */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Permissions</Label>
+              <p className="text-xs text-muted-foreground">
+                Select which sections this member can access
+              </p>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3">
+                {allPermissions.map((perm) => (
+                  <div
+                    key={perm.id}
+                    className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                    onClick={() => togglePermission(perm.id)}
+                  >
+                    <Checkbox
+                      checked={selectedPermissions.includes(perm.id)}
+                      onCheckedChange={() => togglePermission(perm.id)}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{perm.label}</p>
+                      <p className="text-xs text-muted-foreground">{perm.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="gaming" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingMember ? 'Update' : 'Add Member')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminLayout>
+  );
+};
+
+export default AdminTeam;

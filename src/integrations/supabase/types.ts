@@ -14,57 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_permissions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
           created_at: string
           date_of_birth: string | null
+          device_id: string | null
           email: string
           full_name: string | null
           game_uid: string | null
           id: string
           in_game_name: string | null
+          is_banned: boolean | null
+          is_frozen: boolean | null
           location: string | null
           phone: string | null
           preferred_game: string | null
           updated_at: string
           user_id: string
           username: string | null
+          wallet_balance: number | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           date_of_birth?: string | null
+          device_id?: string | null
           email: string
           full_name?: string | null
           game_uid?: string | null
           id?: string
           in_game_name?: string | null
+          is_banned?: boolean | null
+          is_frozen?: boolean | null
           location?: string | null
           phone?: string | null
           preferred_game?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
+          wallet_balance?: number | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           date_of_birth?: string | null
+          device_id?: string | null
           email?: string
           full_name?: string | null
           game_uid?: string | null
           id?: string
           in_game_name?: string | null
+          is_banned?: boolean | null
+          is_frozen?: boolean | null
           location?: string | null
           phone?: string | null
           preferred_game?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
+          wallet_balance?: number | null
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          appointed_by: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointed_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          name: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointed_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -181,11 +253,54 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          processed_by: string | null
+          reason: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          processed_by?: string | null
+          reason?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          processed_by?: string | null
+          reason?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_admin_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -194,6 +309,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin_email: { Args: { _email: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"

@@ -1,0 +1,470 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AdminLayout from '@/components/admin/AdminLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Search, 
+  Loader2, 
+  User,
+  Ban,
+  Smartphone,
+  Plus,
+  Minus,
+  Eye
+} from 'lucide-react';
+import { format } from 'date-fns';
+
+interface UserProfile {
+  id: string;
+  user_id: string;
+  email: string;
+  username: string | null;
+  full_name: string | null;
+  phone: string | null;
+  wallet_balance: number | null;
+  is_banned: boolean | null;
+  is_frozen: boolean | null;
+  created_at: string;
+}
+
+const AdminUsers = () => {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
+  const [walletAction, setWalletAction] = useState<'add' | 'deduct'>('add');
+  const [walletAmount, setWalletAmount] = useState('');
+  const [walletReason, setWalletReason] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const { user, isAdmin, isSuperAdmin, loading: authLoading, hasPermission } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/');
+      } else if (!hasPermission('users:view')) {
+        navigate('/admin');
+      }
+    }
+  }, [user, authLoading, navigate, hasPermission]);
+
+  useEffect(() => {
+    if (hasPermission('users:view')) {
+      fetchUsers();
+    }
+  }, [hasPermission]);
+
+  useEffect(() => {
+    const filtered = users.filter(u => 
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [searchQuery, users]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+      setFilteredUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBanUser = async (userId: string, ban: boolean) => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can perform this action.', variant: 'destructive' });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_banned: ban })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      toast({ title: 'Success', description: `User ${ban ? 'banned' : 'unbanned'} successfully.` });
+      fetchUsers();
+      setDetailOpen(false);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({ title: 'Error', description: 'Failed to update user status.', variant: 'destructive' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleFreezeAccount = async (userId: string, freeze: boolean) => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can perform this action.', variant: 'destructive' });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_frozen: freeze })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      toast({ title: 'Success', description: `Account ${freeze ? 'frozen' : 'unfrozen'} successfully.` });
+      fetchUsers();
+      setDetailOpen(false);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({ title: 'Error', description: 'Failed to update account status.', variant: 'destructive' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const openWalletDialog = (action: 'add' | 'deduct') => {
+    setWalletAction(action);
+    setWalletAmount('');
+    setWalletReason('');
+    setWalletDialogOpen(true);
+  };
+
+  const handleWalletAction = async () => {
+    if (!selectedUser || !walletAmount || !walletReason) {
+      toast({ title: 'Error', description: 'Please fill all fields.', variant: 'destructive' });
+      return;
+    }
+
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can perform this action.', variant: 'destructive' });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const amount = parseFloat(walletAmount);
+      const currentBalance = selectedUser.wallet_balance || 0;
+      const newBalance = walletAction === 'add' 
+        ? currentBalance + amount 
+        : currentBalance - amount;
+
+      // Update wallet balance
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({ wallet_balance: newBalance })
+        .eq('user_id', selectedUser.user_id);
+
+      if (balanceError) throw balanceError;
+
+      // Create transaction record
+      const { error: txError } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          user_id: selectedUser.user_id,
+          type: walletAction === 'add' ? 'admin_credit' : 'admin_debit',
+          amount: walletAction === 'add' ? amount : -amount,
+          status: 'completed',
+          description: `Admin ${walletAction === 'add' ? 'credit' : 'debit'}`,
+          reason: walletReason,
+          processed_by: user?.id,
+        });
+
+      if (txError) throw txError;
+
+      toast({ 
+        title: 'Success', 
+        description: `₹${amount} ${walletAction === 'add' ? 'added to' : 'deducted from'} wallet.` 
+      });
+      
+      setWalletDialogOpen(false);
+      fetchUsers();
+      
+      // Update selected user
+      setSelectedUser({
+        ...selectedUser,
+        wallet_balance: newBalance
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({ title: 'Error', description: 'Failed to update wallet.', variant: 'destructive' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <AdminLayout title="Users">
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout title="User Management">
+      <div className="p-4 space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email or username..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Users List */}
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">User</TableHead>
+                    <TableHead className="text-xs">Balance</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
+                    <TableHead className="text-xs w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-semibold text-primary">
+                              {u.username?.charAt(0).toUpperCase() || u.email.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{u.full_name || u.username || 'User'}</p>
+                            <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium">₹{u.wallet_balance || 0}</span>
+                      </TableCell>
+                      <TableCell>
+                        {u.is_banned ? (
+                          <Badge variant="destructive" className="text-[10px]">Banned</Badge>
+                        ) : u.is_frozen ? (
+                          <Badge variant="secondary" className="text-[10px]">Frozen</Badge>
+                        ) : (
+                          <Badge className="bg-green-500/10 text-green-600 text-[10px]">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setSelectedUser(u);
+                            setDetailOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8">
+                <User className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground text-sm">No users found</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* User Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              View and manage user account
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUser && (
+            <div className="space-y-4 pt-4">
+              {/* User Info */}
+              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xl font-semibold text-primary">
+                    {selectedUser.username?.charAt(0).toUpperCase() || selectedUser.email.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-semibold">{selectedUser.full_name || selectedUser.username || 'User'}</p>
+                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Joined {format(new Date(selectedUser.created_at), 'MMM dd, yyyy')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Wallet Section */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-muted-foreground">Wallet Balance</span>
+                  <span className="text-xl font-bold text-primary">₹{selectedUser.wallet_balance || 0}</span>
+                </div>
+                
+                {isSuperAdmin && hasPermission('users:manage') && (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-green-600 border-green-600"
+                      onClick={() => openWalletDialog('add')}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Add Money
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-destructive border-destructive"
+                      onClick={() => openWalletDialog('deduct')}
+                    >
+                      <Minus className="h-3 w-3 mr-1" /> Deduct
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Account Actions */}
+              {isSuperAdmin && hasPermission('users:manage') && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Account Actions</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleFreezeAccount(selectedUser.user_id, !selectedUser.is_frozen)}
+                      disabled={processing}
+                    >
+                      {selectedUser.is_frozen ? 'Unfreeze' : 'Freeze Account'}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleBanUser(selectedUser.user_id, !selectedUser.is_banned)}
+                      disabled={processing}
+                    >
+                      <Ban className="h-3 w-3 mr-1" />
+                      {selectedUser.is_banned ? 'Unban' : 'Ban User'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Wallet Action Dialog */}
+      <Dialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {walletAction === 'add' ? 'Add Money to Wallet' : 'Deduct from Wallet'}
+            </DialogTitle>
+            <DialogDescription>
+              This action will be logged for audit purposes
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Amount (₹) *</Label>
+              <Input
+                type="number"
+                placeholder="Enter amount"
+                value={walletAmount}
+                onChange={(e) => setWalletAmount(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Reason *</Label>
+              <Textarea
+                placeholder="Enter reason for this transaction (required for audit)"
+                value={walletReason}
+                onChange={(e) => setWalletReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWalletDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant={walletAction === 'add' ? 'default' : 'destructive'}
+              onClick={handleWalletAction}
+              disabled={processing}
+            >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminLayout>
+  );
+};
+
+export default AdminUsers;
