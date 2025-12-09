@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -19,7 +20,8 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; terms?: string }>({});
 
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ const Auth = () => {
   }, [user, navigate]);
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string; terms?: string } = {};
 
     try {
       emailSchema.parse(email);
@@ -48,6 +50,10 @@ const Auth = () => {
       if (e instanceof z.ZodError) {
         newErrors.password = e.errors[0].message;
       }
+    }
+
+    if (!isLogin && !acceptedTerms) {
+      newErrors.terms = 'You must accept the Terms & Conditions';
     }
 
     setErrors(newErrors);
@@ -193,6 +199,40 @@ const Auth = () => {
                 <p className="text-destructive text-xs">{errors.password}</p>
               )}
             </div>
+
+            {/* Terms & Conditions Checkbox - Only for Signup */}
+            {!isLogin && (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="terms"
+                    checked={acceptedTerms}
+                    onCheckedChange={(checked) => {
+                      setAcceptedTerms(checked as boolean);
+                      setErrors((prev) => ({ ...prev, terms: undefined }));
+                    }}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed">
+                    I agree to the{' '}
+                    <Link to="/terms" className="text-primary hover:underline">
+                      Terms & Conditions
+                    </Link>
+                    ,{' '}
+                    <Link to="/refund-policy" className="text-primary hover:underline">
+                      Refund Policy
+                    </Link>
+                    {' '}and{' '}
+                    <Link to="/about" className="text-primary hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </label>
+                </div>
+                {errors.terms && (
+                  <p className="text-destructive text-xs">{errors.terms}</p>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"
