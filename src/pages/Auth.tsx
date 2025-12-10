@@ -119,12 +119,12 @@ const Auth = () => {
       setLoading(false);
     }
   };
-  return <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+  return <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 border-gray-300">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg p-8 animate-scale-in">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
-            <img src={vyuhaLogo} alt="Vyuha Esport" className="h-20 w-20 rounded-full object-cover mb-4" />
+            <img src={vyuhaLogo} alt="Vyuha Esport" className="h-20 w-20 rounded-full object-cover mb-4 border-slate-400" />
             <h1 className="text-center mb-8 text-slate-950 font-normal text-base">
               {isLogin ? 'eSports Journey start here' : 'Create Your Account'}
             </h1>
