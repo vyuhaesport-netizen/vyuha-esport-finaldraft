@@ -54,6 +54,7 @@ interface OrganizerApplication {
   experience: string | null;
   status: string;
   created_at: string;
+  email?: string;
 }
 
 interface Organizer {
@@ -104,7 +105,20 @@ const AdminOrganizers = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApplications(data || []);
+      
+      // Fetch emails for each application
+      const applicationsWithEmails = await Promise.all(
+        (data || []).map(async (app) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('user_id', app.user_id)
+            .single();
+          return { ...app, email: profile?.email };
+        })
+      );
+      
+      setApplications(applicationsWithEmails);
     } catch (error) {
       console.error('Error fetching applications:', error);
     } finally {
@@ -194,6 +208,23 @@ const AdminOrganizers = () => {
 
       if (roleError) throw roleError;
 
+      // Send approval email notification
+      if (selectedApplication.email) {
+        try {
+          await supabase.functions.invoke('send-organizer-email', {
+            body: {
+              email: selectedApplication.email,
+              name: selectedApplication.name,
+              type: 'approved',
+            },
+          });
+          console.log('Approval email sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send email notification:', emailError);
+          // Don't fail the approval if email fails
+        }
+      }
+
       toast({ title: 'Approved!', description: `${selectedApplication.name} is now an organizer.` });
       setActionDialog(null);
       setSelectedApplication(null);
@@ -228,6 +259,23 @@ const AdminOrganizers = () => {
         .eq('id', selectedApplication.id);
 
       if (error) throw error;
+
+      // Send rejection email notification
+      if (selectedApplication.email) {
+        try {
+          await supabase.functions.invoke('send-organizer-email', {
+            body: {
+              email: selectedApplication.email,
+              name: selectedApplication.name,
+              type: 'rejected',
+              reason: rejectReason || undefined,
+            },
+          });
+          console.log('Rejection email sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send email notification:', emailError);
+        }
+      }
 
       toast({ title: 'Rejected', description: 'Application has been rejected.' });
       setActionDialog(null);

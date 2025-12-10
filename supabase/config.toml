@@ -1,1 +1,4 @@
 project_id = "wrmvhcpxwqqyjgecingo"
+
+[functions.send-organizer-email]
+verify_jwt = false
