@@ -12,6 +12,12 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk&display=swap");
+
+@import url("https://fonts.googleapis.com/css2?family=Crimson+Pro&display=swap");
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono&display=swap");
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -42,7 +48,7 @@
     --input: 0 0% 0%;
     --ring: 0 0% 0%;
 
-    --radius: 0rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 0%;
@@ -66,10 +72,10 @@
     --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     --shadow-2xs: 1px 1px 0px 0px #000000;
     --shadow-xs: 2px 2px 0px 0px #000000;
-    --shadow-sm: 3px 3px 0px 0px #000000;
-    --shadow: 5px 5px 0px 0px #000000;
-    --shadow-md: 8px 8px 0px 0px #000000;
-    --shadow-lg: 12px 12px 0px 0px #000000;
+    --shadow-sm: 5px 5px 0px 0px hsl(215, 20%, 65%);
+    --shadow: 5px 5px 0px 0px hsl(215, 20%, 65%);
+    --shadow-md: 5px 5px 0px 0px hsl(215, 20%, 65%);
+    --shadow-lg: 5px 5px 0px 0px hsl(215, 20%, 65%);
     --shadow-xl: 16px 16px 0px 0px #000000;
     --shadow-2xl: 24px 24px 0px 0px #000000;
     --tracking-normal: 0em;
@@ -124,13 +130,13 @@
     --sidebar: 0 0% 5%;
     --shadow-2xs: 1px 1px 0px 0px #ffffff;
     --shadow-xs: 2px 2px 0px 0px #ffffff;
-    --shadow-sm: 3px 3px 0px 0px #ffffff;
-    --shadow: 5px 5px 0px 0px #ffffff;
-    --shadow-md: 8px 8px 0px 0px #ffffff;
-    --shadow-lg: 12px 12px 0px 0px #ffffff;
+    --shadow-sm: 5px 5px 0px 0px hsl(215, 20%, 65%);
+    --shadow: 5px 5px 0px 0px hsl(215, 20%, 65%);
+    --shadow-md: 5px 5px 0px 0px hsl(215, 20%, 65%);
+    --shadow-lg: 5px 5px 0px 0px hsl(215, 20%, 65%);
     --shadow-xl: 16px 16px 0px 0px #ffffff;
     --shadow-2xl: 24px 24px 0px 0px #ffffff;
-    --radius: 0rem;
+    --radius: 0.5rem;
   }
 }
 
