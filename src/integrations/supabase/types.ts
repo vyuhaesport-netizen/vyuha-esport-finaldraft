@@ -438,6 +438,51 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          admin_response: string | null
+          attachments: Json | null
+          created_at: string
+          description: string
+          id: string
+          request_callback: boolean | null
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          attachments?: Json | null
+          created_at?: string
+          description: string
+          id?: string
+          request_callback?: boolean | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          attachments?: Json | null
+          created_at?: string
+          description?: string
+          id?: string
+          request_callback?: boolean | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           appointed_by: string | null

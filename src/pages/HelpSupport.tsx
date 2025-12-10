@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import {
 const HelpSupport = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [topic, setTopic] = useState('');
   const [description, setDescription] = useState('');
   const [requestCallback, setRequestCallback] = useState(false);
@@ -38,9 +41,8 @@ const HelpSupport = () => {
     const validFiles: File[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      // Allow images and videos
       if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-        if (file.size <= 10 * 1024 * 1024) { // 10MB limit
+        if (file.size <= 10 * 1024 * 1024) {
           validFiles.push(file);
         } else {
           toast({
@@ -66,6 +68,16 @@ const HelpSupport = () => {
   };
 
   const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: 'Login Required',
+        description: 'Please login to submit a support request',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
     if (!topic) {
       toast({
         title: 'Select a topic',
@@ -86,18 +98,58 @@ const HelpSupport = () => {
 
     setSubmitting(true);
 
-    // Simulate submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Upload attachments if any
+      const attachmentUrls: string[] = [];
+      for (const file of attachments) {
+        const fileName = `${user.id}/${Date.now()}_${file.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(fileName, file);
 
-    toast({
-      title: 'Request Submitted',
-      description: requestCallback 
-        ? 'Our team will contact you soon on your registered number.'
-        : 'We\'ll get back to you via email within 24 hours.',
-    });
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          continue;
+        }
 
-    setSubmitting(false);
-    navigate('/profile');
+        const { data: urlData } = supabase.storage
+          .from('chat-media')
+          .getPublicUrl(uploadData.path);
+
+        attachmentUrls.push(urlData.publicUrl);
+      }
+
+      // Insert support ticket
+      const { error } = await supabase
+        .from('support_tickets')
+        .insert({
+          user_id: user.id,
+          topic,
+          description: description.trim(),
+          request_callback: requestCallback,
+          attachments: attachmentUrls,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Request Submitted',
+        description: requestCallback 
+          ? 'Our team will contact you soon on your registered number.'
+          : "We'll get back to you via email within 24 hours.",
+      });
+
+      navigate('/profile');
+    } catch (error) {
+      console.error('Error submitting ticket:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit support request. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
