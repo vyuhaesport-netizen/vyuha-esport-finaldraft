@@ -13,10 +13,10 @@ import {
   Users, 
   ChevronRight,
   Loader2,
-  Wallet,
   QrCode,
   Copy
 } from 'lucide-react';
+import FriendRequestsBell from '@/components/FriendRequestsBell';
 import {
   Dialog,
   DialogContent,
@@ -370,13 +370,7 @@ const HomePage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => navigate('/wallet')}
-              className="flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
-            >
-              <Wallet className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">₹{walletBalance}</span>
-            </button>
+            <FriendRequestsBell />
             <NotificationBell />
           </div>
         </div>

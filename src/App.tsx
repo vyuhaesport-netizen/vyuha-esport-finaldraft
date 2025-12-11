@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { useState, useEffect } from "react";
+import { supabase } from "./integrations/supabase/client";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import Creator from "./pages/Creator";
@@ -32,6 +34,7 @@ import AdminSupport from "./pages/admin/AdminSupport";
 import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
 import CreatorDashboard from "./pages/creator/CreatorDashboard";
 import ChangePassword from "./pages/ChangePassword";
+import CompleteProfile from "./pages/CompleteProfile";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import AboutUs from "./pages/AboutUs";
@@ -42,8 +45,51 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!user) {
+        setCheckingProfile(false);
+        return;
+      }
+
+      // Skip profile check for complete-profile page
+      if (location.pathname === '/complete-profile') {
+        setCheckingProfile(false);
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, username, phone, preferred_game, in_game_name, game_uid')
+          .eq('user_id', user.id)
+          .single();
+
+        const isComplete = !!(
+          profile?.full_name && 
+          profile?.username && 
+          profile?.phone && 
+          profile?.preferred_game && 
+          profile?.in_game_name && 
+          profile?.game_uid
+        );
+        setProfileComplete(isComplete);
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        setProfileComplete(false);
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+
+    checkProfile();
+  }, [user, location.pathname]);
+
+  if (loading || checkingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -53,6 +99,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/" replace />;
+  }
+
+  // Redirect to complete profile if not complete
+  if (!profileComplete && location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />;
   }
 
   return <>{children}</>;
@@ -111,6 +162,9 @@ const AppRoutes = () => {
       
       {/* Creator Routes */}
       <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboard /></ProtectedRoute>} />
+      
+      {/* Profile Completion */}
+      <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
       
       {/* Public Routes */}
       <Route path="/change-password" element={<ChangePassword />} />
