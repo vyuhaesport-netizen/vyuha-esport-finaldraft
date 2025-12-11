@@ -30,6 +30,7 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSupport from "./pages/admin/AdminSupport";
 import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
+import CreatorDashboard from "./pages/creator/CreatorDashboard";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import AboutUs from "./pages/AboutUs";
@@ -106,6 +107,9 @@ const AppRoutes = () => {
       
       {/* Organizer Routes */}
       <Route path="/organizer" element={<ProtectedRoute><OrganizerDashboard /></ProtectedRoute>} />
+      
+      {/* Creator Routes */}
+      <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboard /></ProtectedRoute>} />
       
       <Route path="/terms" element={<Terms />} />
       <Route path="/refund-policy" element={<RefundPolicy />} />
