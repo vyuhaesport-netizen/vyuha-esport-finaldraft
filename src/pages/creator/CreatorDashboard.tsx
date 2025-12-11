@@ -45,6 +45,7 @@ import {
   Clock
 } from 'lucide-react';
 import { format, differenceInMinutes } from 'date-fns';
+import PrizeDistributionInput from '@/components/PrizeDistributionInput';
 
 interface Tournament {
   id: string;
@@ -810,18 +811,11 @@ const CreatorDashboard = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Prize Distribution (JSON)</Label>
-              <Textarea
-                value={formData.prize_distribution}
-                onChange={(e) => setFormData({ ...formData, prize_distribution: e.target.value })}
-                placeholder='{"1": 50, "2": 30, "3": 20}'
-                className="font-mono text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Format: Position -&gt; Percentage of prize pool
-              </p>
-            </div>
+            <PrizeDistributionInput
+              value={formData.prize_distribution}
+              onChange={(value) => setFormData({ ...formData, prize_distribution: value })}
+              prizePool={calculatePrizePool()}
+            />
 
             <div className="space-y-2">
               <Label>Description</Label>
