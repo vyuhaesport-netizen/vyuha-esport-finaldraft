@@ -486,7 +486,7 @@ const AdminUsers = () => {
                     </Button>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {userRoles.length === 0 ? (
                     <Badge variant="secondary" className="text-xs">User</Badge>
                   ) : (
@@ -514,8 +514,71 @@ const AdminUsers = () => {
                     ))
                   )}
                 </div>
+                
+                {/* Quick Action Buttons for Making Creator/Organizer */}
+                {isSuperAdmin && (
+                  <div className="flex gap-2 pt-2 border-t border-border">
+                    {!userRoles.includes('creator') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-pink-500/10 border-pink-500/30 text-pink-600 hover:bg-pink-500/20"
+                        onClick={async () => {
+                          setProcessing(true);
+                          try {
+                            const { error } = await supabase
+                              .from('user_roles')
+                              .insert({
+                                user_id: selectedUser.user_id,
+                                role: 'creator' as 'admin' | 'user' | 'organizer' | 'creator',
+                              });
+                            if (error) throw error;
+                            toast({ title: 'Success', description: 'User is now a Creator!' });
+                            fetchUserRoles(selectedUser.user_id);
+                          } catch (error) {
+                            console.error('Error:', error);
+                            toast({ title: 'Error', description: 'Failed to assign creator role.', variant: 'destructive' });
+                          } finally {
+                            setProcessing(false);
+                          }
+                        }}
+                        disabled={processing}
+                      >
+                        <Palette className="h-3 w-3 mr-1" /> Make Creator
+                      </Button>
+                    )}
+                    {!userRoles.includes('organizer') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-primary/10 border-primary/30 text-primary hover:bg-primary/20"
+                        onClick={async () => {
+                          setProcessing(true);
+                          try {
+                            const { error } = await supabase
+                              .from('user_roles')
+                              .insert({
+                                user_id: selectedUser.user_id,
+                                role: 'organizer' as 'admin' | 'user' | 'organizer' | 'creator',
+                              });
+                            if (error) throw error;
+                            toast({ title: 'Success', description: 'User is now an Organizer!' });
+                            fetchUserRoles(selectedUser.user_id);
+                          } catch (error) {
+                            console.error('Error:', error);
+                            toast({ title: 'Error', description: 'Failed to assign organizer role.', variant: 'destructive' });
+                          } finally {
+                            setProcessing(false);
+                          }
+                        }}
+                        disabled={processing}
+                      >
+                        <UserPlus className="h-3 w-3 mr-1" /> Make Organizer
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-
               {/* Account Actions */}
               {isSuperAdmin && hasPermission('users:manage') && (
                 <div className="space-y-2">

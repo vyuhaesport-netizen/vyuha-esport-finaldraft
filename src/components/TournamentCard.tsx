@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import FollowButton from '@/components/FollowButton';
+import OrganizerProfilePreview from '@/components/OrganizerProfilePreview';
 import { 
   Trophy, 
   Users, 
@@ -64,6 +65,7 @@ const TournamentCard = ({
   isFollowing = false,
   onFollowChange,
 }: TournamentCardProps) => {
+  const [profilePreviewOpen, setProfilePreviewOpen] = useState(false);
   const spotsLeft = (tournament.max_participants || 100) - (tournament.joined_users?.length || 0);
   const prizeAmount = tournament.prize_pool || `₹${tournament.current_prize_pool || 0}`;
   const entryFee = tournament.entry_fee ? `₹${tournament.entry_fee}` : 'Free';
@@ -150,6 +152,15 @@ const TournamentCard = ({
             </div>
             <div className="flex items-center gap-2">
               <p className="text-[11px] text-muted-foreground">{tournament.game}</p>
+              {/* Organizer Name - Clickable */}
+              {organizerName && tournament.created_by && (
+                <button
+                  onClick={() => setProfilePreviewOpen(true)}
+                  className="text-[11px] text-primary hover:underline font-medium"
+                >
+                  by {organizerName}
+                </button>
+              )}
               {/* Follow Button */}
               {tournament.created_by && onFollowChange && (
                 <FollowButton
@@ -161,7 +172,17 @@ const TournamentCard = ({
               )}
             </div>
           </div>
-          
+
+          {/* Organizer Profile Preview Dialog */}
+          {tournament.created_by && (
+            <OrganizerProfilePreview
+              organizerId={tournament.created_by}
+              open={profilePreviewOpen}
+              onOpenChange={setProfilePreviewOpen}
+              isFollowing={isFollowing}
+              onFollowChange={onFollowChange}
+            />
+          )}
           <div className="flex items-center gap-1.5 shrink-0">
             <Badge className={`text-[9px] px-2 py-0.5 capitalize ${
               variant === 'creator' 
