@@ -12,6 +12,14 @@ import {
   Loader2
 } from 'lucide-react';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   Drawer,
   DrawerContent,
   DrawerHeader,
@@ -40,6 +48,7 @@ interface Tournament {
 
 interface Profile {
   preferred_game: string | null;
+  wallet_balance: number | null;
 }
 
 const Creator = () => {
@@ -52,6 +61,8 @@ const Creator = () => {
   const [followedOrganizers, setFollowedOrganizers] = useState<string[]>([]);
   const [prizeDrawer, setPrizeDrawer] = useState<{ open: boolean; tournament: Tournament | null }>({ open: false, tournament: null });
   const [activeMode, setActiveMode] = useState<'solo' | 'duo' | 'squad'>('solo');
+  const [exitDialog, setExitDialog] = useState<{ open: boolean; tournament: Tournament | null }>({ open: false, tournament: null });
+  const [exiting, setExiting] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -70,7 +81,7 @@ const Creator = () => {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('preferred_game')
+        .select('preferred_game, wallet_balance')
         .eq('user_id', user.id)
         .single();
       setUserProfile(data);
@@ -238,6 +249,7 @@ const Creator = () => {
       
       setRegisteredTournaments([...registeredTournaments, tournament.id]);
       fetchTournaments();
+      fetchUserProfile();
     } catch (error) {
       console.error('Error registering:', error);
       toast({
@@ -250,26 +262,86 @@ const Creator = () => {
     }
   };
 
-  const handleFollow = async (organizerId: string) => {
-    if (!user) return;
-    
+  const canExitTournament = (tournament: Tournament) => {
+    const matchTime = new Date(tournament.start_date);
+    const now = new Date();
+    const timeDiff = matchTime.getTime() - now.getTime();
+    return timeDiff > 30 * 60 * 1000; // Can exit if more than 30 minutes before
+  };
+
+  const handleExitClick = (tournament: Tournament) => {
+    if (!canExitTournament(tournament)) {
+      toast({ 
+        title: 'Cannot Exit', 
+        description: 'You cannot exit a tournament less than 30 minutes before it starts.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    setExitDialog({ open: true, tournament });
+  };
+
+  const handleExitTournament = async () => {
+    if (!exitDialog.tournament || !user) return;
+
+    const tournament = exitDialog.tournament;
+    const entryFee = tournament.entry_fee || 0;
+    const walletBalance = userProfile?.wallet_balance || 0;
+
+    if (!canExitTournament(tournament)) {
+      toast({ 
+        title: 'Cannot Exit', 
+        description: 'You cannot exit a tournament less than 30 minutes before it starts.', 
+        variant: 'destructive' 
+      });
+      setExitDialog({ open: false, tournament: null });
+      return;
+    }
+
+    setExiting(true);
     try {
-      if (followedOrganizers.includes(organizerId)) {
-        await supabase.from('follows').delete()
-          .eq('follower_user_id', user.id)
-          .eq('following_user_id', organizerId);
-        setFollowedOrganizers(prev => prev.filter(id => id !== organizerId));
-        toast({ title: 'Unfollowed' });
-      } else {
-        await supabase.from('follows').insert({
-          follower_user_id: user.id,
-          following_user_id: organizerId,
-        });
-        setFollowedOrganizers(prev => [...prev, organizerId]);
-        toast({ title: 'Following!' });
-      }
+      // Refund entry fee to wallet
+      const { error: walletError } = await supabase
+        .from('profiles')
+        .update({ wallet_balance: walletBalance + entryFee })
+        .eq('user_id', user.id);
+
+      if (walletError) throw walletError;
+
+      // Record refund transaction
+      await supabase.from('wallet_transactions').insert({
+        user_id: user.id,
+        type: 'refund',
+        amount: entryFee,
+        status: 'completed',
+        description: `Refund for exiting ${tournament.title}`,
+      });
+
+      // Remove user from tournament
+      const newJoinedUsers = (tournament.joined_users || []).filter(id => id !== user.id);
+      
+      await supabase
+        .from('tournaments')
+        .update({ joined_users: newJoinedUsers })
+        .eq('id', tournament.id);
+
+      // Remove registration
+      await supabase
+        .from('tournament_registrations')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('tournament_id', tournament.id);
+
+      toast({ title: 'Exited!', description: `You left ${tournament.title}. ₹${entryFee} refunded.` });
+      setExitDialog({ open: false, tournament: null });
+      setRegisteredTournaments(prev => prev.filter(id => id !== tournament.id));
+      fetchTournaments();
+      fetchUserProfile();
     } catch (error) {
-      console.error('Error toggling follow:', error);
+      console.error('Error exiting tournament:', error);
+      toast({ title: 'Error', description: 'Failed to exit tournament.', variant: 'destructive' });
+    } finally {
+      setExiting(false);
     }
   };
 
@@ -378,6 +450,8 @@ const Creator = () => {
                   isJoined={isJoined}
                   showRoomDetails={showRoomDetails}
                   onJoinClick={() => handleRegister(tournament)}
+                  onExitClick={() => handleExitClick(tournament)}
+                  onSwipeJoin={() => handleRegister(tournament)}
                   onPrizeClick={tournament.prize_distribution ? () => setPrizeDrawer({ open: true, tournament }) : undefined}
                   isLoading={registering === tournament.id}
                   variant="creator"
@@ -387,6 +461,49 @@ const Creator = () => {
           </div>
         )}
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={exitDialog.open} onOpenChange={(open) => setExitDialog({ open, tournament: exitDialog.tournament })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exit Tournament</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to exit {exitDialog.tournament?.title}?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {exitDialog.tournament && (
+            <div className="py-4 space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Entry Fee Paid</span>
+                  <span className="font-semibold">₹{exitDialog.tournament.entry_fee || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Refund Amount</span>
+                  <span className="font-semibold text-emerald-600">₹{exitDialog.tournament.entry_fee || 0}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your entry fee will be refunded to your wallet immediately.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExitDialog({ open: false, tournament: null })}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleExitTournament}
+              disabled={exiting}
+            >
+              {exiting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Exit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Prize Distribution Drawer */}
       <Drawer open={prizeDrawer.open} onOpenChange={(open) => setPrizeDrawer({ open, tournament: prizeDrawer.tournament })}>
