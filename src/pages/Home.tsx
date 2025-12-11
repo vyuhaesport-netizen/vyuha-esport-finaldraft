@@ -230,11 +230,41 @@ const HomePage = () => {
     }
   };
 
+  const canExitTournament = (tournament: Tournament) => {
+    const matchTime = new Date(tournament.start_date);
+    const now = new Date();
+    const timeDiff = matchTime.getTime() - now.getTime();
+    return timeDiff > 30 * 60 * 1000; // Can exit if more than 30 minutes before
+  };
+
+  const handleExitClick = (tournament: Tournament) => {
+    if (!canExitTournament(tournament)) {
+      toast({ 
+        title: 'Cannot Exit', 
+        description: 'You cannot exit a tournament less than 30 minutes before it starts.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    setExitDialog({ open: true, tournament });
+  };
+
   const handleExitTournament = async () => {
     if (!exitDialog.tournament || !user) return;
 
     const tournament = exitDialog.tournament;
     const entryFee = tournament.entry_fee || 0;
+
+    // Double check exit restriction
+    if (!canExitTournament(tournament)) {
+      toast({ 
+        title: 'Cannot Exit', 
+        description: 'You cannot exit a tournament less than 30 minutes before it starts.', 
+        variant: 'destructive' 
+      });
+      setExitDialog({ open: false, tournament: null });
+      return;
+    }
 
     setExiting(true);
     try {
@@ -423,9 +453,10 @@ const HomePage = () => {
                   isJoined={joined}
                   showRoomDetails={showRoomDetails}
                   onJoinClick={() => handleJoinClick(tournament)}
-                  onExitClick={() => setExitDialog({ open: true, tournament })}
+                  onExitClick={() => handleExitClick(tournament)}
                   onShareClick={() => handleShare(tournament)}
                   onPrizeClick={tournament.prize_distribution ? () => setPrizeDrawer({ open: true, tournament }) : undefined}
+                  onSwipeJoin={() => handleJoinClick(tournament)}
                   variant="organizer"
                 />
               );
@@ -516,6 +547,49 @@ const HomePage = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={exitDialog.open} onOpenChange={(open) => setExitDialog({ open, tournament: exitDialog.tournament })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exit Tournament</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to exit {exitDialog.tournament?.title}?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {exitDialog.tournament && (
+            <div className="py-4 space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Entry Fee Paid</span>
+                  <span className="font-semibold">₹{exitDialog.tournament.entry_fee || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Refund Amount</span>
+                  <span className="font-semibold text-emerald-600">₹{exitDialog.tournament.entry_fee || 0}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your entry fee will be refunded to your wallet immediately.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExitDialog({ open: false, tournament: null })}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleExitTournament}
+              disabled={exiting}
+            >
+              {exiting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Exit'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
