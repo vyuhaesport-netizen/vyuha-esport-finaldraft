@@ -136,15 +136,19 @@ const AdminWithdrawals = () => {
 
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('wallet_transactions')
-        .update({ 
-          status: 'completed',
-          processed_by: user?.id 
-        })
-        .eq('id', selectedWithdrawal.id);
+      const { data, error } = await supabase.rpc('admin_process_withdrawal', {
+        p_withdrawal_id: selectedWithdrawal.id,
+        p_action: 'approve',
+        p_reason: null,
+      } as any);
 
       if (error) throw error;
+
+      const result = data as any;
+      if (!result?.success) {
+        toast({ title: 'Error', description: result?.error || 'Failed to approve withdrawal.', variant: 'destructive' });
+        return;
+      }
 
       toast({ title: 'Approved', description: 'Withdrawal marked as completed. Please send the money manually.' });
       setActionDialog(null);
@@ -171,32 +175,20 @@ const AdminWithdrawals = () => {
 
     setProcessing(true);
     try {
-      // Refund the amount back to user's wallet
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('wallet_balance')
-        .eq('user_id', selectedWithdrawal.user_id)
-        .single();
-
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            wallet_balance: (profile.wallet_balance || 0) + Math.abs(selectedWithdrawal.amount)
-          })
-          .eq('user_id', selectedWithdrawal.user_id);
-      }
-
-      const { error } = await supabase
-        .from('wallet_transactions')
-        .update({ 
-          status: 'rejected',
-          reason: rejectReason,
-          processed_by: user?.id 
-        })
-        .eq('id', selectedWithdrawal.id);
+      // Use secure server-side function for atomic refund
+      const { data, error } = await supabase.rpc('admin_process_withdrawal', {
+        p_withdrawal_id: selectedWithdrawal.id,
+        p_action: 'reject',
+        p_reason: rejectReason,
+      } as any);
 
       if (error) throw error;
+
+      const result = data as any;
+      if (!result?.success) {
+        toast({ title: 'Error', description: result?.error || 'Failed to reject withdrawal.', variant: 'destructive' });
+        return;
+      }
 
       toast({ title: 'Rejected', description: 'Withdrawal rejected and amount refunded to user.' });
       setActionDialog(null);
