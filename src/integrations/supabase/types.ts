@@ -864,15 +864,25 @@ export type Database = {
       is_creator: { Args: { _user_id: string }; Returns: boolean }
       is_organizer: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
-      process_team_tournament_join: {
-        Args: {
-          p_leader_id: string
-          p_team_member_ids: string[]
-          p_team_name: string
-          p_tournament_id: string
-        }
-        Returns: Json
-      }
+      process_team_tournament_join:
+        | {
+            Args: {
+              p_leader_id: string
+              p_team_member_ids: string[]
+              p_team_name: string
+              p_tournament_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_leader_id: string
+              p_team_member_ids: string[]
+              p_team_name: string
+              p_tournament_id: string
+            }
+            Returns: Json
+          }
       process_team_winner_declaration: {
         Args: {
           p_organizer_id: string
