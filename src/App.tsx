@@ -14,7 +14,7 @@ import MyMatch from "./pages/MyMatch";
 import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
 import Team from "./pages/Team";
-import Message from "./pages/Message";
+import BroadcastChannel from "./pages/BroadcastChannel";
 import HelpSupport from "./pages/HelpSupport";
 import Payment from "./pages/Payment";
 import Leaderboard from "./pages/Leaderboard";
@@ -176,7 +176,7 @@ const AppRoutes = () => {
       <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-      <Route path="/message" element={<ProtectedRoute><Message /></ProtectedRoute>} />
+      <Route path="/broadcast" element={<ProtectedRoute><BroadcastChannel /></ProtectedRoute>} />
       <Route path="/help-support" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />
       <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />

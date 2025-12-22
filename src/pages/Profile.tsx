@@ -36,7 +36,8 @@ import {
   Instagram,
   Youtube,
   CreditCard,
-  Users
+  Users,
+  Megaphone
 } from 'lucide-react';
 import {
   Dialog,
@@ -356,7 +357,7 @@ const ProfilePage = () => {
   ];
 
   const moreItems = [
-    { icon: Users, label: 'Message', onClick: () => navigate('/message') },
+    { icon: Megaphone, label: 'Broadcast Channel', onClick: () => navigate('/broadcast') },
     { icon: HelpCircle, label: 'Help & Support', onClick: () => navigate('/help-support') },
     { icon: FileText, label: 'Terms & Conditions', onClick: () => navigate('/terms') },
     { icon: Info, label: 'About Us', onClick: () => navigate('/about') },
