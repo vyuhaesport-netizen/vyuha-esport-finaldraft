@@ -17,30 +17,54 @@ export type Database = {
       admin_broadcasts: {
         Row: {
           admin_id: string
+          attachment_name: string | null
+          attachment_url: string | null
+          banner_url: string | null
           broadcast_type: string
           created_at: string
           id: string
+          is_published: boolean | null
+          media_type: string | null
+          media_url: string | null
           message: string
+          scheduled_for: string | null
           target_audience: string
           title: string
+          video_link: string | null
         }
         Insert: {
           admin_id: string
+          attachment_name?: string | null
+          attachment_url?: string | null
+          banner_url?: string | null
           broadcast_type?: string
           created_at?: string
           id?: string
+          is_published?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
           message: string
+          scheduled_for?: string | null
           target_audience?: string
           title: string
+          video_link?: string | null
         }
         Update: {
           admin_id?: string
+          attachment_name?: string | null
+          attachment_url?: string | null
+          banner_url?: string | null
           broadcast_type?: string
           created_at?: string
           id?: string
+          is_published?: boolean | null
+          media_type?: string | null
+          media_url?: string | null
           message?: string
+          scheduled_for?: string | null
           target_audience?: string
           title?: string
+          video_link?: string | null
         }
         Relationships: []
       }
