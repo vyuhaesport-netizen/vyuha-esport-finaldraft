@@ -52,7 +52,10 @@ import {
   MicOff,
   Play,
   Pause,
-  Volume2
+  Volume2,
+  Video,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -90,6 +93,12 @@ interface AdminBroadcast {
   title: string;
   message: string;
   created_at: string;
+  media_url?: string;
+  media_type?: string;
+  banner_url?: string;
+  video_link?: string;
+  attachment_url?: string;
+  attachment_name?: string;
 }
 
 interface ChatGroup {
@@ -190,9 +199,9 @@ const MessagePage = () => {
     const vyuhaChat: ChatItem = {
       id: 'vyuha',
       type: 'vyuha',
-      name: 'Vyuha Esport',
+      name: 'Broadcast Channel',
       avatar: vyuhaLogo,
-      lastMessage: adminBroadcasts[0]?.message || 'Official announcements',
+      lastMessage: adminBroadcasts[0]?.message || 'Official broadcasts from Vyuha',
       lastMessageTime: adminBroadcasts[0]?.created_at,
       unreadCount: adminBroadcasts.length > 0 ? 1 : 0,
       isOnline: true,
@@ -409,7 +418,8 @@ const MessagePage = () => {
     try {
       const { data } = await supabase
         .from('admin_broadcasts')
-        .select('id, title, message, created_at')
+        .select('id, title, message, created_at, media_url, media_type, banner_url, video_link, attachment_url, attachment_name')
+        .eq('is_published', true)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -933,35 +943,90 @@ const MessagePage = () => {
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="font-semibold">Vyuha Esport</p>
+                <p className="font-semibold">Broadcast Channel</p>
                 <Badge variant="secondary" className="text-[10px]">Official</Badge>
               </div>
-              <p className="text-xs text-green-500">Online</p>
+              <p className="text-xs text-green-500">Vyuha Esport</p>
             </div>
           </div>
         </header>
 
         <ScrollArea className="flex-1 p-4">
-          <div className="space-y-3">
+          <div className="space-y-4">
             {adminBroadcasts.length === 0 ? (
               <div className="text-center py-12">
                 <img src={vyuhaLogo} alt="" className="h-20 w-20 mx-auto rounded-full mb-4 opacity-50" />
                 <p className="text-muted-foreground">No messages from Vyuha yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Official announcements will appear here</p>
+                <p className="text-xs text-muted-foreground mt-1">Official broadcasts will appear here</p>
               </div>
             ) : (
               adminBroadcasts.map((broadcast) => (
-                <div key={broadcast.id} className="flex items-end gap-2">
-                  <Avatar className="h-8 w-8 flex-shrink-0">
+                <div key={broadcast.id} className="flex items-start gap-2">
+                  <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
                     <AvatarImage src={vyuhaLogo} />
                     <AvatarFallback>V</AvatarFallback>
                   </Avatar>
-                  <div className="max-w-[80%]">
+                  <div className="max-w-[85%] flex-1">
+                    {/* Banner Image */}
+                    {broadcast.banner_url && (
+                      <img 
+                        src={broadcast.banner_url} 
+                        alt="" 
+                        className="w-full h-40 object-cover rounded-xl mb-2" 
+                      />
+                    )}
+                    
                     <div className="bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl rounded-bl-md p-3 border border-primary/20">
                       <p className="font-semibold text-sm text-primary">{broadcast.title}</p>
-                      <p className="text-sm mt-1">{broadcast.message}</p>
+                      <p className="text-sm mt-1 whitespace-pre-wrap">{broadcast.message}</p>
+                      
+                      {/* Video Link */}
+                      {broadcast.video_link && (
+                        <a 
+                          href={broadcast.video_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 mt-3 p-2 bg-red-500/20 rounded-lg text-sm text-red-400 hover:bg-red-500/30 transition-colors"
+                        >
+                          <Video className="h-4 w-4" />
+                          <span className="flex-1 truncate">Watch Video</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                      
+                      {/* Audio Message */}
+                      {broadcast.media_url && broadcast.media_type === 'audio' && (
+                        <div className="mt-3">
+                          <audio controls className="w-full h-10">
+                            <source src={broadcast.media_url} type="audio/webm" />
+                          </audio>
+                        </div>
+                      )}
+                      
+                      {/* Image */}
+                      {broadcast.media_url && broadcast.media_type === 'image' && (
+                        <img 
+                          src={broadcast.media_url} 
+                          alt="" 
+                          className="mt-3 rounded-lg max-h-60 object-contain" 
+                        />
+                      )}
+                      
+                      {/* PDF Attachment */}
+                      {broadcast.attachment_url && (
+                        <a 
+                          href={broadcast.attachment_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 mt-3 p-2 bg-orange-500/20 rounded-lg text-sm text-orange-400 hover:bg-orange-500/30 transition-colors"
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span className="flex-1 truncate">{broadcast.attachment_name || 'Download PDF'}</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
                     </div>
-                    <p className="text-[10px] text-muted-foreground ml-1 mt-0.5">
+                    <p className="text-[10px] text-muted-foreground ml-1 mt-1">
                       {format(new Date(broadcast.created_at), 'MMM dd, hh:mm a')}
                     </p>
                   </div>
