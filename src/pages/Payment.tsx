@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Upload, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Upload, Loader2, Clock, QrCode, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,7 @@ const Payment = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [timeLeft, setTimeLeft] = useState(7 * 60); // 7 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(7 * 60);
   const [copied, setCopied] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
   const [screenshot, setScreenshot] = useState<File | null>(null);
@@ -124,7 +124,6 @@ const Payment = () => {
     try {
       let screenshotUrl = null;
 
-      // Upload screenshot if provided
       if (screenshot) {
         const fileExt = screenshot.name.split('.').pop();
         const filePath = `${user.id}/${Date.now()}.${fileExt}`;
@@ -142,7 +141,6 @@ const Payment = () => {
         screenshotUrl = urlData.publicUrl;
       }
 
-      // Create deposit transaction
       const { error } = await supabase
         .from('wallet_transactions')
         .insert({
@@ -175,108 +173,140 @@ const Payment = () => {
     }
   };
 
+  const isUrgent = timeLeft < 60;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate('/wallet')}
-            className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-foreground" />
-          </button>
-          <h1 className="text-lg font-bold text-foreground">Make Payment</h1>
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b-2 border-border px-4 py-3">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/wallet')}
+              className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors border border-border"
+            >
+              <ArrowLeft className="h-5 w-5 text-foreground" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">Pay ₹{amount}</h1>
+              <p className="text-xs text-muted-foreground">Secure UPI Payment</p>
+            </div>
+          </div>
+          
+          {/* Timer Badge */}
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${
+            isUrgent 
+              ? 'bg-destructive/10 border-destructive text-destructive animate-pulse' 
+              : 'bg-secondary border-border text-foreground'
+          }`}>
+            <Clock className="h-4 w-4" />
+            <span className="font-mono font-bold text-lg">{formatTime(timeLeft)}</span>
+          </div>
         </div>
       </header>
 
-      <div className="p-4 space-y-6">
-        {/* Amount Display */}
-        <div className="bg-gradient-to-br from-primary to-orange-400 rounded-xl p-4 text-center text-primary-foreground">
-          <p className="text-sm opacity-90">Amount to Pay</p>
-          <p className="text-3xl font-bold">₹{amount}</p>
-        </div>
-
-        {/* Timer */}
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <AlertCircle className="h-4 w-4 text-destructive" />
-            <span className="text-sm text-destructive font-medium">Time Remaining</span>
+      <div className="max-w-lg mx-auto p-4 space-y-5">
+        
+        {/* QR Code Section - Hero */}
+        <div className="bg-card border-2 border-border rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-secondary/50 px-4 py-3 border-b border-border">
+            <div className="flex items-center justify-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              <span className="font-semibold text-foreground">Scan & Pay ₹{amount}</span>
+            </div>
           </div>
-          <p className={`text-2xl font-bold font-mono ${timeLeft < 60 ? 'text-destructive animate-pulse' : 'text-destructive'}`}>
-            {formatTime(timeLeft)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Please complete payment before timer ends
-          </p>
-        </div>
-
-        {/* QR Code */}
-        <div className="bg-card border border-border rounded-xl p-6 text-center">
-          <p className="text-sm font-medium text-foreground mb-4">Scan QR Code to Pay</p>
-          <div className="w-48 h-48 mx-auto bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-            {qrCodeUrl ? (
-              <img src={qrCodeUrl} alt="Payment QR Code" className="w-full h-full object-contain" />
-            ) : (
-              <div className="text-center p-4">
-                <p className="text-xs text-muted-foreground">QR Code not configured</p>
-                <p className="text-xs text-muted-foreground mt-1">Use UPI ID below</p>
-              </div>
-            )}
+          
+          <div className="p-6 flex flex-col items-center">
+            {/* Large QR Code */}
+            <div className="w-72 h-72 bg-card border-2 border-border rounded-xl p-3 shadow-xs">
+              {qrCodeUrl ? (
+                <img 
+                  src={qrCodeUrl} 
+                  alt="Payment QR Code" 
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-muted rounded-lg">
+                  <QrCode className="h-16 w-16 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground text-center">QR not available</p>
+                  <p className="text-xs text-muted-foreground">Use UPI ID below</p>
+                </div>
+              )}
+            </div>
+            
+            <p className="text-sm text-muted-foreground mt-4 text-center">
+              Open any UPI app and scan this QR code
+            </p>
           </div>
         </div>
 
-        {/* UPI ID */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-sm font-medium text-foreground mb-2">Or pay using UPI ID</p>
+        {/* UPI ID Section */}
+        <div className="bg-card border-2 border-border rounded-xl p-4">
+          <p className="text-sm font-medium text-muted-foreground mb-3 text-center">Or copy UPI ID</p>
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-muted rounded-lg px-4 py-3 font-mono text-sm">
+            <div className="flex-1 bg-secondary rounded-lg px-4 py-3 font-mono text-sm text-foreground border border-border text-center font-medium">
               {adminUpiId}
             </div>
             <Button 
               variant="outline" 
               size="icon"
               onClick={copyUpiId}
-              className="shrink-0"
+              className="shrink-0 h-12 w-12 border-2"
             >
-              {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              {copied ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
             </Button>
           </div>
         </div>
 
-        {/* Verification Form */}
-        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-          <h3 className="font-semibold text-foreground">Payment Verification</h3>
+        {/* Divider */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-border"></div>
+          <span className="text-sm font-medium text-muted-foreground">After Payment</span>
+          <div className="flex-1 h-px bg-border"></div>
+        </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm">UTR / Reference Number *</Label>
+        {/* UTR Input - Prominent */}
+        <div className="bg-card border-2 border-border rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <h3 className="font-bold text-foreground">Verify Payment</h3>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-foreground">UTR / Reference Number *</Label>
             <Input
               value={utrNumber}
               onChange={(e) => setUtrNumber(e.target.value)}
               placeholder="Enter 12-digit UTR number"
-              className="bg-background"
+              className="bg-background h-14 text-lg font-mono border-2 text-center tracking-wider"
+              maxLength={20}
             />
-            <p className="text-xs text-muted-foreground">
-              Find this in your UPI app payment history
+            <p className="text-xs text-muted-foreground text-center">
+              Find this in your UPI app → Payment History → Transaction Details
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm">Upload Screenshot (Optional)</Label>
+          {/* Screenshot Upload */}
+          <div className="space-y-2 pt-2">
+            <Label className="text-sm font-medium text-muted-foreground">Screenshot (Optional)</Label>
             <div 
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+              className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all ${
+                screenshot 
+                  ? 'border-green-500 bg-green-500/5' 
+                  : 'border-border hover:border-primary hover:bg-muted/50'
+              }`}
             >
               {screenshot ? (
                 <div className="flex items-center justify-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-foreground">{screenshot.name}</span>
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium text-foreground">{screenshot.name}</span>
                 </div>
               ) : (
-                <>
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Tap to upload payment screenshot</p>
-                </>
+                <div className="flex items-center justify-center gap-2">
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Tap to upload screenshot</span>
+                </div>
               )}
             </div>
             <input
@@ -293,17 +323,23 @@ const Payment = () => {
         <Button
           onClick={handleSubmit}
           disabled={submitting || !utrNumber.trim()}
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6"
+          className="w-full h-14 text-lg font-bold border-2 border-border shadow-xs hover:shadow-none transition-all"
+          size="lg"
         >
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Submitting...
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Verifying...
             </>
           ) : (
-            'Submit Payment Details'
+            'Submit Payment'
           )}
         </Button>
+
+        {/* Footer Note */}
+        <p className="text-xs text-muted-foreground text-center pb-4">
+          Your deposit will be credited within 5-10 minutes after verification
+        </p>
       </div>
     </div>
   );
