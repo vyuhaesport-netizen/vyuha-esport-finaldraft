@@ -377,49 +377,12 @@ const ProfilePage = () => {
     <AppLayout>
       {/* Profile Header */}
       <div className="bg-card px-4 pt-6 pb-4">
-        <div className="flex items-center gap-6">
-          <div className="relative shrink-0">
-            <Avatar className="h-20 w-20 border-2 border-primary/20">
-              <AvatarImage src={profile?.avatar_url || ''} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
-                {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-card"
-            >
-              {uploadingAvatar ? (
-                <Loader2 className="h-3.5 w-3.5 text-primary-foreground animate-spin" />
-              ) : (
-                <Camera className="h-3.5 w-3.5 text-primary-foreground" />
-              )}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-          </div>
-
-          <div className="flex-1 grid grid-cols-3 gap-2">
-            <div className="text-center">
-              <p className="font-bold text-lg text-foreground">0</p>
-              <p className="text-xs text-muted-foreground">Matches</p>
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-lg text-foreground">0</p>
-              <p className="text-xs text-muted-foreground">Wins</p>
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-lg text-foreground">₹0</p>
-              <p className="text-xs text-muted-foreground">Earnings</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-bold text-base text-foreground">
-              {profile?.full_name || profile?.username || 'Gamer'}
-            </h1>
+        {/* Username above avatar */}
+        <div className="text-center mb-4">
+          <h1 className="font-bold text-xl text-foreground">
+            @{profile?.username || 'username'}
+          </h1>
+          <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
             {isSuperAdmin && (
               <Badge className="bg-gradient-to-r from-primary to-orange-500 text-primary-foreground text-[10px]">
                 <Crown className="h-2.5 w-2.5 mr-0.5" /> Owner
@@ -436,14 +399,32 @@ const ProfilePage = () => {
               </Badge>
             )}
           </div>
-          {profile?.username && <p className="text-sm text-muted-foreground">@{profile.username}</p>}
-          {profile?.preferred_game && (
-            <p className="text-xs text-primary mt-1">
-              <Gamepad2 className="h-3 w-3 inline mr-1" />
-              {profile.preferred_game} {profile.in_game_name && `• ${profile.in_game_name}`}
+        </div>
+
+        {/* Avatar */}
+        <div className="flex justify-center mb-4">
+          <Avatar className="h-24 w-24 border-2 border-primary/20">
+            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-bold">
+              {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+
+        {/* In-game name and UID */}
+        <div className="text-center space-y-1">
+          {profile?.in_game_name && (
+            <p className="text-sm text-foreground">
+              <Gamepad2 className="h-3.5 w-3.5 inline mr-1.5 text-primary" />
+              {profile.in_game_name}
             </p>
           )}
-          {profile?.bio && <p className="text-sm text-foreground mt-1">{profile.bio}</p>}
+          {profile?.game_uid && (
+            <p className="text-sm text-muted-foreground">
+              <Hash className="h-3.5 w-3.5 inline mr-1.5" />
+              UID: {profile.game_uid}
+            </p>
+          )}
         </div>
 
         <button 
