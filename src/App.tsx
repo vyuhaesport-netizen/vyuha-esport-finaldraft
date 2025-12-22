@@ -38,6 +38,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import AboutUs from "./pages/AboutUs";
+import TournamentDetails from "./pages/TournamentDetails";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -209,6 +210,7 @@ const AppRoutes = () => {
       <Route path="/terms" element={<Terms />} />
       <Route path="/refund-policy" element={<RefundPolicy />} />
       <Route path="/about" element={<AboutUs />} />
+      <Route path="/tournament/:id" element={<TournamentDetails />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
