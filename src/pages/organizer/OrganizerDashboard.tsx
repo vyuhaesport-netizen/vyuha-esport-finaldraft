@@ -415,7 +415,7 @@ const OrganizerDashboard = () => {
   };
 
   const handleDeclareWinners = async () => {
-    if (!selectedTournament) return;
+    if (!selectedTournament || !user) return;
     
     const positionsAssigned = Object.keys(winnerPositions).length;
     if (positionsAssigned === 0) {
@@ -426,103 +426,35 @@ const OrganizerDashboard = () => {
     setSaving(true);
 
     try {
-      // Get prize distribution
-      const prizeDistribution = selectedTournament.prize_distribution || {};
-      const prizePool = selectedTournament.current_prize_pool || 0;
+      // Use atomic secure database function to prevent any exploits
+      const { data, error } = await supabase.rpc('process_winner_declaration', {
+        p_tournament_id: selectedTournament.id,
+        p_organizer_id: user.id,
+        p_winner_positions: winnerPositions,
+      });
 
-      // Award prizes based on positions
-      for (const [userId, position] of Object.entries(winnerPositions)) {
-        let prizeAmount = 0;
-        
-        // Check if prize_distribution has amount for this position
-        if (prizeDistribution[position.toString()]) {
-          prizeAmount = parseFloat(prizeDistribution[position.toString()]);
-        } else if (position === 1) {
-          // Default: 1st place gets 60% of prize pool
-          prizeAmount = prizePool * 0.6;
-        } else if (position === 2) {
-          // 2nd place gets 25%
-          prizeAmount = prizePool * 0.25;
-        } else if (position === 3) {
-          // 3rd place gets 15%
-          prizeAmount = prizePool * 0.15;
-        }
+      if (error) throw error;
 
-        if (prizeAmount > 0) {
-          const { data: winnerProfile } = await supabase
-            .from('profiles')
-            .select('wallet_balance')
-            .eq('user_id', userId)
-            .single();
+      const result = data as { 
+        success: boolean; 
+        error?: string; 
+        total_distributed?: number;
+        organizer_earnings?: number;
+      };
 
-          await supabase
-            .from('profiles')
-            .update({ wallet_balance: (winnerProfile?.wallet_balance || 0) + prizeAmount })
-            .eq('user_id', userId);
-
-          await supabase.from('wallet_transactions').insert({
-            user_id: userId,
-            type: 'prize',
-            amount: prizeAmount,
-            status: 'completed',
-            description: `Position #${position} prize for ${selectedTournament.title}`,
-          });
-
-          // Notify winner
-          await supabase.from('notifications').insert({
-            user_id: userId,
-            type: 'prize_won',
-            title: 'Congratulations! 🎉',
-            message: `You won position #${position} in ${selectedTournament.title}! ₹${prizeAmount} credited to your wallet.`,
-          });
-        }
-      }
-
-      // Get first place winner
-      const firstPlaceWinner = Object.entries(winnerPositions).find(([, pos]) => pos === 1);
-
-      // Update tournament status
-      const { error: tournamentError } = await supabase
-        .from('tournaments')
-        .update({
-          winner_user_id: firstPlaceWinner ? firstPlaceWinner[0] : Object.keys(winnerPositions)[0],
-          winner_declared_at: new Date().toISOString(),
-          status: 'completed',
-        })
-        .eq('id', selectedTournament.id);
-
-      if (tournamentError) throw tournamentError;
-
-      // Credit organizer earnings
-      const organizerEarnings = ((selectedTournament.entry_fee || 0) * (selectedTournament.joined_users?.length || 0) * commissionSettings.organizer_percent) / 100;
-      
-      if (organizerEarnings > 0) {
-        const { data: organizerProfile } = await supabase
-          .from('profiles')
-          .select('wallet_balance')
-          .eq('user_id', user?.id)
-          .single();
-
-        await supabase
-          .from('profiles')
-          .update({ wallet_balance: (organizerProfile?.wallet_balance || 0) + organizerEarnings })
-          .eq('user_id', user?.id);
-
-        await supabase.from('wallet_transactions').insert({
-          user_id: user?.id,
-          type: 'organizer_commission',
-          amount: organizerEarnings,
-          status: 'completed',
-          description: `Organizer commission for ${selectedTournament.title}`,
+      if (!result.success) {
+        toast({ 
+          title: 'Cannot Declare Winners', 
+          description: result.error || 'Failed to declare winners.', 
+          variant: 'destructive' 
         });
-
-        await supabase
-          .from('tournaments')
-          .update({ organizer_earnings: organizerEarnings })
-          .eq('id', selectedTournament.id);
+        return;
       }
 
-      toast({ title: 'Winners Declared!', description: 'Prizes have been distributed to winners.' });
+      toast({ 
+        title: 'Winners Declared!', 
+        description: `Prizes distributed. You earned ₹${result.organizer_earnings?.toFixed(0) || 0} commission.` 
+      });
       setWinnerDialogOpen(false);
       fetchMyTournaments();
     } catch (error) {
