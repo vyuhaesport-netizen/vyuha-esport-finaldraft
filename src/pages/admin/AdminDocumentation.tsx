@@ -86,6 +86,22 @@ const AdminDocumentation = () => {
 
   const tournamentFunctions: FunctionDoc[] = [
     {
+      name: 'Registration Deadline Logic',
+      description: 'Tournaments are hidden and blocked after registration deadline',
+      location: 'src/pages/Home.tsx, Database Functions',
+      logic: [
+        'Each tournament has an optional registration_deadline timestamp',
+        'Home page filters: only shows tournaments where deadline has NOT passed',
+        'Tournaments past deadline are HIDDEN from browse pages',
+        'Registered players can still view in "My Matches" section',
+        'Database functions block joining: "Registration deadline has passed"',
+        'This applies to both solo and team tournament joins',
+        'Organizers set deadline when creating tournament'
+      ],
+      database: 'tournaments (registration_deadline)',
+      security: 'Enforced at both UI and database function level'
+    },
+    {
       name: 'Join Tournament (Solo)',
       description: 'User joins a solo tournament by paying entry fee',
       location: 'src/pages/TournamentDetails.tsx',
@@ -94,6 +110,7 @@ const AdminDocumentation = () => {
         'Shows confirmation dialog with entry fee and balance',
         'Calls process_tournament_join RPC function',
         'RPC validates: tournament exists, is upcoming, not full, user not already joined',
+        'Validates registration deadline has not passed',
         'Checks wallet balance >= entry fee',
         'Atomically: deducts entry fee, adds user to joined_users array',
         'Calculates fee split: organizer %, platform %, prize pool %',
@@ -113,6 +130,7 @@ const AdminDocumentation = () => {
         'Shows each teammate\'s wallet balance for verification',
         'User selects teammates (2 for duo, 4 for squad)',
         'Validates: all members have sufficient balance',
+        'Validates registration deadline has not passed',
         'Blocks registration if any teammate has insufficient balance',
         'Calls process_team_tournament_join RPC function',
         'RPC atomically: deducts entry fee from ALL team members',
@@ -120,7 +138,7 @@ const AdminDocumentation = () => {
         'Sends notification to all team members'
       ],
       database: 'tournaments, profiles, wallet_transactions, tournament_registrations, player_teams, player_team_members, notifications',
-      security: 'SECURITY DEFINER function, validates all member balances before any deduction'
+      security: 'SECURITY DEFINER function, validates all member balances and deadline before any deduction'
     },
     {
       name: 'Exit Tournament',

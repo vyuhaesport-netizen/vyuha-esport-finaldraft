@@ -48,6 +48,7 @@ interface Tournament {
   room_password: string | null;
   prize_distribution: any;
   created_by: string | null;
+  registration_deadline: string | null;
 }
 
 interface Profile {
@@ -141,13 +142,21 @@ const HomePage = () => {
     try {
       const { data, error } = await supabase
         .from('tournaments')
-        .select('id, title, game, prize_pool, entry_fee, start_date, status, max_participants, tournament_type, joined_users, current_prize_pool, tournament_mode, room_id, room_password, prize_distribution, created_by')
+        .select('id, title, game, prize_pool, entry_fee, start_date, status, max_participants, tournament_type, joined_users, current_prize_pool, tournament_mode, room_id, room_password, prize_distribution, created_by, registration_deadline')
         .eq('status', 'upcoming')
         .eq('tournament_type', 'organizer')
         .order('start_date', { ascending: true });
 
       if (error) throw error;
-      setTournaments(data || []);
+      
+      // Filter out tournaments with passed registration deadline
+      const now = new Date();
+      const filteredData = (data || []).filter(tournament => {
+        if (!tournament.registration_deadline) return true;
+        return new Date(tournament.registration_deadline) > now;
+      });
+      
+      setTournaments(filteredData);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     } finally {
