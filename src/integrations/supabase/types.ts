@@ -815,6 +815,14 @@ export type Database = {
         Args: { p_tournament_id: string; p_user_id: string }
         Returns: Json
       }
+      process_winner_declaration: {
+        Args: {
+          p_organizer_id: string
+          p_tournament_id: string
+          p_winner_positions: Json
+        }
+        Returns: Json
+      }
       process_withdrawal: {
         Args: {
           p_amount: number
