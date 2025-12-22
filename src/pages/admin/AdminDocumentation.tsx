@@ -86,8 +86,8 @@ const AdminDocumentation = () => {
 
   const tournamentFunctions: FunctionDoc[] = [
     {
-      name: 'Join Tournament',
-      description: 'User joins a tournament by paying entry fee',
+      name: 'Join Tournament (Solo)',
+      description: 'User joins a solo tournament by paying entry fee',
       location: 'src/pages/TournamentDetails.tsx',
       logic: [
         'User clicks "Join Tournament" button',
@@ -97,42 +97,83 @@ const AdminDocumentation = () => {
         'Checks wallet balance >= entry fee',
         'Atomically: deducts entry fee, adds user to joined_users array',
         'Calculates fee split: organizer %, platform %, prize pool %',
-        'Creates entry_fee transaction, tournament registration record'
+        'Creates entry_fee transaction, tournament registration record',
+        'Sends notification to user about successful join'
       ],
-      database: 'tournaments (joined_users, current_prize_pool), profiles, wallet_transactions, tournament_registrations',
+      database: 'tournaments (joined_users, current_prize_pool), profiles, wallet_transactions, tournament_registrations, notifications',
       security: 'SECURITY DEFINER function with row locks to prevent race conditions'
+    },
+    {
+      name: 'Join Tournament (Team - Duo/Squad)',
+      description: 'Team leader registers team for duo/squad tournament',
+      location: 'src/pages/TournamentDetails.tsx',
+      logic: [
+        'User clicks "Join as Team" for duo/squad tournament',
+        'Opens team selection dialog with player_teams members',
+        'Shows each teammate\'s wallet balance for verification',
+        'User selects teammates (2 for duo, 4 for squad)',
+        'Validates: all members have sufficient balance',
+        'Blocks registration if any teammate has insufficient balance',
+        'Calls process_team_tournament_join RPC function',
+        'RPC atomically: deducts entry fee from ALL team members',
+        'Creates registration records with team_name, team_members, is_team_leader',
+        'Sends notification to all team members'
+      ],
+      database: 'tournaments, profiles, wallet_transactions, tournament_registrations, player_teams, player_team_members, notifications',
+      security: 'SECURITY DEFINER function, validates all member balances before any deduction'
     },
     {
       name: 'Exit Tournament',
       description: 'User leaves a tournament before it starts',
-      location: 'Not yet implemented in UI',
+      location: 'src/pages/TournamentDetails.tsx',
       logic: [
         'Calls process_tournament_exit RPC function',
         'Validates: tournament is upcoming, user is registered',
         'Must be at least 30 minutes before start time',
         'Atomically: refunds entry fee, removes from joined_users',
         'Adjusts prize pool accordingly',
-        'Deletes tournament registration'
+        'Deletes tournament registration',
+        'Sends notification to user about exit and refund'
       ],
-      database: 'tournaments, profiles, wallet_transactions, tournament_registrations',
+      database: 'tournaments, profiles, wallet_transactions, tournament_registrations, notifications',
       security: 'SECURITY DEFINER function with time-based validation'
     },
     {
-      name: 'Declare Winners',
-      description: 'Organizer declares tournament winners',
-      location: 'src/pages/organizer/OrganizerDashboard.tsx',
+      name: 'Declare Winners (Solo)',
+      description: 'Organizer declares individual winners for solo tournament',
+      location: 'src/pages/organizer/OrganizerDashboard.tsx, src/pages/creator/CreatorDashboard.tsx',
       logic: [
-        'Organizer assigns positions to participants',
+        'Organizer assigns positions to individual participants',
         'Calls process_winner_declaration RPC function',
         'Validates: caller is tournament creator, winners not already declared',
         'Calculates prize amounts from prize_distribution or defaults (50/30/20)',
         'Atomically: credits winners wallets, creates prize transactions',
         'Credits organizer earnings to their wallet',
-        'Creates notifications for winners',
+        'Creates notifications for winners with congratulations message',
         'Marks tournament as completed'
       ],
       database: 'tournaments, profiles, wallet_transactions, notifications',
       security: 'Only tournament creator can declare winners'
+    },
+    {
+      name: 'Declare Winners (Team - Duo/Squad)',
+      description: 'Organizer declares team winners for duo/squad tournament',
+      location: 'src/pages/organizer/OrganizerDashboard.tsx, src/pages/creator/CreatorDashboard.tsx',
+      logic: [
+        'Dashboard shows teams grouped by team_name',
+        'Organizer assigns positions to TEAMS (not individuals)',
+        'Calls process_team_winner_declaration RPC function',
+        'Validates: caller is tournament creator, winners not already declared',
+        'Gets team members from tournament_registrations',
+        'Calculates prize per member: position_prize / team_member_count',
+        'Atomically: credits EACH team member equally',
+        'Creates prize transactions for each member',
+        'Sends notifications to all team members',
+        'Credits organizer earnings to their wallet',
+        'Marks tournament as completed'
+      ],
+      database: 'tournaments, profiles, wallet_transactions, tournament_registrations, notifications',
+      security: 'SECURITY DEFINER, only tournament creator, equal split among team members'
     }
   ];
 
@@ -257,8 +298,20 @@ const AdminDocumentation = () => {
 
   const databaseFunctions: FunctionDoc[] = [
     {
+      name: 'create_notification',
+      description: 'Helper function to create user notifications',
+      location: 'Database RPC',
+      logic: [
+        'Called by other functions to send notifications',
+        'Inserts into notifications table',
+        'Parameters: user_id, type, title, message, related_id',
+        'Used for: tournament join/exit, deposits, withdrawals, prizes'
+      ],
+      security: 'SECURITY DEFINER, called internally by other functions'
+    },
+    {
       name: 'process_tournament_join',
-      description: 'Atomic function to join tournament',
+      description: 'Atomic function to join solo tournament',
       location: 'Database RPC',
       logic: [
         'Locks tournament row (FOR UPDATE)',
@@ -270,9 +323,28 @@ const AdminDocumentation = () => {
         'Deducts wallet balance',
         'Creates entry_fee transaction',
         'Creates registration record',
+        'Sends notification to user',
         'Returns success with new balance'
       ],
       security: 'SECURITY DEFINER, SET search_path = public'
+    },
+    {
+      name: 'process_team_tournament_join',
+      description: 'Atomic function to join duo/squad tournament as team',
+      location: 'Database RPC',
+      logic: [
+        'Locks tournament row',
+        'Validates team size (2 for duo, 4 for squad)',
+        'Checks no duplicate team members',
+        'Verifies ALL members have sufficient balance',
+        'Deducts entry fee from EACH team member',
+        'Creates transaction record for each member',
+        'Adds all members to joined_users array',
+        'Creates registration with team_name, team_members, is_team_leader',
+        'Sends notification to all team members',
+        'Returns success with total fee and team info'
+      ],
+      security: 'SECURITY DEFINER, validates all balances before any deduction'
     },
     {
       name: 'process_tournament_exit',
@@ -286,13 +358,14 @@ const AdminDocumentation = () => {
         'Updates tournament: removes user from joined_users, adjusts prize pool',
         'Credits wallet balance',
         'Creates refund transaction',
-        'Deletes registration record'
+        'Deletes registration record',
+        'Sends notification about refund'
       ],
       security: 'SECURITY DEFINER, prevents race conditions'
     },
     {
       name: 'process_winner_declaration',
-      description: 'Distribute prizes and complete tournament',
+      description: 'Distribute prizes for solo tournaments',
       location: 'Database RPC',
       logic: [
         'Validates caller is tournament creator',
@@ -303,6 +376,23 @@ const AdminDocumentation = () => {
         'Marks tournament completed'
       ],
       security: 'SECURITY DEFINER, creator-only access'
+    },
+    {
+      name: 'process_team_winner_declaration',
+      description: 'Distribute prizes equally among team members',
+      location: 'Database RPC',
+      logic: [
+        'Validates caller is tournament creator',
+        'Takes team positions (team_name → position mapping)',
+        'For each winning team: gets team_members from registration',
+        'Calculates prize per member: position_prize / team_size',
+        'Credits EACH team member equally',
+        'Creates prize transaction for each member',
+        'Sends notification to all team members',
+        'Credits organizer earnings',
+        'Marks tournament completed'
+      ],
+      security: 'SECURITY DEFINER, equal split only, creator-only access'
     },
     {
       name: 'process_withdrawal',
@@ -324,8 +414,8 @@ const AdminDocumentation = () => {
       logic: [
         'Validates admin authorization',
         'Locks transaction row',
-        'Approve: credits wallet_balance, marks completed',
-        'Reject: marks failed with reason',
+        'Approve: credits wallet_balance, marks completed, sends notification',
+        'Reject: marks failed with reason, sends notification',
         'All operations atomic'
       ],
       security: 'SECURITY DEFINER, admin-only access'
@@ -337,8 +427,8 @@ const AdminDocumentation = () => {
       logic: [
         'Validates admin authorization',
         'Locks transaction row',
-        'Approve: marks completed (money already deducted)',
-        'Reject: atomically refunds wallet_balance, marks rejected',
+        'Approve: marks completed (money already deducted), sends notification',
+        'Reject: atomically refunds wallet_balance, marks rejected, sends notification',
         'All operations atomic'
       ],
       security: 'SECURITY DEFINER, admin-only access'
