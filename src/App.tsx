@@ -63,24 +63,32 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('full_name, username, phone, preferred_game, in_game_name, game_uid')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
+
+        // If there's an error or no profile, allow access (don't block users)
+        if (error || !profile) {
+          setProfileComplete(true);
+          setCheckingProfile(false);
+          return;
+        }
 
         const isComplete = !!(
-          profile?.full_name && 
-          profile?.username && 
-          profile?.phone && 
-          profile?.preferred_game && 
-          profile?.in_game_name && 
-          profile?.game_uid
+          profile.full_name && 
+          profile.username && 
+          profile.phone && 
+          profile.preferred_game && 
+          profile.in_game_name && 
+          profile.game_uid
         );
         setProfileComplete(isComplete);
       } catch (error) {
         console.error('Error checking profile:', error);
-        setProfileComplete(false);
+        // On error, allow access to prevent blocking users
+        setProfileComplete(true);
       } finally {
         setCheckingProfile(false);
       }
