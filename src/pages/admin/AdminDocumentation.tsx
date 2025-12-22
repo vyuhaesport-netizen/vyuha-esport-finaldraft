@@ -191,13 +191,12 @@ const AdminDocumentation = () => {
       logic: [
         'Admin views pending deposits with UTR and screenshots',
         'Clicks Approve button',
-        'Fetches current wallet balance',
-        'Updates balance: current + deposit amount',
-        'Updates transaction status to completed',
+        'Calls admin_process_deposit RPC function',
+        'RPC atomically: validates deposit, credits wallet_balance, updates status',
         'Shows success toast'
       ],
       database: 'wallet_transactions, profiles',
-      security: 'Requires admin role + deposits:approve permission'
+      security: 'SECURITY DEFINER RPC, requires admin role + deposits:manage permission'
     },
     {
       name: 'Process Withdrawal',
@@ -205,12 +204,27 @@ const AdminDocumentation = () => {
       location: 'src/pages/admin/AdminWithdrawals.tsx',
       logic: [
         'Admin views pending withdrawals with UPI details',
+        'Calls admin_process_withdrawal RPC function',
         'Approve: marks transaction as completed (money already deducted)',
-        'Reject: marks transaction as failed, refunds wallet balance',
-        'Sends notification to user'
+        'Reject: atomically refunds wallet balance and marks as rejected',
+        'All wallet updates happen server-side only'
       ],
-      database: 'wallet_transactions, profiles, notifications',
-      security: 'Requires admin role + withdrawals:manage permission'
+      database: 'wallet_transactions, profiles',
+      security: 'SECURITY DEFINER RPC, requires admin role + withdrawals:manage permission'
+    },
+    {
+      name: 'Admin Credit/Debit',
+      description: 'Admin manually adds or deducts money from user wallet',
+      location: 'src/pages/admin/AdminUsers.tsx',
+      logic: [
+        'Admin selects user and opens wallet dialog',
+        'Enters amount and reason',
+        'Calls admin_adjust_wallet RPC function',
+        'RPC atomically: validates, updates wallet_balance, creates transaction',
+        'Only Super Admin can perform this action'
+      ],
+      database: 'wallet_transactions, profiles',
+      security: 'SECURITY DEFINER RPC, Super Admin + users:manage permission'
     },
     {
       name: 'Platform Settings',
@@ -269,10 +283,10 @@ const AdminDocumentation = () => {
         'Validates: upcoming status, user in tournament',
         'Checks 30-minute rule before start',
         'Calculates refund (exact entry fee)',
-        'Updates tournament: removes user, adjusts prize pool',
+        'Updates tournament: removes user from joined_users, adjusts prize pool',
         'Credits wallet balance',
         'Creates refund transaction',
-        'Deletes registration'
+        'Deletes registration record'
       ],
       security: 'SECURITY DEFINER, prevents race conditions'
     },
@@ -283,7 +297,7 @@ const AdminDocumentation = () => {
       logic: [
         'Validates caller is tournament creator',
         'Checks winners not already declared',
-        'Gets prize distribution from tournament or defaults',
+        'Gets prize distribution (amounts) from tournament or defaults',
         'For each winner: credits wallet, creates transaction, notification',
         'Credits organizer earnings',
         'Marks tournament completed'
@@ -302,6 +316,58 @@ const AdminDocumentation = () => {
         'Creates pending withdrawal transaction'
       ],
       security: 'SECURITY DEFINER, atomic balance update'
+    },
+    {
+      name: 'admin_process_deposit',
+      description: 'Approve or reject deposit requests',
+      location: 'Database RPC',
+      logic: [
+        'Validates admin authorization',
+        'Locks transaction row',
+        'Approve: credits wallet_balance, marks completed',
+        'Reject: marks failed with reason',
+        'All operations atomic'
+      ],
+      security: 'SECURITY DEFINER, admin-only access'
+    },
+    {
+      name: 'admin_process_withdrawal',
+      description: 'Approve or reject withdrawal requests',
+      location: 'Database RPC',
+      logic: [
+        'Validates admin authorization',
+        'Locks transaction row',
+        'Approve: marks completed (money already deducted)',
+        'Reject: atomically refunds wallet_balance, marks rejected',
+        'All operations atomic'
+      ],
+      security: 'SECURITY DEFINER, admin-only access'
+    },
+    {
+      name: 'admin_adjust_wallet',
+      description: 'Manually credit or debit user wallet',
+      location: 'Database RPC',
+      logic: [
+        'Validates Super Admin authorization',
+        'Locks profile row',
+        'Add or deduct amount from wallet_balance',
+        'Creates admin_credit or admin_debit transaction',
+        'Requires reason for audit trail'
+      ],
+      security: 'SECURITY DEFINER, Super Admin only'
+    },
+    {
+      name: 'recalculate_tournament_prizepool',
+      description: 'Recalculate prize pool before tournament starts',
+      location: 'Database RPC / Edge Function',
+      logic: [
+        'Called 2 minutes before tournament starts',
+        'Gets actual joined players count',
+        'Recalculates prize pool based on actual fees collected',
+        'Scales prize distribution amounts proportionally',
+        'Prevents organizer/creator looting'
+      ],
+      security: 'SECURITY DEFINER, called by cron job'
     }
   ];
 
