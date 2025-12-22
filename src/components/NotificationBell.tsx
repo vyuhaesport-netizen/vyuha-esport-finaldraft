@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { Bell, Check, Trophy, Users, Megaphone, Gift, Wallet, AlertCircle } from 'lucide-react';
+import { Bell, Check, Trophy, Users, Megaphone, Gift, Wallet, AlertCircle, ArrowLeft } from 'lucide-react';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 import {
   Sheet,
@@ -133,9 +133,12 @@ const NotificationBell = () => {
         <SheetHeader className="p-4 border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bell className="h-5 w-5 text-primary" />
-              </div>
+              <button 
+                onClick={() => setOpen(false)}
+                className="w-10 h-10 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5 text-foreground" />
+              </button>
               <div>
                 <SheetTitle className="text-left">Notifications</SheetTitle>
                 <p className="text-xs text-muted-foreground">
