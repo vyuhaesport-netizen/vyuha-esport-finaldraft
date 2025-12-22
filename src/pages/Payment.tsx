@@ -272,46 +272,40 @@ const Payment = () => {
 
       <div className="max-w-lg mx-auto p-4 space-y-5">
         
-        {/* Countdown Timer Card - Same style as QR Card */}
+        {/* Countdown Timer Card - Compact & Wide */}
         <div className={`bg-card border-2 rounded-xl overflow-hidden shadow-sm ${
           isCritical ? 'border-destructive' : 'border-border'
         }`}>
-          <div className={`px-4 py-3 border-b ${
+          <div className={`px-4 py-2 flex items-center justify-between ${
             isCritical 
-              ? 'bg-destructive text-destructive-foreground border-destructive' 
-              : 'bg-destructive/90 text-destructive-foreground border-destructive/50'
+              ? 'bg-destructive text-destructive-foreground' 
+              : 'bg-destructive/90 text-destructive-foreground'
           }`}>
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center gap-2">
               {isCritical ? (
                 <AlertTriangle className={`h-5 w-5 ${isVeryLow ? 'animate-ping' : 'animate-pulse'}`} />
               ) : (
                 <Clock className="h-5 w-5" />
               )}
-              <span className="font-semibold">
-                {isVeryLow ? '⚠️ HURRY UP!' : isCritical ? '⏰ Almost Expired!' : isUrgent ? '⏱️ Time Running Low' : '⏱️ Time Remaining'}
+              <span className="font-semibold text-sm">
+                {isVeryLow ? '⚠️ HURRY!' : isCritical ? '⏰ Expiring!' : '⏱️ Time Left'}
               </span>
+            </div>
+            
+            {/* Large Timer Display */}
+            <div className={`font-mono font-black text-2xl tracking-wider ${isVeryLow ? 'animate-pulse' : ''}`}>
+              {formatTime(timeLeft)}
             </div>
           </div>
           
-          <div className="p-6 flex flex-col items-center bg-destructive/5">
-            {/* Large Timer Display */}
-            <div className={`font-mono font-black text-5xl tracking-wider text-destructive ${isVeryLow ? 'animate-pulse' : ''}`}>
-              {formatTime(timeLeft)}
-            </div>
-            
-            {/* Progress bar */}
-            <div className="w-full mt-4 h-3 bg-muted rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-1000 rounded-full ${
-                  isVeryLow ? 'bg-destructive animate-pulse' : isCritical ? 'bg-destructive' : 'bg-destructive/80'
-                }`}
-                style={{ width: `${(timeLeft / (7 * 60)) * 100}%` }}
-              />
-            </div>
-            
-            <p className="text-sm text-muted-foreground mt-3 text-center">
-              Complete your payment before the timer expires
-            </p>
+          {/* Progress bar */}
+          <div className="h-2 bg-muted">
+            <div 
+              className={`h-full transition-all duration-1000 ${
+                isVeryLow ? 'bg-destructive animate-pulse' : isCritical ? 'bg-destructive' : 'bg-destructive/80'
+              }`}
+              style={{ width: `${(timeLeft / (7 * 60)) * 100}%` }}
+            />
           </div>
         </div>
         
