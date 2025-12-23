@@ -492,7 +492,7 @@ const ProfilePage = () => {
           {/* Creator Dashboard - Only for Creators */}
           {isCreator && (
             <button
-              onClick={() => navigate('/creator-dashboard')}
+              onClick={() => navigate('/creator')}
               className="w-full bg-gradient-to-r from-blue-500/5 to-cyan-500/5 hover:from-blue-500/10 hover:to-cyan-500/10 p-4 flex items-center gap-3 transition-colors"
             >
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
