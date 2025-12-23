@@ -33,6 +33,8 @@ import {
   Edit2,
   Gamepad2,
   Users,
+  Wallet,
+  TrendingUp,
   ArrowLeft,
   Award,
   Key,
@@ -692,202 +694,218 @@ const OrganizerDashboard = () => {
       </header>
 
       <div className="p-4 space-y-4">
-        {/* Stats */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Trophy className="h-6 w-6 mx-auto text-primary mb-1" />
-              <p className="text-xl font-bold">{tournaments.length}</p>
-              <p className="text-xs text-muted-foreground">Tournaments</p>
+          <Card className="bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Trophy className="h-4 w-4 text-primary" />
+                <span className="text-xs text-muted-foreground">Tournaments</span>
+              </div>
+              <p className="text-2xl font-bold">{tournaments.length}</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Users className="h-6 w-6 mx-auto text-blue-500 mb-1" />
-              <p className="text-xl font-bold">
-                {tournaments.reduce((sum, t) => sum + (t.joined_users?.length || 0), 0)}
-              </p>
-              <p className="text-xs text-muted-foreground">Participants</p>
+          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Wallet className="h-4 w-4 text-green-500" />
+                <span className="text-xs text-muted-foreground">Earnings</span>
+              </div>
+              <p className="text-2xl font-bold text-green-500">₹{totalEarnings.toFixed(0)}</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Commission Info */}
+        <Card className="bg-muted/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Commission Split</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 bg-background rounded-lg">
+                <p className="text-lg font-bold text-primary">{commissionSettings.organizer_percent}%</p>
+                <p className="text-[10px] text-muted-foreground">Your Share</p>
+              </div>
+              <div className="p-2 bg-background rounded-lg">
+                <p className="text-lg font-bold text-blue-500">{commissionSettings.platform_percent}%</p>
+                <p className="text-[10px] text-muted-foreground">Platform</p>
+              </div>
+              <div className="p-2 bg-background rounded-lg">
+                <p className="text-lg font-bold text-green-500">{commissionSettings.prize_pool_percent}%</p>
+                <p className="text-[10px] text-muted-foreground">Prize Pool</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Create Button */}
         <Button variant="gaming" className="w-full" onClick={() => { resetForm(); setDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" /> Create Tournament
         </Button>
 
-        {/* My Tournaments */}
+        {/* Tournament List */}
         <div className="space-y-3">
-          <h2 className="font-gaming font-semibold">My Tournaments</h2>
-          
+          <h2 className="font-gaming text-lg flex items-center gap-2">
+            <Gamepad2 className="h-5 w-5 text-primary" />
+            My Tournaments
+          </h2>
+
           {tournaments.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center">
+              <CardContent className="py-12 text-center">
                 <Trophy className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
                 <p className="text-muted-foreground">No tournaments yet</p>
                 <p className="text-xs text-muted-foreground mt-1">Create your first tournament!</p>
               </CardContent>
             </Card>
           ) : (
-            tournaments.map((tournament) => (
-              <Card key={tournament.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Gamepad2 className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
+            tournaments.map((t) => {
+              const { canDeclare, minutesRemaining, targetDate } = canDeclareWinner(t);
+              
+              return (
+                <Card key={t.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="p-4 border-b border-border bg-gradient-to-r from-primary/5 to-purple-500/5">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold line-clamp-1">{tournament.title}</h3>
-                          <p className="text-xs text-muted-foreground">{tournament.game} • {tournament.tournament_mode || 'Solo'}</p>
+                          <h3 className="font-semibold">{t.title}</h3>
+                          <p className="text-xs text-muted-foreground">{t.game}</p>
                         </div>
-                        <Badge className={`text-[10px] ${getStatusColor(tournament.status)}`}>
-                          {tournament.status}
+                        <Badge className={`text-[10px] ${getStatusColor(t.status)}`}>
+                          {t.status}
                         </Badge>
                       </div>
-
-                      {/* Prize Pool Badge */}
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                          <Trophy className="h-3 w-3 mr-1" />
-                          Prize Pool: ₹{tournament.current_prize_pool || 0}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {tournament.joined_users?.length || 0}/{tournament.max_participants}
-                        </span>
-                      </div>
-
-                      {tournament.room_id && (
-                        <div className="flex items-center gap-2 mt-2 text-xs">
-                          <Key className="h-3 w-3 text-green-500" />
-                          <span className="text-green-600">Room: {tournament.room_id}</span>
-                        </div>
-                      )}
-
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(tournament.start_date), 'MMM dd, hh:mm a')}
-                      </p>
-                      {/* Countdown to tournament start */}
-                      {tournament.status === 'upcoming' && new Date(tournament.start_date) > new Date() && (
-                        <div className="mt-2 p-1.5 bg-blue-500/10 rounded">
-                          <CountdownTimer 
-                            targetDate={new Date(tournament.start_date)}
-                            label="Starts in:"
-                            className="text-blue-600 text-[10px]"
-                            compact
-                          />
-                        </div>
-                      )}
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
-                    {/* View Players Button - Always visible */}
-                    <Button variant="outline" size="sm" onClick={() => openViewPlayers(tournament)}>
-                      <Eye className="h-3 w-3 mr-1" /> Players ({tournament.joined_users?.length || 0})
-                    </Button>
+                    <div className="p-4">
+                      <div className="grid grid-cols-4 gap-2 text-center mb-3">
+                        <div>
+                          <p className="text-sm font-bold text-primary">{t.prize_pool}</p>
+                          <p className="text-[9px] text-muted-foreground">Prize</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">₹{t.entry_fee || 0}</p>
+                          <p className="text-[9px] text-muted-foreground">Entry</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-blue-500">{t.joined_users?.length || 0}/{t.max_participants}</p>
+                          <p className="text-[9px] text-muted-foreground">Players</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-green-500">₹{t.organizer_earnings?.toFixed(0) || 0}</p>
+                          <p className="text-[9px] text-muted-foreground">Earned</p>
+                        </div>
+                      </div>
 
-                    {(tournament.status === 'upcoming' || tournament.status === 'ongoing') && !tournament.winner_user_id && (
-                      <Button variant="outline" size="sm" onClick={() => openEditRoom(tournament)}>
-                        <Lock className="h-3 w-3 mr-1" /> Room ID
-                      </Button>
-                    )}
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openViewPlayers(t)}>
+                          <Users className="h-3.5 w-3.5 mr-1" /> Players
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditRoom(t)}>
+                          <Key className="h-3.5 w-3.5 mr-1" /> Room
+                        </Button>
+                        {t.status === 'upcoming' && (
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setSelectedTournament(t);
+                            setFormData({
+                              title: t.title,
+                              game: t.game,
+                              description: t.description || '',
+                              entry_fee: t.entry_fee?.toString() || '',
+                              max_participants: t.max_participants?.toString() || '100',
+                              start_date: format(new Date(t.start_date), "yyyy-MM-dd'T'HH:mm"),
+                              status: t.status || 'upcoming',
+                              tournament_mode: t.tournament_mode || 'solo',
+                              prize_distribution: t.prize_distribution ? JSON.stringify(t.prize_distribution) : '',
+                              prize_pool: t.prize_pool?.replace(/[₹,]/g, '') || '',
+                            });
+                            setDialogOpen(true);
+                          }}>
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {/* Cancel Tournament - for upcoming or ongoing */}
+                        {(t.status === 'upcoming' || t.status === 'ongoing') && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                            onClick={() => openCancelDialog(t)}
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
 
-                    {/* Start Tournament Button - Only for upcoming tournaments when start time has passed */}
-                    {tournament.status === 'upcoming' && canStartTournament(tournament) && (
-                      <Button 
-                        variant="gaming" 
-                        size="sm" 
-                        onClick={() => handleStartTournament(tournament)}
-                        disabled={saving}
-                      >
-                        <Play className="h-3 w-3 mr-1" /> Start
-                      </Button>
-                    )}
+                      {/* Start/End Tournament Buttons */}
+                      {t.status === 'upcoming' && canStartTournament(t) && (
+                        <Button 
+                          className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-500"
+                          size="sm"
+                          onClick={() => handleStartTournament(t)}
+                          disabled={saving}
+                        >
+                          <Play className="h-4 w-4 mr-2" /> Start Tournament
+                        </Button>
+                      )}
 
-                    {/* End Tournament Button - Only for ongoing tournaments */}
-                    {tournament.status === 'ongoing' && !tournament.winner_user_id && (
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={() => handleEndTournament(tournament)}
-                        disabled={saving}
-                      >
-                        <Square className="h-3 w-3 mr-1" /> End
-                      </Button>
-                    )}
-                    
-                    {/* Winner Declaration - Only for completed tournaments */}
-                    {tournament.status === 'completed' && !tournament.winner_user_id && (() => {
-                      const { canDeclare, minutesRemaining, targetDate } = canDeclareWinner(tournament);
-                      return (
-                        <div className="flex flex-col gap-1">
+                      {t.status === 'ongoing' && (
+                        <Button 
+                          className="w-full mt-2 bg-gradient-to-r from-red-500 to-rose-500"
+                          size="sm"
+                          onClick={() => handleEndTournament(t)}
+                          disabled={saving}
+                        >
+                          <Square className="h-4 w-4 mr-2" /> End Tournament
+                        </Button>
+                      )}
+
+                      {/* Winner Declaration - Only after tournament is ended and 30 min passed */}
+                      {t.status === 'completed' && !t.winner_user_id && (
+                        <div className="mt-2">
                           {!canDeclare && targetDate && (
-                            <div className="p-1.5 bg-amber-500/10 rounded text-center">
+                            <div className="mb-2 p-2 bg-amber-500/10 rounded-lg text-center">
+                              <p className="text-xs text-amber-600 mb-1">Winner declaration available in:</p>
                               <CountdownTimer 
                                 targetDate={targetDate}
-                                label="Winner in:"
-                                className="text-amber-600 justify-center text-[10px]"
-                                compact
+                                className="text-amber-600 justify-center font-semibold"
+                                showIcon={false}
                               />
                             </div>
                           )}
                           <Button 
-                            variant="gaming" 
-                            size="sm" 
-                            onClick={() => openDeclareWinner(tournament)}
+                            className="w-full bg-gradient-to-r from-amber-500 to-orange-500"
+                            size="sm"
+                            onClick={() => openDeclareWinner(t)}
                             disabled={!canDeclare}
                           >
-                            <Award className="h-3 w-3 mr-1" /> 
-                            {canDeclare ? 'Winner' : `Wait ${minutesRemaining}m`}
+                            {canDeclare ? (
+                              <>
+                                <Award className="h-4 w-4 mr-2" /> Declare Winners
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="h-4 w-4 mr-2" /> Wait {minutesRemaining}m
+                              </>
+                            )}
                           </Button>
                         </div>
-                      );
-                    })()}
-                    
-                    {tournament.status === 'upcoming' && (
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setSelectedTournament(tournament);
-                        setFormData({
-                          title: tournament.title,
-                          game: tournament.game,
-                          description: tournament.description || '',
-                          entry_fee: tournament.entry_fee?.toString() || '',
-                          max_participants: tournament.max_participants?.toString() || '100',
-                          start_date: new Date(tournament.start_date).toISOString().slice(0, 16),
-                          status: tournament.status || 'upcoming',
-                          tournament_mode: tournament.tournament_mode || 'solo',
-                          prize_distribution: tournament.prize_distribution ? JSON.stringify(tournament.prize_distribution, null, 2) : '',
-                          prize_pool: tournament.prize_pool?.replace(/[₹,]/g, '') || '',
-                        });
-                        setDialogOpen(true);
-                      }}>
-                        <Edit2 className="h-3 w-3 mr-1" /> Edit
-                      </Button>
-                    )}
+                      )}
 
-                    {/* Cancel Tournament - for upcoming or ongoing */}
-                    {(tournament.status === 'upcoming' || tournament.status === 'ongoing') && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-destructive border-destructive/50 hover:bg-destructive/10"
-                        onClick={() => openCancelDialog(tournament)}
-                      >
-                        <XCircle className="h-3 w-3 mr-1" /> Cancel
-                      </Button>
-                    )}
-                    
-                    {tournament.winner_user_id && (
-                      <Badge className="bg-green-500/10 text-green-600">Winner Declared ✓</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      {t.winner_declared_at && (
+                        <div className="mt-2 p-2 bg-green-500/10 rounded-lg text-center">
+                          <p className="text-xs text-green-600 font-medium">
+                            ✓ Winners declared on {format(new Date(t.winner_declared_at), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
       </div>
