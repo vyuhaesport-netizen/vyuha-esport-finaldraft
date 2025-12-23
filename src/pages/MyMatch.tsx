@@ -35,6 +35,12 @@ interface PlayerInfo {
   game_uid: string | null;
 }
 
+interface WinnerPosition {
+  position: number;
+  user_id: string;
+  amount: number;
+}
+
 interface Registration {
   id: string;
   tournament_id: string;
@@ -52,7 +58,7 @@ interface Registration {
     room_password: string | null;
     joined_users: string[] | null;
     winner_user_id: string | null;
-    prize_distribution: { position: number; amount: number }[] | null;
+    prize_distribution: { position: number; amount: number; user_id?: string }[] | null;
   };
 }
 
@@ -189,7 +195,7 @@ const MyMatch = () => {
   const liveMatches = registrations.filter(r => r.tournaments.status === 'ongoing');
   const completedMatches = registrations.filter(r => r.tournaments.status === 'completed');
 
-  const MatchCard = ({ registration, showCancel = false }: { registration: Registration; showCancel?: boolean }) => {
+  const MatchCard = ({ registration, showCancel = false, isCompleted = false }: { registration: Registration; showCancel?: boolean; isCompleted?: boolean }) => {
     const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
     const [roomOpen, setRoomOpen] = useState(false);
     const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -198,8 +204,13 @@ const MyMatch = () => {
     const [hasShownConfetti, setHasShownConfetti] = useState(false);
     const [winnerCountdown, setWinnerCountdown] = useState<string | null>(null);
 
-    // Check if current user is the winner
-    const isWinner = user && registration.tournaments.winner_user_id === user.id;
+    // Find user's winning position and amount from prize_distribution
+    const userWinnerInfo = registration.tournaments.prize_distribution?.find(
+      (p) => p.user_id === user?.id
+    );
+    const isWinner = !!userWinnerInfo;
+    const winnerPosition = userWinnerInfo?.position;
+    const winnerAmount = userWinnerInfo?.amount;
 
     // Calculate 30 min after end_date for winner declaration
     const endDate = registration.tournaments.end_date ? new Date(registration.tournaments.end_date) : null;
@@ -339,12 +350,19 @@ const MyMatch = () => {
             )}
           </div>
           <div className="flex flex-col items-end gap-2">
-            {/* Winner Badge - Show prominently if user won */}
+            {/* Winner Badge - Show prominently if user won with position and amount */}
             {isWinner && registration.tournaments.status === 'completed' && (
-              <Badge className="bg-red-500/20 text-red-600 border border-red-500/30 text-[10px] font-bold animate-pulse">
-                <Crown className="h-3 w-3 mr-1" />
-                🏆 Winner
-              </Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge className="bg-red-500/20 text-red-600 border border-red-500/30 text-[10px] font-bold animate-pulse">
+                  <Crown className="h-3 w-3 mr-1" />
+                  🏆 #{winnerPosition} Winner
+                </Badge>
+                {winnerAmount && (
+                  <Badge className="bg-green-500/20 text-green-600 border border-green-500/30 text-[10px] font-semibold">
+                    Won ₹{winnerAmount}
+                  </Badge>
+                )}
+              </div>
             )}
             
             {/* Winner Declaration Countdown */}
@@ -392,86 +410,90 @@ const MyMatch = () => {
           </div>
         </div>
 
-        {/* Action Buttons Section */}
-        <div className="mt-3 flex gap-2">
-          {/* View Players Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleViewPlayers}
-            className="flex-1 h-8 text-xs gap-1.5"
-          >
-            <Users className="h-3.5 w-3.5 text-blue-500" />
-            View Players ({playerCount})
-          </Button>
-
-          {/* Room Details Collapsible */}
-          <Collapsible open={roomOpen} onOpenChange={setRoomOpen} className="flex-1">
-            <CollapsibleTrigger asChild>
+        {/* Action Buttons Section - Hide View Players and Room Details for completed tournaments */}
+        {!isCompleted && (
+          <>
+            <div className="mt-3 flex gap-2">
+              {/* View Players Button */}
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-8 text-xs gap-1.5"
+                onClick={handleViewPlayers}
+                className="flex-1 h-8 text-xs gap-1.5"
               >
-                <Eye className="h-3.5 w-3.5 text-emerald-500" />
-                Room Details
-                <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${roomOpen ? 'rotate-180' : ''}`} />
+                <Users className="h-3.5 w-3.5 text-blue-500" />
+                View Players ({playerCount})
               </Button>
-            </CollapsibleTrigger>
-          </Collapsible>
-        </div>
 
-        {/* Room Details Content */}
-        <Collapsible open={roomOpen} onOpenChange={setRoomOpen}>
-          <CollapsibleContent className="mt-2">
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-              {hasRoomDetails ? (
-                <div className="space-y-2">
-                  {registration.tournaments.room_id && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Room ID:</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-emerald-600">{registration.tournaments.room_id}</span>
-                        <button
-                          onClick={() => copyToClipboard(registration.tournaments.room_id!, 'Room ID')}
-                          className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
-                        >
-                          {copiedField === 'Room ID' ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5 text-emerald-600" />
-                          )}
-                        </button>
-                      </div>
+              {/* Room Details Collapsible */}
+              <Collapsible open={roomOpen} onOpenChange={setRoomOpen} className="flex-1">
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8 text-xs gap-1.5"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-emerald-500" />
+                    Room Details
+                    <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${roomOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+              </Collapsible>
+            </div>
+
+            {/* Room Details Content */}
+            <Collapsible open={roomOpen} onOpenChange={setRoomOpen}>
+              <CollapsibleContent className="mt-2">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  {hasRoomDetails ? (
+                    <div className="space-y-2">
+                      {registration.tournaments.room_id && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Room ID:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-medium text-emerald-600">{registration.tournaments.room_id}</span>
+                            <button
+                              onClick={() => copyToClipboard(registration.tournaments.room_id!, 'Room ID')}
+                              className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
+                            >
+                              {copiedField === 'Room ID' ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5 text-emerald-600" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {registration.tournaments.room_password && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Password:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-medium text-emerald-600">{registration.tournaments.room_password}</span>
+                            <button
+                              onClick={() => copyToClipboard(registration.tournaments.room_password!, 'Password')}
+                              className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
+                            >
+                              {copiedField === 'Password' ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5 text-emerald-600" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {registration.tournaments.room_password && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Password:</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-emerald-600">{registration.tournaments.room_password}</span>
-                        <button
-                          onClick={() => copyToClipboard(registration.tournaments.room_password!, 'Password')}
-                          className="p-1 hover:bg-emerald-500/20 rounded transition-colors"
-                        >
-                          {copiedField === 'Password' ? (
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5 text-emerald-600" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      Room details will appear here once the organizer sets them up.
+                    </p>
                   )}
                 </div>
-              ) : (
-                <p className="text-[10px] text-muted-foreground text-center">
-                  Room details will appear here once the organizer sets them up.
-                </p>
-              )}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
 
         {/* Players Dialog */}
         <Dialog open={playersDialogOpen} onOpenChange={setPlayersDialogOpen}>
@@ -577,7 +599,7 @@ const MyMatch = () => {
             ) : (
               <div className="space-y-3">
                 {completedMatches.map((reg) => (
-                  <MatchCard key={reg.id} registration={reg} />
+                  <MatchCard key={reg.id} registration={reg} isCompleted />
                 ))}
               </div>
             )}
