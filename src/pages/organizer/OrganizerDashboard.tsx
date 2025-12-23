@@ -684,44 +684,14 @@ const OrganizerDashboard = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-card border-b border-border">
         <div className="flex items-center gap-3 px-4 h-14">
-          <button onClick={() => navigate('/profile')} className="p-2 -ml-2">
+          <button onClick={() => navigate('/organizer')} className="p-2 -ml-2">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <img src={vyuhaLogo} alt="Vyuha" className="w-8 h-8 rounded-lg" />
           <div>
-            <h1 className="font-gaming font-bold">Organizer Dashboard</h1>
-            <p className="text-xs text-muted-foreground">Manage your tournaments</p>
+            <h1 className="font-gaming font-bold">Tournament Management</h1>
+            <p className="text-xs text-muted-foreground">Create and manage tournaments</p>
           </div>
-        </div>
-        {/* Quick Navigation */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-t border-border overflow-x-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate('/organizer/wallet')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Wallet className="h-4 w-4 text-green-500" />
-            Dhana Wallet
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate('/organizer/reports')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <FileWarning className="h-4 w-4 text-red-500" />
-            Reports
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate('/organizer/contact')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <MessageCircle className="h-4 w-4 text-blue-500" />
-            Contact Owner
-          </Button>
         </div>
       </header>
 
