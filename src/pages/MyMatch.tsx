@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -6,10 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import CountdownTimer from '@/components/CountdownTimer';
+import confetti from 'canvas-confetti';
 import { 
   Trophy, 
   Calendar,
@@ -22,7 +24,8 @@ import {
   Copy,
   Check,
   Clock,
-  Crown
+  Crown,
+  Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -41,6 +44,7 @@ interface Registration {
     title: string;
     game: string;
     start_date: string;
+    end_date: string | null;
     status: string | null;
     prize_pool: string | null;
     entry_fee: number | null;
@@ -88,6 +92,7 @@ const MyMatch = () => {
             title,
             game,
             start_date,
+            end_date,
             status,
             prize_pool,
             entry_fee,
@@ -190,9 +195,87 @@ const MyMatch = () => {
     const [players, setPlayers] = useState<PlayerInfo[]>([]);
     const [loadingPlayers, setLoadingPlayers] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
+    const [hasShownConfetti, setHasShownConfetti] = useState(false);
+    const [winnerCountdown, setWinnerCountdown] = useState<string | null>(null);
 
     // Check if current user is the winner
     const isWinner = user && registration.tournaments.winner_user_id === user.id;
+
+    // Calculate 30 min after end_date for winner declaration
+    const endDate = registration.tournaments.end_date ? new Date(registration.tournaments.end_date) : null;
+    const winnerDeclarationTime = endDate ? new Date(endDate.getTime() + 30 * 60 * 1000) : null;
+    const isAwaitingWinner = registration.tournaments.status === 'completed' && 
+                             !registration.tournaments.winner_user_id && 
+                             winnerDeclarationTime && 
+                             new Date() < winnerDeclarationTime;
+
+    // Confetti effect for winners
+    const triggerConfetti = useCallback(() => {
+      if (hasShownConfetti) return;
+      
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          return;
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
+        });
+      }, 250);
+
+      setHasShownConfetti(true);
+    }, [hasShownConfetti]);
+
+    // Trigger confetti when winner card is viewed
+    useEffect(() => {
+      if (isWinner && registration.tournaments.status === 'completed' && !hasShownConfetti) {
+        triggerConfetti();
+      }
+    }, [isWinner, registration.tournaments.status, hasShownConfetti, triggerConfetti]);
+
+    // Winner declaration countdown timer
+    useEffect(() => {
+      if (!isAwaitingWinner || !winnerDeclarationTime) {
+        setWinnerCountdown(null);
+        return;
+      }
+
+      const updateCountdown = () => {
+        const now = new Date();
+        const diff = winnerDeclarationTime.getTime() - now.getTime();
+
+        if (diff <= 0) {
+          setWinnerCountdown(null);
+          return;
+        }
+
+        const minutes = Math.floor(diff / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setWinnerCountdown(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+      };
+
+      updateCountdown();
+      const interval = setInterval(updateCountdown, 1000);
+      return () => clearInterval(interval);
+    }, [isAwaitingWinner, winnerDeclarationTime]);
 
     const handleViewPlayers = async () => {
       setPlayersDialogOpen(true);
@@ -260,9 +343,32 @@ const MyMatch = () => {
             {isWinner && registration.tournaments.status === 'completed' && (
               <Badge className="bg-red-500/20 text-red-600 border border-red-500/30 text-[10px] font-bold animate-pulse">
                 <Crown className="h-3 w-3 mr-1" />
-                Winner
+                🏆 Winner
               </Badge>
             )}
+            
+            {/* Winner Declaration Countdown */}
+            {isAwaitingWinner && winnerCountdown && (
+              <div className="flex items-center gap-1">
+                <Badge className="bg-amber-500/20 text-amber-600 border border-amber-500/30 text-[10px] font-medium">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {winnerCountdown}
+                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="p-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 transition-colors">
+                        <Info className="h-3 w-3 text-amber-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-[200px]">
+                      <p className="text-xs">Winner will be declared within 30 minutes after tournament ends. Please wait!</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            )}
+            
             <Badge 
               className={`text-[10px] ${
                 registration.tournaments.status === 'upcoming' 
