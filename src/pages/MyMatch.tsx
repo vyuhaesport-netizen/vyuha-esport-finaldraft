@@ -33,7 +33,8 @@ import {
   User,
   Send,
   MapPin,
-  QrCode
+  QrCode,
+  LogOut
 } from 'lucide-react';
 import { differenceInMinutes } from 'date-fns';
 import { format } from 'date-fns';
@@ -248,6 +249,7 @@ const MyMatch = () => {
   const LocalTournamentCard = ({ tournament }: { tournament: LocalTournament }) => {
     const [roomOpen, setRoomOpen] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
+    const [exiting, setExiting] = useState(false);
 
     const copyToClipboard = async (text: string, field: string) => {
       try {
@@ -257,6 +259,46 @@ const MyMatch = () => {
         setTimeout(() => setCopiedField(null), 2000);
       } catch {
         toast({ title: 'Failed to copy', variant: 'destructive' });
+      }
+    };
+
+    const handleExitLocalTournament = async () => {
+      if (!user) return;
+
+      setExiting(true);
+      try {
+        const { data, error } = await supabase.rpc('process_local_tournament_exit', {
+          p_tournament_id: tournament.id,
+        });
+
+        if (error) throw error;
+
+        const result = data as { success: boolean; error?: string; refunded_amount?: number };
+        if (!result.success) {
+          toast({
+            title: 'Exit Failed',
+            description: result.error || 'Failed to exit tournament.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        toast({
+          title: 'Exited Successfully',
+          description: `₹${result.refunded_amount || 0} refunded to your wallet.`,
+        });
+
+        // Refresh local tournaments list
+        fetchLocalTournaments();
+      } catch (error: any) {
+        console.error('Error exiting local tournament:', error);
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to exit. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setExiting(false);
       }
     };
 
@@ -275,6 +317,7 @@ const MyMatch = () => {
 
     const hasRoomDetails = tournament.room_id || tournament.room_password;
     const isOngoingOrCompleted = tournament.status === 'ongoing' || tournament.status === 'completed';
+    const canExit = tournament.status === 'upcoming' && new Date(tournament.tournament_date) > new Date();
 
     return (
       <div className="bg-card rounded-xl border border-border p-4">
@@ -366,10 +409,29 @@ const MyMatch = () => {
               </Collapsible>
             )}
 
-            {/* Player count */}
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-              <Users className="h-3 w-3" />
-              <span>{tournament.joined_users?.length || 0} players joined</span>
+            {/* Player count + Exit button */}
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="h-3 w-3" />
+                <span>{tournament.joined_users?.length || 0} players joined</span>
+              </div>
+              
+              {canExit && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={handleExitLocalTournament}
+                  disabled={exiting}
+                >
+                  {exiting ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <LogOut className="h-3 w-3 mr-1" />
+                  )}
+                  Exit
+                </Button>
+              )}
             </div>
           </div>
         </div>
