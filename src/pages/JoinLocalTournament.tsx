@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,12 +16,13 @@ import {
   Loader2,
   Wallet,
   Building2,
-  Clock,
   CheckCircle,
   Key,
   Lock,
+  MapPin,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import LocalTournamentCountdown from '@/components/LocalTournamentCountdown';
 
 interface LocalTournament {
   id: string;
@@ -39,12 +38,13 @@ interface LocalTournament {
   status: string;
   room_id: string | null;
   room_password: string | null;
+  prize_distribution: Record<string, number>;
 }
 
 const JoinLocalTournamentPage = () => {
   const [searchParams] = useSearchParams();
-  const [code, setCode] = useState(searchParams.get('code') || '');
-  const [loading, setLoading] = useState(false);
+  const code = searchParams.get('code') || '';
+  const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [tournament, setTournament] = useState<LocalTournament | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
@@ -58,11 +58,10 @@ const JoinLocalTournamentPage = () => {
     if (user) {
       fetchWalletBalance();
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (code && user) {
+    if (code) {
       searchTournament();
+    } else {
+      setLoading(false);
     }
   }, [code, user]);
 
@@ -77,7 +76,10 @@ const JoinLocalTournamentPage = () => {
   };
 
   const searchTournament = async () => {
-    if (!code || code.length < 6) return;
+    if (!code || code.length < 6) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -108,7 +110,7 @@ const JoinLocalTournamentPage = () => {
     if (!user || !tournament) return;
 
     if (walletBalance < tournament.entry_fee) {
-      toast({ title: 'Insufficient Balance', description: `You need ₹${tournament.entry_fee} to join. Current balance: ₹${walletBalance}`, variant: 'destructive' });
+      toast({ title: 'Insufficient Balance', description: `You need ₹${tournament.entry_fee} to join.`, variant: 'destructive' });
       return;
     }
 
@@ -128,10 +130,10 @@ const JoinLocalTournamentPage = () => {
         return;
       }
 
-      toast({ title: '🎮 Joined Successfully!', description: `Entry fee ₹${result.entry_fee} deducted from wallet.` });
+      toast({ title: '🎮 Joined Successfully!', description: `Entry fee ₹${result.entry_fee} deducted.` });
       setHasJoined(true);
       fetchWalletBalance();
-      searchTournament(); // Refresh tournament data
+      searchTournament();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
@@ -139,9 +141,18 @@ const JoinLocalTournamentPage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -149,34 +160,20 @@ const JoinLocalTournamentPage = () => {
           </Button>
           <div>
             <h1 className="text-lg font-bold">Join Local Tournament</h1>
-            <p className="text-xs text-muted-foreground">Enter private code to join</p>
+            <p className="text-xs text-muted-foreground">Private school/college event</p>
           </div>
         </div>
       </header>
 
       <div className="p-4 space-y-4">
-        {/* Code Input */}
-        <Card>
-          <CardContent className="p-4 space-y-4">
-            <div>
-              <Label>Private Tournament Code</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="Enter 8-character code"
-                  className="font-mono text-center text-lg tracking-widest"
-                  maxLength={8}
-                />
-                <Button onClick={searchTournament} disabled={loading || code.length < 6}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {!code && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground">Scan a tournament QR code to join</p>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Tournament Details */}
         {tournament && (
           <Card>
             <CardHeader>
@@ -188,15 +185,17 @@ const JoinLocalTournamentPage = () => {
                     {tournament.institution_name}
                   </p>
                 </div>
-                <Badge
-                  variant={tournament.status === 'ongoing' ? 'default' : 'outline'}
-                  className={tournament.status === 'ongoing' ? 'bg-green-500' : ''}
-                >
+                <Badge variant={tournament.status === 'ongoing' ? 'default' : 'outline'}
+                  className={tournament.status === 'ongoing' ? 'bg-green-500' : ''}>
                   {tournament.status}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {tournament.status === 'upcoming' && (
+                <LocalTournamentCountdown targetDate={new Date(tournament.tournament_date)} />
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
                   <Gamepad2 className="h-4 w-4 text-primary" />
@@ -226,7 +225,6 @@ const JoinLocalTournamentPage = () => {
                 <span className="font-medium">{tournament.joined_users?.length || 0} / {tournament.max_participants}</span>
               </div>
 
-              {/* Show Room Details if joined and tournament is ongoing */}
               {hasJoined && tournament.status === 'ongoing' && (tournament.room_id || tournament.room_password) && (
                 <Card className="bg-primary/5 border-primary/20">
                   <CardContent className="p-4 space-y-2">
@@ -250,7 +248,6 @@ const JoinLocalTournamentPage = () => {
                 </Card>
               )}
 
-              {/* Join/Status Button */}
               {hasJoined ? (
                 <div className="flex items-center justify-center gap-2 text-green-600 bg-green-500/10 rounded-lg p-3">
                   <CheckCircle className="h-5 w-5" />
@@ -264,25 +261,11 @@ const JoinLocalTournamentPage = () => {
                       ₹{walletBalance}
                     </span>
                   </div>
-                  <Button onClick={handleJoin} disabled={joining || walletBalance < tournament.entry_fee} className="w-full">
-                    {joining ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Joining...
-                      </>
-                    ) : walletBalance < tournament.entry_fee ? (
-                      <>
-                        <Wallet className="h-4 w-4 mr-2" />
-                        Insufficient Balance
-                      </>
-                    ) : (
-                      <>
-                        <Gamepad2 className="h-4 w-4 mr-2" />
-                        Join Tournament (₹{tournament.entry_fee})
-                      </>
-                    )}
+                  <Button onClick={handleJoin} disabled={joining || walletBalance < tournament.entry_fee || !user} className="w-full">
+                    {joining ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Gamepad2 className="h-4 w-4 mr-2" />}
+                    {!user ? 'Login to Join' : walletBalance < tournament.entry_fee ? 'Insufficient Balance' : `Join Tournament (₹${tournament.entry_fee})`}
                   </Button>
-                  {walletBalance < tournament.entry_fee && (
+                  {walletBalance < tournament.entry_fee && user && (
                     <Button variant="outline" className="w-full" onClick={() => navigate('/wallet')}>
                       Add Money to Wallet
                     </Button>
@@ -298,7 +281,6 @@ const JoinLocalTournamentPage = () => {
           </Card>
         )}
 
-        {/* Not logged in */}
         {!user && (
           <Card>
             <CardContent className="p-6 text-center">

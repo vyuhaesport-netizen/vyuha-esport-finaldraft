@@ -1442,6 +1442,10 @@ export type Database = {
         }
         Returns: Json
       }
+      recalculate_local_tournament_prizepool: {
+        Args: { p_tournament_id: string }
+        Returns: Json
+      }
       recalculate_tournament_prizepool: {
         Args: { p_tournament_id: string }
         Returns: Json
