@@ -362,6 +362,182 @@ export type Database = {
           },
         ]
       }
+      local_tournament_applications: {
+        Row: {
+          admin_notes: string | null
+          alternate_phone: string | null
+          created_at: string
+          entry_fee: number
+          game: string
+          id: string
+          institution_name: string
+          institution_type: string
+          location_address: string
+          location_lat: number | null
+          location_lng: number | null
+          max_participants: number
+          primary_phone: string
+          private_code: string | null
+          prize_distribution: Json | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          tournament_date: string
+          tournament_mode: string
+          tournament_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          alternate_phone?: string | null
+          created_at?: string
+          entry_fee?: number
+          game: string
+          id?: string
+          institution_name: string
+          institution_type?: string
+          location_address: string
+          location_lat?: number | null
+          location_lng?: number | null
+          max_participants?: number
+          primary_phone: string
+          private_code?: string | null
+          prize_distribution?: Json | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tournament_date: string
+          tournament_mode?: string
+          tournament_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          alternate_phone?: string | null
+          created_at?: string
+          entry_fee?: number
+          game?: string
+          id?: string
+          institution_name?: string
+          institution_type?: string
+          location_address?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          max_participants?: number
+          primary_phone?: string
+          private_code?: string | null
+          prize_distribution?: Json | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tournament_date?: string
+          tournament_mode?: string
+          tournament_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      local_tournaments: {
+        Row: {
+          application_id: string
+          created_at: string
+          current_prize_pool: number | null
+          ended_at: string | null
+          entry_fee: number
+          game: string
+          id: string
+          institution_name: string
+          joined_users: string[] | null
+          max_participants: number
+          organizer_earnings: number | null
+          organizer_id: string
+          private_code: string
+          prize_distribution: Json | null
+          qr_code_url: string | null
+          room_id: string | null
+          room_password: string | null
+          started_at: string | null
+          status: string
+          total_fees_collected: number | null
+          tournament_date: string
+          tournament_mode: string
+          tournament_name: string
+          updated_at: string
+          winner_declared_at: string | null
+          winner_user_id: string | null
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          current_prize_pool?: number | null
+          ended_at?: string | null
+          entry_fee?: number
+          game: string
+          id?: string
+          institution_name: string
+          joined_users?: string[] | null
+          max_participants?: number
+          organizer_earnings?: number | null
+          organizer_id: string
+          private_code: string
+          prize_distribution?: Json | null
+          qr_code_url?: string | null
+          room_id?: string | null
+          room_password?: string | null
+          started_at?: string | null
+          status?: string
+          total_fees_collected?: number | null
+          tournament_date: string
+          tournament_mode?: string
+          tournament_name: string
+          updated_at?: string
+          winner_declared_at?: string | null
+          winner_user_id?: string | null
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          current_prize_pool?: number | null
+          ended_at?: string | null
+          entry_fee?: number
+          game?: string
+          id?: string
+          institution_name?: string
+          joined_users?: string[] | null
+          max_participants?: number
+          organizer_earnings?: number | null
+          organizer_id?: string
+          private_code?: string
+          prize_distribution?: Json | null
+          qr_code_url?: string | null
+          room_id?: string | null
+          room_password?: string | null
+          started_at?: string | null
+          status?: string
+          total_fees_collected?: number | null
+          tournament_date?: string
+          tournament_mode?: string
+          tournament_name?: string
+          updated_at?: string
+          winner_declared_at?: string | null
+          winner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_tournaments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "local_tournament_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1148,6 +1324,10 @@ export type Database = {
         Args: { p_reason: string; p_user_id: string }
         Returns: Json
       }
+      approve_local_tournament: {
+        Args: { p_admin_notes?: string; p_application_id: string }
+        Returns: Json
+      }
       ban_player_from_report: {
         Args: { p_ban_reason: string; p_report_id: string }
         Returns: Json
@@ -1172,6 +1352,15 @@ export type Database = {
         }
         Returns: Json
       }
+      declare_local_winner: {
+        Args: {
+          p_organizer_id: string
+          p_tournament_id: string
+          p_winner_positions: Json
+        }
+        Returns: Json
+      }
+      generate_private_code: { Args: never; Returns: string }
       get_user_ban_count: { Args: { p_user_id: string }; Returns: number }
       has_admin_permission: {
         Args: { _permission: string; _user_id: string }
@@ -1188,6 +1377,10 @@ export type Database = {
       is_creator: { Args: { _user_id: string }; Returns: boolean }
       is_organizer: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      join_local_tournament: {
+        Args: { p_private_code: string; p_user_id: string }
+        Returns: Json
+      }
       process_dhana_maturation: { Args: never; Returns: Json }
       process_team_tournament_join:
         | {
@@ -1251,6 +1444,10 @@ export type Database = {
       }
       recalculate_tournament_prizepool: {
         Args: { p_tournament_id: string }
+        Returns: Json
+      }
+      reject_local_tournament: {
+        Args: { p_application_id: string; p_reason: string }
         Returns: Json
       }
       request_dhana_withdrawal: {
