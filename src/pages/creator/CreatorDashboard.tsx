@@ -42,9 +42,12 @@ import {
   Lock,
   Eye,
   Medal,
-  Clock
+  Clock,
+  Play,
+  Square,
+  RefreshCw
 } from 'lucide-react';
-import { format, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes, differenceInMilliseconds } from 'date-fns';
 import PrizeDistributionInput from '@/components/PrizeDistributionInput';
 
 interface Tournament {
@@ -374,19 +377,116 @@ const CreatorDashboard = () => {
     }
   };
 
+  // Check if tournament can be started (when start_date is reached)
+  const canStartTournament = (tournament: Tournament): boolean => {
+    if (tournament.status !== 'upcoming') return false;
+    const startTime = new Date(tournament.start_date);
+    const now = new Date();
+    return now >= startTime;
+  };
+
+  // Check if tournament can be ended (only if live/ongoing)
+  const canEndTournament = (tournament: Tournament): boolean => {
+    return tournament.status === 'ongoing';
+  };
+
+  // Winner declaration: only 30 minutes AFTER tournament is ENDED (status = completed)
   const canDeclareWinner = (tournament: Tournament): { canDeclare: boolean; minutesRemaining: number } => {
+    // Can only declare winner after tournament status is 'completed' and winner not already declared
+    if (tournament.status !== 'completed' || tournament.winner_user_id) {
+      return { canDeclare: false, minutesRemaining: 0 };
+    }
+    
+    // Need to check when tournament was ended - we'll use end_date for this
     if (!tournament.end_date) {
-      const endTime = new Date(tournament.start_date);
-      endTime.setHours(endTime.getHours() + 2);
-      const now = new Date();
-      const minutesSinceEnd = differenceInMinutes(now, endTime);
-      return { canDeclare: minutesSinceEnd >= 30, minutesRemaining: Math.max(0, 30 - minutesSinceEnd) };
+      return { canDeclare: false, minutesRemaining: 30 };
     }
     
     const endTime = new Date(tournament.end_date);
     const now = new Date();
     const minutesSinceEnd = differenceInMinutes(now, endTime);
     return { canDeclare: minutesSinceEnd >= 30, minutesRemaining: Math.max(0, 30 - minutesSinceEnd) };
+  };
+
+  // Handle starting tournament
+  const handleStartTournament = async (tournament: Tournament) => {
+    if (!canStartTournament(tournament)) {
+      toast({ 
+        title: 'Cannot Start Yet', 
+        description: 'Tournament can only be started when the scheduled time is reached.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // First, trigger prize pool recalculation
+      const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_tournament_prizepool', {
+        p_tournament_id: tournament.id,
+      });
+
+      if (recalcError) {
+        console.error('Recalculation error:', recalcError);
+      } else {
+        console.log('Prize pool recalculated:', recalcData);
+      }
+
+      // Update tournament status to ongoing/live
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'ongoing',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Tournament Started!', description: 'Tournament is now live. Prize pool has been recalculated.' });
+      fetchMyTournaments();
+    } catch (error) {
+      console.error('Error starting tournament:', error);
+      toast({ title: 'Error', description: 'Failed to start tournament.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle ending tournament
+  const handleEndTournament = async (tournament: Tournament) => {
+    if (!canEndTournament(tournament)) {
+      toast({ 
+        title: 'Cannot End', 
+        description: 'Only live tournaments can be ended.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    if (!confirm('Are you sure you want to end this tournament? You can declare winners after 30 minutes.')) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'completed',
+          end_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Tournament Ended!', description: 'You can declare winners after 30 minutes.' });
+      fetchMyTournaments();
+    } catch (error) {
+      console.error('Error ending tournament:', error);
+      toast({ title: 'Error', description: 'Failed to end tournament.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openDeclareWinner = async (tournament: Tournament) => {
@@ -705,7 +805,7 @@ const CreatorDashboard = () => {
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditRoom(t)}>
                           <Key className="h-3.5 w-3.5 mr-1" /> Room
                         </Button>
-                        {t.status !== 'completed' && (
+                        {t.status === 'upcoming' && (
                           <>
                             <Button variant="outline" size="sm" onClick={() => openEditDialog(t)}>
                               <Edit2 className="h-3.5 w-3.5" />
@@ -717,7 +817,31 @@ const CreatorDashboard = () => {
                         )}
                       </div>
 
-                      {t.status !== 'completed' && !t.winner_user_id && (
+                      {/* Start/End Tournament Buttons */}
+                      {t.status === 'upcoming' && canStartTournament(t) && (
+                        <Button 
+                          className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-500"
+                          size="sm"
+                          onClick={() => handleStartTournament(t)}
+                          disabled={saving}
+                        >
+                          <Play className="h-4 w-4 mr-2" /> Start Tournament
+                        </Button>
+                      )}
+
+                      {t.status === 'ongoing' && (
+                        <Button 
+                          className="w-full mt-2 bg-gradient-to-r from-red-500 to-rose-500"
+                          size="sm"
+                          onClick={() => handleEndTournament(t)}
+                          disabled={saving}
+                        >
+                          <Square className="h-4 w-4 mr-2" /> End Tournament
+                        </Button>
+                      )}
+
+                      {/* Winner Declaration - Only after tournament is ended and 30 min passed */}
+                      {t.status === 'completed' && !t.winner_user_id && (
                         <Button 
                           className="w-full mt-2 bg-gradient-to-r from-amber-500 to-orange-500"
                           size="sm"
