@@ -149,11 +149,25 @@ const HomePage = () => {
 
       if (error) throw error;
       
-      // Filter out tournaments with passed registration deadline
+      // Filter out tournaments:
+      // 1. With passed registration deadline
+      // 2. Starting within 2 minutes (registration locked)
       const now = new Date();
+      const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
+      
       const filteredData = (data || []).filter(tournament => {
-        if (!tournament.registration_deadline) return true;
-        return new Date(tournament.registration_deadline) > now;
+        // Check registration deadline
+        if (tournament.registration_deadline && new Date(tournament.registration_deadline) <= now) {
+          return false;
+        }
+        
+        // Check if tournament starts within 2 minutes (registration locked)
+        const startTime = new Date(tournament.start_date);
+        if (startTime <= twoMinutesFromNow) {
+          return false;
+        }
+        
+        return true;
       });
       
       setTournaments(filteredData);

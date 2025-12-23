@@ -34,7 +34,9 @@ import {
   Youtube,
   Users,
   Wallet,
-  Key
+  Key,
+  Play,
+  Square
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -53,6 +55,8 @@ interface Tournament {
   rules: string | null;
   image_url: string | null;
   tournament_type: string;
+  joined_users: string[] | null;
+  current_prize_pool: number | null;
 }
 
 interface PrizePosition {
@@ -343,6 +347,100 @@ const AdminTournaments = () => {
     }
   };
 
+  // Check if tournament can be started (when start_date is reached)
+  const canStartTournament = (tournament: Tournament): boolean => {
+    if (tournament.status !== 'upcoming') return false;
+    const startTime = new Date(tournament.start_date);
+    const now = new Date();
+    return now >= startTime;
+  };
+
+  // Check if tournament can be ended (only if live/ongoing)
+  const canEndTournament = (tournament: Tournament): boolean => {
+    return tournament.status === 'ongoing';
+  };
+
+  // Handle starting tournament
+  const handleStartTournament = async (tournament: Tournament) => {
+    if (!canStartTournament(tournament)) {
+      toast({ 
+        title: 'Cannot Start Yet', 
+        description: 'Tournament can only be started when the scheduled time is reached.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // First, trigger prize pool recalculation
+      const { data: recalcData, error: recalcError } = await supabase.rpc('recalculate_tournament_prizepool', {
+        p_tournament_id: tournament.id,
+      });
+
+      if (recalcError) {
+        console.error('Recalculation error:', recalcError);
+      } else {
+        console.log('Prize pool recalculated:', recalcData);
+      }
+
+      // Update tournament status to ongoing/live
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'ongoing',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Tournament Started!', description: 'Tournament is now live. Prize pool has been recalculated.' });
+      fetchTournaments();
+    } catch (error) {
+      console.error('Error starting tournament:', error);
+      toast({ title: 'Error', description: 'Failed to start tournament.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle ending tournament
+  const handleEndTournament = async (tournament: Tournament) => {
+    if (!canEndTournament(tournament)) {
+      toast({ 
+        title: 'Cannot End', 
+        description: 'Only live tournaments can be ended.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    if (!confirm('Are you sure you want to end this tournament?')) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'completed',
+          end_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Tournament Ended!', description: 'Tournament has been completed.' });
+      fetchTournaments();
+    } catch (error) {
+      console.error('Error ending tournament:', error);
+      toast({ title: 'Error', description: 'Failed to end tournament.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getFilteredTournaments = () => {
     return tournaments.filter(t => {
       if (activeTab === 'all') return true;
@@ -429,7 +527,7 @@ const AdminTournaments = () => {
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {tournament.max_participants || 100}
+                        {tournament.joined_users?.length || 0}/{tournament.max_participants || 100}
                       </span>
                     </div>
 
@@ -440,17 +538,40 @@ const AdminTournaments = () => {
                 </div>
 
                 <div className="flex gap-2 mt-3 pt-3 border-t">
-                  {hasPermission('tournaments:edit') && (
+                  {hasPermission('tournaments:edit') && tournament.status === 'upcoming' && (
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(tournament)}>
                       <Edit2 className="h-3 w-3 mr-1" /> Edit
                     </Button>
                   )}
-                  {hasPermission('tournaments:delete') && (
+                  {hasPermission('tournaments:delete') && tournament.status === 'upcoming' && (
                     <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDelete(tournament.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
+
+                {/* Start/End Tournament Buttons */}
+                {hasPermission('tournaments:edit') && tournament.status === 'upcoming' && canStartTournament(tournament) && (
+                  <Button 
+                    className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                    size="sm"
+                    onClick={() => handleStartTournament(tournament)}
+                    disabled={saving}
+                  >
+                    <Play className="h-4 w-4 mr-2" /> Start Tournament
+                  </Button>
+                )}
+
+                {hasPermission('tournaments:edit') && tournament.status === 'ongoing' && (
+                  <Button 
+                    className="w-full mt-2 bg-gradient-to-r from-red-500 to-rose-500 text-white"
+                    size="sm"
+                    onClick={() => handleEndTournament(tournament)}
+                    disabled={saving}
+                  >
+                    <Square className="h-4 w-4 mr-2" /> End Tournament
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
