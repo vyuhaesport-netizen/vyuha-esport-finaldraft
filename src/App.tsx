@@ -39,6 +39,10 @@ import OrganizerWallet from "./pages/organizer/OrganizerWallet";
 import OrganizerReports from "./pages/organizer/OrganizerReports";
 import OrganizerContact from "./pages/organizer/OrganizerContact";
 import CreatorDashboard from "./pages/creator/CreatorDashboard";
+import CreatorHub from "./pages/creator/CreatorHub";
+import CreatorWallet from "./pages/creator/CreatorWallet";
+import CreatorReports from "./pages/creator/CreatorReports";
+import CreatorContact from "./pages/creator/CreatorContact";
 import ChangePassword from "./pages/ChangePassword";
 import CompleteProfile from "./pages/CompleteProfile";
 import Terms from "./pages/Terms";
@@ -211,7 +215,11 @@ const AppRoutes = () => {
       <Route path="/organizer/contact" element={<ProtectedRoute><OrganizerContact /></ProtectedRoute>} />
       
       {/* Creator Routes */}
+      <Route path="/creator" element={<ProtectedRoute><CreatorHub /></ProtectedRoute>} />
       <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboard /></ProtectedRoute>} />
+      <Route path="/creator/wallet" element={<ProtectedRoute><CreatorWallet /></ProtectedRoute>} />
+      <Route path="/creator/reports" element={<ProtectedRoute><CreatorReports /></ProtectedRoute>} />
+      <Route path="/creator/contact" element={<ProtectedRoute><CreatorContact /></ProtectedRoute>} />
       
       {/* Profile Completion */}
       <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
