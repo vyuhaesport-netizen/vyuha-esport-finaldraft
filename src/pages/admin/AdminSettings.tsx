@@ -45,6 +45,7 @@ const AdminSettings = () => {
     organizer_commission_percent: '10',
     platform_commission_percent: '10',
     prize_pool_percent: '80',
+    local_tournament_organizer_commission: '20',
   });
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
     admin_upi_id: '',
@@ -95,6 +96,7 @@ const AdminSettings = () => {
         organizer_commission_percent: '10',
         platform_commission_percent: '10',
         prize_pool_percent: '80',
+        local_tournament_organizer_commission: '20',
       };
 
       const paymentMap: PaymentSettings = {
