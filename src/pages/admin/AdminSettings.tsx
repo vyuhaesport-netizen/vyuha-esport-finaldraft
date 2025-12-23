@@ -26,6 +26,7 @@ interface CommissionSettings {
   organizer_commission_percent: string;
   platform_commission_percent: string;
   prize_pool_percent: string;
+  local_tournament_organizer_commission: string;
 }
 
 interface PaymentSettings {

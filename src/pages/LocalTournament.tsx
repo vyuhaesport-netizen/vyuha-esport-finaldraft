@@ -34,6 +34,10 @@ import {
   Link as LinkIcon,
   Copy,
   User,
+  Download,
+  Share2,
+  FileText,
+  RefreshCw,
 } from 'lucide-react';
 import {
   Select,
@@ -49,7 +53,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import TournamentQRCode from '@/components/TournamentQRCode';
+import LocalTournamentQRCode from '@/components/LocalTournamentQRCode';
+import LocalTournamentCountdown from '@/components/LocalTournamentCountdown';
+import { generatePlayersPDF, generateWinnersPDF } from '@/utils/pdfGenerator';
+import PrizeDistributionInput from '@/components/PrizeDistributionInput';
 
 interface Application {
   id: string;
@@ -99,6 +106,13 @@ interface PrizeEntry {
   amount: number;
 }
 
+interface Participant {
+  user_id: string;
+  username: string | null;
+  full_name: string | null;
+  in_game_name: string | null;
+}
+
 const LocalTournamentPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -109,9 +123,12 @@ const LocalTournamentPage = () => {
   const [selectedTournament, setSelectedTournament] = useState<LocalTournament | null>(null);
   const [manageTournamentOpen, setManageTournamentOpen] = useState(false);
   const [winnerDialogOpen, setWinnerDialogOpen] = useState(false);
-  const [participants, setParticipants] = useState<{ user_id: string; username: string; full_name: string }[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [winnerPositions, setWinnerPositions] = useState<Record<string, number>>({});
   const [roomDetails, setRoomDetails] = useState({ room_id: '', room_password: '' });
+  const [commissionPercent, setCommissionPercent] = useState(10);
+  const [recalculating, setRecalculating] = useState(false);
+  const [declaredWinners, setDeclaredWinners] = useState<{ position: number; username: string | null; full_name: string | null; amount: number }[]>([]);
 
   const [formData, setFormData] = useState({
     institution_name: '',
@@ -134,15 +151,27 @@ const LocalTournamentPage = () => {
   useEffect(() => {
     if (user) {
       fetchData();
+      fetchCommissionSetting();
     }
   }, [user]);
+
+  const fetchCommissionSetting = async () => {
+    const { data } = await supabase
+      .from('platform_settings')
+      .select('setting_value')
+      .eq('setting_key', 'local_tournament_organizer_commission')
+      .maybeSingle();
+    
+    if (data) {
+      setCommissionPercent(parseFloat(data.setting_value) || 10);
+    }
+  };
 
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     
     try {
-      // Fetch applications
       const { data: apps } = await supabase
         .from('local_tournament_applications')
         .select('*')
@@ -151,7 +180,6 @@ const LocalTournamentPage = () => {
       
       setApplications((apps || []) as Application[]);
 
-      // Fetch approved tournaments
       const { data: tourneys } = await supabase
         .from('local_tournaments')
         .select('*')
@@ -160,7 +188,6 @@ const LocalTournamentPage = () => {
       
       setTournaments((tourneys || []) as LocalTournament[]);
 
-      // Switch to tournaments tab if user has approved tournaments
       if (tourneys && tourneys.length > 0) {
         setActiveTab('tournaments');
       }
@@ -174,7 +201,6 @@ const LocalTournamentPage = () => {
   const handleSubmit = async () => {
     if (!user) return;
 
-    // Validation
     if (!formData.institution_name || !formData.location_address || !formData.primary_phone) {
       toast({ title: 'Error', description: 'Please fill all organizer details.', variant: 'destructive' });
       return;
@@ -184,7 +210,6 @@ const LocalTournamentPage = () => {
       return;
     }
 
-    // Phone validation
     if (!/^\d{10}$/.test(formData.primary_phone)) {
       toast({ title: 'Invalid Phone', description: 'Please enter a valid 10-digit phone number.', variant: 'destructive' });
       return;
@@ -193,7 +218,6 @@ const LocalTournamentPage = () => {
     setSubmitting(true);
 
     try {
-      // Build prize distribution
       const prizeDistribution: Record<string, number> = {};
       prizeEntries.forEach(entry => {
         if (entry.amount > 0) {
@@ -223,7 +247,6 @@ const LocalTournamentPage = () => {
 
       toast({ title: 'Application Submitted!', description: 'Your local tournament application is under review.' });
       
-      // Reset form
       setFormData({
         institution_name: '',
         institution_type: 'school',
@@ -251,7 +274,9 @@ const LocalTournamentPage = () => {
   const calculatePrizePool = () => {
     const entryFee = parseFloat(formData.entry_fee) || 0;
     const maxPlayers = parseInt(formData.max_participants) || 0;
-    return (entryFee * maxPlayers * 0.8).toFixed(0); // 80% of total fees
+    const totalFees = entryFee * maxPlayers;
+    const prizePool = totalFees * ((100 - commissionPercent) / 100);
+    return prizePool.toFixed(0);
   };
 
   const addPrizePosition = () => {
@@ -262,7 +287,6 @@ const LocalTournamentPage = () => {
   const removePrizePosition = (index: number) => {
     if (prizeEntries.length > 1) {
       const updated = prizeEntries.filter((_, i) => i !== index);
-      // Re-number positions
       const renumbered = updated.map((entry, i) => ({ ...entry, position: i + 1 }));
       setPrizeEntries(renumbered);
     }
@@ -278,13 +302,12 @@ const LocalTournamentPage = () => {
     setSelectedTournament(tournament);
     setRoomDetails({ room_id: tournament.room_id || '', room_password: tournament.room_password || '' });
     
-    // Fetch participants
     if (tournament.joined_users && tournament.joined_users.length > 0) {
       const { data } = await supabase
         .from('profiles')
-        .select('user_id, username, full_name')
+        .select('user_id, username, full_name, in_game_name')
         .in('user_id', tournament.joined_users);
-      setParticipants(data || []);
+      setParticipants((data || []) as Participant[]);
     } else {
       setParticipants([]);
     }
@@ -292,16 +315,57 @@ const LocalTournamentPage = () => {
     setManageTournamentOpen(true);
   };
 
+  const handleRecalculatePrizePool = async () => {
+    if (!selectedTournament) return;
+    
+    setRecalculating(true);
+    try {
+      const { data, error } = await supabase.rpc('recalculate_local_tournament_prizepool', {
+        p_tournament_id: selectedTournament.id,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; prize_pool?: number; organizer_earnings?: number };
+      
+      if (result.success) {
+        toast({ 
+          title: 'Prize Pool Updated!', 
+          description: `New prize pool: ₹${result.prize_pool}` 
+        });
+        fetchData();
+        // Update selected tournament
+        setSelectedTournament({
+          ...selectedTournament,
+          current_prize_pool: result.prize_pool || 0,
+          organizer_earnings: result.organizer_earnings || 0,
+        });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   const startTournament = async () => {
     if (!selectedTournament) return;
+
+    if (!roomDetails.room_id || !roomDetails.room_password) {
+      toast({ title: 'Room Details Required', description: 'Please enter Room ID and Password before starting.', variant: 'destructive' });
+      return;
+    }
+
+    // Recalculate prize pool before starting
+    await handleRecalculatePrizePool();
 
     const { error } = await supabase
       .from('local_tournaments')
       .update({
         status: 'ongoing',
         started_at: new Date().toISOString(),
-        room_id: roomDetails.room_id || null,
-        room_password: roomDetails.room_password || null,
+        room_id: roomDetails.room_id,
+        room_password: roomDetails.room_password,
       })
       .eq('id', selectedTournament.id);
 
@@ -358,6 +422,20 @@ const LocalTournamentPage = () => {
         return;
       }
 
+      // Build winners list for PDF
+      const winners = Object.entries(winnerPositions).map(([userId, position]) => {
+        const player = participants.find(p => p.user_id === userId);
+        const prizeAmount = selectedTournament.prize_distribution?.[position.toString()] || 0;
+        return {
+          position,
+          username: player?.username || null,
+          full_name: player?.full_name || null,
+          amount: prizeAmount,
+        };
+      }).sort((a, b) => a.position - b.position);
+
+      setDeclaredWinners(winners);
+
       toast({
         title: '🏆 Winners Declared!',
         description: `₹${result.total_distributed} distributed. You earned ₹${result.organizer_earnings} commission!`,
@@ -372,11 +450,52 @@ const LocalTournamentPage = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: 'Copied!', description: 'Private code copied to clipboard.' });
+    toast({ title: 'Copied!', description: 'Copied to clipboard.' });
   };
 
   const getShareLink = (code: string) => {
     return `${window.location.origin}/join-local?code=${code}`;
+  };
+
+  const handleShare = async (tournament: LocalTournament) => {
+    const shareData = {
+      title: tournament.tournament_name,
+      text: `Join my local tournament: ${tournament.tournament_name}! Use code: ${tournament.private_code}`,
+      url: getShareLink(tournament.private_code),
+    };
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(getShareLink(tournament.private_code));
+        toast({ title: 'Link Copied!', description: 'Tournament link copied to clipboard.' });
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        await navigator.clipboard.writeText(getShareLink(tournament.private_code));
+        toast({ title: 'Link Copied!', description: 'Tournament link copied to clipboard.' });
+      }
+    }
+  };
+
+  const handleDownloadPlayersPDF = () => {
+    if (!selectedTournament || participants.length === 0) return;
+    generatePlayersPDF(
+      selectedTournament.tournament_name,
+      participants,
+      selectedTournament.tournament_date
+    );
+  };
+
+  const handleDownloadWinnersPDF = () => {
+    if (!selectedTournament || declaredWinners.length === 0) return;
+    generateWinnersPDF(
+      selectedTournament.tournament_name,
+      declaredWinners,
+      selectedTournament.tournament_date,
+      selectedTournament.current_prize_pool
+    );
   };
 
   if (loading) {
@@ -572,10 +691,10 @@ const LocalTournamentPage = () => {
               {formData.entry_fee && formData.max_participants && (
                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Estimated Prize Pool (80%)</span>
+                    <span className="text-sm text-muted-foreground">Estimated Prize Pool ({100 - commissionPercent}%)</span>
                     <span className="text-lg font-bold text-green-600">₹{calculatePrizePool()}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">20% goes to you as commission</p>
+                  <p className="text-xs text-muted-foreground mt-1">{commissionPercent}% goes to you as commission</p>
                 </div>
               )}
             </CardContent>
@@ -710,6 +829,17 @@ const LocalTournamentPage = () => {
                       {tournament.status}
                     </Badge>
                   </div>
+
+                  {/* Countdown for upcoming */}
+                  {tournament.status === 'upcoming' && (
+                    <div className="my-3">
+                      <LocalTournamentCountdown 
+                        targetDate={new Date(tournament.tournament_date)}
+                        showRecalculationWarning={true}
+                      />
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-3 text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <Users className="h-4 w-4" />
@@ -731,6 +861,9 @@ const LocalTournamentPage = () => {
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); copyToClipboard(tournament.private_code); }}>
                       <Copy className="h-3 w-3" />
                     </Button>
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleShare(tournament); }}>
+                      <Share2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -748,6 +881,19 @@ const LocalTournamentPage = () => {
 
           {selectedTournament && (
             <div className="space-y-4">
+              {/* Countdown */}
+              {selectedTournament.status === 'upcoming' && (
+                <Card className="bg-primary/5">
+                  <CardContent className="p-4">
+                    <LocalTournamentCountdown 
+                      targetDate={new Date(selectedTournament.tournament_date)}
+                      showRecalculationWarning={true}
+                      onTimeUp={handleRecalculatePrizePool}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
               {/* QR Code & Link */}
               <Card>
                 <CardHeader className="pb-2">
@@ -757,16 +903,11 @@ const LocalTournamentPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <TournamentQRCode
+                  <LocalTournamentQRCode
                     tournamentId={selectedTournament.id}
                     tournamentTitle={selectedTournament.tournament_name}
+                    privateCode={selectedTournament.private_code}
                   />
-                  <div className="flex items-center gap-2">
-                    <Input value={getShareLink(selectedTournament.private_code)} readOnly className="text-xs" />
-                    <Button variant="outline" size="icon" onClick={() => copyToClipboard(getShareLink(selectedTournament.private_code))}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
                   <div className="text-center">
                     <Badge variant="outline" className="font-mono text-lg">
                       Code: {selectedTournament.private_code}
@@ -800,10 +941,35 @@ const LocalTournamentPage = () => {
                 </Card>
               </div>
 
+              {/* Recalculate Button */}
+              {selectedTournament.status === 'upcoming' && (
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleRecalculatePrizePool}
+                  disabled={recalculating}
+                >
+                  {recalculating ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Recalculate Prize Pool
+                </Button>
+              )}
+
               {/* Players List */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Joined Players ({participants.length})</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm">Joined Players ({participants.length})</CardTitle>
+                    {participants.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={handleDownloadPlayersPDF}>
+                        <FileText className="h-4 w-4 mr-1" />
+                        PDF
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {participants.length === 0 ? (
@@ -816,7 +982,7 @@ const LocalTournamentPage = () => {
                             <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">{i + 1}</span>
                             <span>{p.full_name || p.username || 'Player'}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground">@{p.username}</span>
+                          <span className="text-xs text-muted-foreground">{p.in_game_name || `@${p.username}`}</span>
                         </div>
                       ))}
                     </div>
@@ -828,11 +994,11 @@ const LocalTournamentPage = () => {
               {selectedTournament.status !== 'completed' && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Room Details</CardTitle>
+                    <CardTitle className="text-sm">Room Details *</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <Label>Room ID</Label>
+                      <Label>Room ID *</Label>
                       <Input
                         value={roomDetails.room_id}
                         onChange={(e) => setRoomDetails({ ...roomDetails, room_id: e.target.value })}
@@ -840,13 +1006,14 @@ const LocalTournamentPage = () => {
                       />
                     </div>
                     <div>
-                      <Label>Room Password</Label>
+                      <Label>Room Password *</Label>
                       <Input
                         value={roomDetails.room_password}
                         onChange={(e) => setRoomDetails({ ...roomDetails, room_password: e.target.value })}
                         placeholder="Enter room password"
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">Required before starting the tournament</p>
                   </CardContent>
                 </Card>
               )}
@@ -927,6 +1094,13 @@ const LocalTournamentPage = () => {
               <Trophy className="h-4 w-4 mr-2" />
               Confirm Winners
             </Button>
+
+            {declaredWinners.length > 0 && (
+              <Button variant="outline" onClick={handleDownloadWinnersPDF} className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Download Winners PDF
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
