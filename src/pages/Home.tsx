@@ -9,13 +9,14 @@ import vyuhaLogo from '@/assets/vyuha-logo.png';
 import NotificationBell from '@/components/NotificationBell';
 import TournamentCard from '@/components/TournamentCard';
 import TournamentQRCode from '@/components/TournamentQRCode';
+import TournamentScanner from '@/components/TournamentScanner';
 import { 
   Trophy, 
   Users, 
   ChevronRight,
-  Loader2
+  Loader2,
+  ScanLine
 } from 'lucide-react';
-import FriendRequestsBell from '@/components/FriendRequestsBell';
 import {
   Dialog,
   DialogContent,
@@ -352,8 +353,8 @@ const HomePage = () => {
               <h1 className="font-gaming text-lg font-bold">Vyuha Esport</h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <FriendRequestsBell />
+          <div className="flex items-center gap-1">
+            <TournamentScanner />
             <NotificationBell />
           </div>
         </div>
