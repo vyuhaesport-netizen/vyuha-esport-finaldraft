@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
 import AppLayout from '@/components/layout/AppLayout';
@@ -54,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ImageCropper } from '@/components/ImageCropper';
 
 interface Profile {
   id: string;
@@ -83,6 +84,8 @@ const ProfilePage = () => {
   const [applyDialogOpen, setApplyDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
   const [organizerApplication, setOrganizerApplication] = useState<OrganizerApplication | null>(null);
   const [applyForm, setApplyForm] = useState({ 
     name: '', 
@@ -175,12 +178,12 @@ const ProfilePage = () => {
     }
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Please select an image under 2MB', variant: 'destructive' });
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Please select an image under 10MB', variant: 'destructive' });
       return;
     }
 
@@ -189,15 +192,27 @@ const ProfilePage = () => {
       return;
     }
 
+    // Create object URL for the cropper
+    const imageUrl = URL.createObjectURL(file);
+    setSelectedImageSrc(imageUrl);
+    setCropperOpen(true);
+    
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const handleCroppedImageUpload = useCallback(async (croppedBlob: Blob) => {
+    if (!user) return;
+    
+    setCropperOpen(false);
     setUploadingAvatar(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${fileExt}`;
+      const filePath = `${user.id}/avatar.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, croppedBlob, { upsert: true, contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
@@ -205,9 +220,12 @@ const ProfilePage = () => {
         .from('avatars')
         .getPublicUrl(filePath);
 
+      // Add timestamp to bust cache
+      const urlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: urlWithTimestamp })
         .eq('user_id', user.id);
 
       if (updateError) throw updateError;
@@ -219,8 +237,20 @@ const ProfilePage = () => {
       toast({ title: 'Upload Failed', description: 'Could not upload avatar. Please try again.', variant: 'destructive' });
     } finally {
       setUploadingAvatar(false);
+      if (selectedImageSrc) {
+        URL.revokeObjectURL(selectedImageSrc);
+        setSelectedImageSrc(null);
+      }
     }
-  };
+  }, [user, selectedImageSrc, toast]);
+
+  const handleCropperClose = useCallback(() => {
+    setCropperOpen(false);
+    if (selectedImageSrc) {
+      URL.revokeObjectURL(selectedImageSrc);
+      setSelectedImageSrc(null);
+    }
+  }, [selectedImageSrc]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -606,7 +636,7 @@ const ProfilePage = () => {
                 {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Camera className="h-4 w-4 mr-2" />}
                 Change Photo
               </Button>
-              <input ref={editFileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+              <input ref={editFileInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
             </div>
 
             {/* Gaming Details Section */}
@@ -739,6 +769,18 @@ const ProfilePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Cropper Modal */}
+      {selectedImageSrc && (
+        <ImageCropper
+          open={cropperOpen}
+          onClose={handleCropperClose}
+          imageSrc={selectedImageSrc}
+          onCropComplete={handleCroppedImageUpload}
+          aspectRatio={1}
+          circularCrop={true}
+        />
+      )}
     </AppLayout>
   );
 };
