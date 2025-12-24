@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,14 +38,21 @@ import {
   Loader2, 
   User,
   Ban,
-  Smartphone,
   Plus,
   Minus,
   Eye,
   UserPlus,
-  Palette
+  Palette,
+  Users,
+  TrendingUp
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts';
 
 interface UserProfile {
   id: string;
@@ -59,6 +66,24 @@ interface UserProfile {
   is_frozen: boolean | null;
   created_at: string;
 }
+
+interface UserGrowthDataPoint {
+  date: string;
+  displayDate: string;
+  newUsers: number;
+  cumulativeUsers: number;
+}
+
+const chartConfig = {
+  newUsers: {
+    label: "New Users",
+    color: "hsl(var(--primary))",
+  },
+  cumulativeUsers: {
+    label: "Total Users",
+    color: "hsl(210, 100%, 50%)",
+  },
+};
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -75,6 +100,7 @@ const AdminUsers = () => {
   const [walletAmount, setWalletAmount] = useState('');
   const [walletReason, setWalletReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [userGrowthData, setUserGrowthData] = useState<UserGrowthDataPoint[]>([]);
 
   const { user, isAdmin, isSuperAdmin, loading: authLoading, hasPermission } = useAuth();
   const { toast } = useToast();
@@ -131,6 +157,38 @@ const AdminUsers = () => {
       if (error) throw error;
       setUsers(data || []);
       setFilteredUsers(data || []);
+
+      // Calculate user growth data for the last 30 days
+      if (data) {
+        const last30Days = eachDayOfInterval({
+          start: subDays(new Date(), 29),
+          end: new Date(),
+        });
+
+        let cumulativeCount = 0;
+        // Count users before the 30 day period
+        const usersBeforePeriod = data.filter(u => 
+          new Date(u.created_at) < last30Days[0]
+        ).length;
+        cumulativeCount = usersBeforePeriod;
+
+        const growthData: UserGrowthDataPoint[] = last30Days.map(date => {
+          const dateStr = format(date, 'yyyy-MM-dd');
+          const newUsersOnDay = data.filter(u => 
+            format(parseISO(u.created_at), 'yyyy-MM-dd') === dateStr
+          ).length;
+          cumulativeCount += newUsersOnDay;
+
+          return {
+            date: dateStr,
+            displayDate: format(date, 'MMM dd'),
+            newUsers: newUsersOnDay,
+            cumulativeUsers: cumulativeCount,
+          };
+        });
+
+        setUserGrowthData(growthData);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
@@ -337,6 +395,10 @@ const AdminUsers = () => {
     }
   };
 
+  // Calculate stats
+  const totalNewUsersLast30Days = userGrowthData.reduce((sum, d) => sum + d.newUsers, 0);
+  const todayNewUsers = userGrowthData.length > 0 ? userGrowthData[userGrowthData.length - 1].newUsers : 0;
+
   if (authLoading || loading) {
     return (
       <AdminLayout title="Users">
@@ -350,6 +412,98 @@ const AdminUsers = () => {
   return (
     <AdminLayout title="User Management">
       <div className="p-4 space-y-4">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-500" />
+                <div>
+                  <p className="text-lg font-bold">{users.length}</p>
+                  <p className="text-[10px] text-muted-foreground">Total Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <div>
+                  <p className="text-lg font-bold">{totalNewUsersLast30Days}</p>
+                  <p className="text-[10px] text-muted-foreground">Last 30 Days</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-lg font-bold">{todayNewUsers}</p>
+                  <p className="text-[10px] text-muted-foreground">Today</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* User Growth Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              User Growth (Last 30 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[200px] w-full">
+              <BarChart data={userGrowthData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorNewUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.2}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="displayDate" 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                  className="text-muted-foreground"
+                />
+                <YAxis 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  className="text-muted-foreground"
+                />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                />
+                <Bar
+                  dataKey="newUsers"
+                  name="New Users"
+                  fill="url(#colorNewUsers)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+            
+            {/* Legend */}
+            <div className="flex justify-center gap-4 mt-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-primary" />
+                <span className="text-xs text-muted-foreground">New Registrations</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
