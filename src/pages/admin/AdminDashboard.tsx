@@ -10,16 +10,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   Users, 
   Trophy, 
-  Wallet, 
   TrendingUp, 
   Loader2,
-  CalendarDays,
   UserCheck,
   IndianRupee,
   Palette,
   MapPin
 } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+import { format, subDays, eachDayOfInterval, parseISO, startOfDay } from 'date-fns';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface DashboardStats {
   totalUsers: number;
@@ -35,6 +39,34 @@ interface DashboardStats {
   totalCreators: number;
 }
 
+interface RevenueDataPoint {
+  date: string;
+  displayDate: string;
+  organizer: number;
+  creator: number;
+  local: number;
+  total: number;
+}
+
+const chartConfig = {
+  organizer: {
+    label: "Organizers",
+    color: "hsl(25, 95%, 53%)",
+  },
+  creator: {
+    label: "Creators", 
+    color: "hsl(330, 81%, 60%)",
+  },
+  local: {
+    label: "Local",
+    color: "hsl(187, 85%, 43%)",
+  },
+  total: {
+    label: "Total",
+    color: "hsl(var(--primary))",
+  },
+};
+
 const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -49,6 +81,7 @@ const AdminDashboard = () => {
     totalOrganizers: 0,
     totalCreators: 0,
   });
+  const [revenueData, setRevenueData] = useState<RevenueDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [toDate, setToDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -95,16 +128,16 @@ const AdminDashboard = () => {
       // Fetch all tournaments with revenue data
       const { data: tournaments } = await supabase
         .from('tournaments')
-        .select('tournament_type, total_fees_collected, platform_earnings, organizer_earnings, created_by')
+        .select('tournament_type, total_fees_collected, platform_earnings, organizer_earnings, created_by, created_at')
         .gte('created_at', fromDate)
-        .lte('created_at', toDate);
+        .lte('created_at', toDate + 'T23:59:59');
 
       // Fetch local tournaments with revenue data
       const { data: localTournaments } = await supabase
         .from('local_tournaments')
-        .select('total_fees_collected, platform_earnings, organizer_earnings')
+        .select('total_fees_collected, platform_earnings, organizer_earnings, created_at')
         .gte('created_at', fromDate)
-        .lte('created_at', toDate);
+        .lte('created_at', toDate + 'T23:59:59');
 
       // Calculate revenue from organizer tournaments
       const organizerTournaments = tournaments?.filter(t => t.tournament_type === 'organizer') || [];
@@ -124,6 +157,40 @@ const AdminDashboard = () => {
       const totalFeesFromTournaments = tournaments?.reduce((sum, t) => sum + (t.total_fees_collected || 0), 0) || 0;
       const totalFeesFromLocal = localTournaments?.reduce((sum, t) => sum + (t.total_fees_collected || 0), 0) || 0;
       const totalRevenue = totalFeesFromTournaments + totalFeesFromLocal;
+
+      // Generate revenue data for chart
+      const dateRange = eachDayOfInterval({
+        start: parseISO(fromDate),
+        end: parseISO(toDate),
+      });
+
+      const chartData: RevenueDataPoint[] = dateRange.map(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const dayStart = startOfDay(date);
+        
+        const dayOrganizerRevenue = organizerTournaments
+          .filter(t => format(parseISO(t.created_at), 'yyyy-MM-dd') === dateStr)
+          .reduce((sum, t) => sum + (t.platform_earnings || 0), 0);
+        
+        const dayCreatorRevenue = creatorTournaments
+          .filter(t => format(parseISO(t.created_at), 'yyyy-MM-dd') === dateStr)
+          .reduce((sum, t) => sum + (t.platform_earnings || 0), 0);
+        
+        const dayLocalRevenue = (localTournaments || [])
+          .filter(t => format(parseISO(t.created_at), 'yyyy-MM-dd') === dateStr)
+          .reduce((sum, t) => sum + (t.platform_earnings || 0), 0);
+
+        return {
+          date: dateStr,
+          displayDate: format(date, 'MMM dd'),
+          organizer: dayOrganizerRevenue,
+          creator: dayCreatorRevenue,
+          local: dayLocalRevenue,
+          total: dayOrganizerRevenue + dayCreatorRevenue + dayLocalRevenue,
+        };
+      });
+
+      setRevenueData(chartData);
 
       setStats({
         totalUsers: userCount || 0,
@@ -285,6 +352,102 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <TrendingUp className="h-12 w-12 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue Trends Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Revenue Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorOrganizer" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(25, 95%, 53%)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(25, 95%, 53%)" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorCreator" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(330, 81%, 60%)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(330, 81%, 60%)" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorLocal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(187, 85%, 43%)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(187, 85%, 43%)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="displayDate" 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                  className="text-muted-foreground"
+                />
+                <YAxis 
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `₹${value}`}
+                  className="text-muted-foreground"
+                />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
+                  formatter={(value: number) => [`₹${value}`, '']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="organizer"
+                  name="Organizers"
+                  stroke="hsl(25, 95%, 53%)"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorOrganizer)"
+                  stackId="1"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="creator"
+                  name="Creators"
+                  stroke="hsl(330, 81%, 60%)"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorCreator)"
+                  stackId="1"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="local"
+                  name="Local"
+                  stroke="hsl(187, 85%, 43%)"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorLocal)"
+                  stackId="1"
+                />
+              </AreaChart>
+            </ChartContainer>
+            
+            {/* Legend */}
+            <div className="flex justify-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-orange-500" />
+                <span className="text-xs text-muted-foreground">Organizers</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-pink-500" />
+                <span className="text-xs text-muted-foreground">Creators</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-cyan-500" />
+                <span className="text-xs text-muted-foreground">Local</span>
+              </div>
             </div>
           </CardContent>
         </Card>
