@@ -90,6 +90,12 @@ const AdminApiPayment = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<{
+    status: 'idle' | 'success' | 'error';
+    message?: string;
+    details?: Record<string, boolean>;
+  }>({ status: 'idle' });
   const [gateways, setGateways] = useState<PaymentGatewayConfig[]>([]);
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
@@ -214,6 +220,62 @@ const AdminApiPayment = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    setTesting(true);
+    setWebhookStatus({ status: 'idle' });
+    
+    try {
+      const webhookUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID || 'drwxtjgtjejwegsneutq'}.supabase.co/functions/v1/razorpay-webhook`;
+      
+      const response = await fetch(webhookUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.status === 'ok') {
+        setWebhookStatus({
+          status: 'success',
+          message: 'Webhook endpoint is active and responding',
+          details: {
+            database_connected: data.database_connected,
+            webhook_secret_configured: data.webhook_secret_configured,
+          }
+        });
+        toast({
+          title: 'Webhook Active',
+          description: 'The webhook endpoint is working correctly',
+        });
+      } else {
+        setWebhookStatus({
+          status: 'error',
+          message: data.message || 'Webhook endpoint returned an error',
+        });
+        toast({
+          title: 'Webhook Error',
+          description: data.message || 'Failed to verify webhook',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error testing webhook:', error);
+      setWebhookStatus({
+        status: 'error',
+        message: 'Could not connect to webhook endpoint',
+      });
+      toast({
+        title: 'Connection Failed',
+        description: 'Could not reach the webhook endpoint',
+        variant: 'destructive',
+      });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -591,15 +653,80 @@ const AdminApiPayment = () => {
                   </ol>
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => window.open('https://dashboard.razorpay.com/app/webhooks', '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Razorpay Dashboard
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => window.open('https://dashboard.razorpay.com/app/webhooks', '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Razorpay Dashboard
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
+                    onClick={handleTestWebhook}
+                    disabled={testing}
+                  >
+                    {testing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Test Webhook
+                  </Button>
+                </div>
+
+                {/* Webhook Test Status */}
+                {webhookStatus.status !== 'idle' && (
+                  <div className={`rounded-lg p-3 ${
+                    webhookStatus.status === 'success' 
+                      ? 'bg-green-500/10 border border-green-500/30' 
+                      : 'bg-red-500/10 border border-red-500/30'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {webhookStatus.status === 'success' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className={`text-sm font-medium ${
+                        webhookStatus.status === 'success' ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {webhookStatus.status === 'success' ? 'Webhook Active' : 'Webhook Error'}
+                      </span>
+                    </div>
+                    <p className={`text-xs ${
+                      webhookStatus.status === 'success' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {webhookStatus.message}
+                    </p>
+                    {webhookStatus.details && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          {webhookStatus.details.database_connected ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-600" />
+                          )}
+                          <span className="text-muted-foreground">Database connected</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          {webhookStatus.details.webhook_secret_configured ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                          )}
+                          <span className="text-muted-foreground">
+                            Webhook secret {webhookStatus.details.webhook_secret_configured ? 'configured' : 'not configured'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

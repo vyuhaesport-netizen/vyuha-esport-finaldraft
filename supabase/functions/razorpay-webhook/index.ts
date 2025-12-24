@@ -41,6 +41,46 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Health check endpoint for GET requests
+  if (req.method === 'GET') {
+    console.log('Razorpay webhook health check');
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      // Check if we can connect to database
+      const { data: configData, error: configError } = await supabase
+        .from('payment_gateway_config')
+        .select('gateway_name, webhook_secret')
+        .eq('gateway_name', 'razorpay')
+        .single();
+      
+      const hasWebhookSecret = !!configData?.webhook_secret;
+      
+      return new Response(JSON.stringify({ 
+        status: 'ok',
+        message: 'Webhook endpoint is active',
+        timestamp: new Date().toISOString(),
+        database_connected: !configError,
+        webhook_secret_configured: hasWebhookSecret,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return new Response(JSON.stringify({ 
+        status: 'error',
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
   console.log('Razorpay webhook received');
 
   try {
