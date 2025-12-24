@@ -10,9 +10,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ScanLine, Camera, Upload, X, Loader2 } from 'lucide-react';
+import { ScanLine, Camera, Upload, X, Loader2, Keyboard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 interface TournamentScannerProps {
   onScanSuccess?: (code: string) => void;
@@ -22,10 +21,26 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
   const [open, setOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [mode, setMode] = useState<'camera' | 'upload' | null>(null);
+  const [mode, setMode] = useState<'camera' | 'upload' | 'manual' | null>(null);
+  const [manualCode, setManualCode] = useState('');
+  const [cameraSupported, setCameraSupported] = useState(true);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Check camera support on mount
+  useEffect(() => {
+    const checkCamera = async () => {
+      try {
+        const devices = await navigator.mediaDevices?.enumerateDevices();
+        const hasCamera = devices?.some(d => d.kind === 'videoinput');
+        setCameraSupported(!!hasCamera && !!navigator.mediaDevices?.getUserMedia);
+      } catch {
+        setCameraSupported(false);
+      }
+    };
+    checkCamera();
+  }, []);
 
   const handleCodeDetected = async (code: string) => {
     // Stop scanning
@@ -51,7 +66,7 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
     if (privateCode.length < 4) {
       toast({
         title: 'Invalid Code',
-        description: 'The scanned QR code is not a valid tournament code.',
+        description: 'Please enter a valid tournament code (at least 4 characters).',
         variant: 'destructive'
       });
       return;
@@ -64,6 +79,8 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
     // Navigate to join page with the code
     navigate(`/local-tournament?code=${privateCode}`);
     setOpen(false);
+    setMode(null);
+    setManualCode('');
     
     toast({
       title: 'Tournament Found!',
@@ -94,13 +111,14 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
       );
     } catch (error) {
       console.error('Error starting camera:', error);
-      toast({
-        title: 'Camera Error',
-        description: 'Could not access camera. Please check permissions or try uploading an image.',
-        variant: 'destructive'
-      });
+      setCameraSupported(false);
       setScanning(false);
       setMode(null);
+      toast({
+        title: 'Camera Unavailable',
+        description: 'Use image upload or enter the code manually.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -132,23 +150,35 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
     } catch (error) {
       console.error('Error scanning image:', error);
       toast({
-        title: 'Scan Failed',
-        description: 'Could not find a QR code in the image. Please try another image.',
+        title: 'No QR Code Found',
+        description: 'Try another image or enter the code manually.',
         variant: 'destructive'
       });
+      setMode(null);
     } finally {
       setProcessing(false);
-      setMode(null);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   };
 
+  const handleManualSubmit = () => {
+    if (manualCode.trim().length >= 4) {
+      handleCodeDetected(manualCode.trim());
+    } else {
+      toast({
+        title: 'Invalid Code',
+        description: 'Please enter at least 4 characters.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleClose = () => {
     stopScanner();
     setMode(null);
+    setManualCode('');
     setOpen(false);
   };
 
@@ -174,39 +204,89 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ScanLine className="h-5 w-5 text-primary" />
-              Tournament Scanner
+              Join Tournament
             </DialogTitle>
             <DialogDescription>
-              Scan a tournament QR code to join instantly
+              Scan QR code or enter tournament code
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             {/* Mode Selection */}
-            {!mode && !scanning && (
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  className="h-24 flex-col gap-2"
-                  onClick={startCameraScanner}
-                >
-                  <Camera className="h-8 w-8 text-primary" />
-                  <span className="text-sm">Use Camera</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="h-24 flex-col gap-2"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  ) : (
-                    <Upload className="h-8 w-8 text-primary" />
+            {!mode && !scanning && !processing && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {cameraSupported && (
+                    <Button
+                      variant="outline"
+                      className="h-20 flex-col gap-2"
+                      onClick={startCameraScanner}
+                    >
+                      <Camera className="h-6 w-6 text-primary" />
+                      <span className="text-xs">Camera</span>
+                    </Button>
                   )}
-                  <span className="text-sm">Upload Image</span>
-                </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-6 w-6 text-primary" />
+                    <span className="text-xs">Upload Image</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className={`h-20 flex-col gap-2 ${!cameraSupported ? 'col-span-1' : ''}`}
+                    onClick={() => setMode('manual')}
+                  >
+                    <Keyboard className="h-6 w-6 text-primary" />
+                    <span className="text-xs">Enter Code</span>
+                  </Button>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Get the tournament code from your local organizer
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Manual Code Entry */}
+            {mode === 'manual' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tournament Code</label>
+                  <Input
+                    placeholder="Enter code (e.g., ABC123)"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+                    className="text-center text-lg tracking-widest font-mono uppercase"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMode(null);
+                      setManualCode('');
+                    }}
+                    className="flex-1"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleManualSubmit}
+                    disabled={manualCode.trim().length < 4}
+                    className="flex-1"
+                  >
+                    Join Tournament
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -218,7 +298,7 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
                   className="rounded-lg overflow-hidden bg-muted aspect-square"
                 />
                 <p className="text-center text-sm text-muted-foreground">
-                  Point your camera at a tournament QR code
+                  Point camera at tournament QR code
                 </p>
                 <Button
                   variant="outline"
@@ -229,7 +309,7 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
                   className="w-full"
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Cancel Scan
+                  Cancel
                 </Button>
               </div>
             )}
@@ -239,6 +319,7 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              capture="environment"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -251,15 +332,6 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
                 <p className="text-sm text-muted-foreground">Scanning image...</p>
-              </div>
-            )}
-
-            {/* Info text */}
-            {!mode && !scanning && !processing && (
-              <div className="bg-muted/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground">
-                  Scan QR codes from local tournament organizers to join their tournaments instantly
-                </p>
               </div>
             )}
           </div>
