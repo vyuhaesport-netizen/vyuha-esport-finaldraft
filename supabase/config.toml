@@ -1,1 +1,13 @@
 project_id = "drwxtjgtjejwegsneutq"
+
+[functions.razorpay-webhook]
+verify_jwt = false
+
+[functions.recalculate-prizepools]
+verify_jwt = false
+
+[functions.send-organizer-email]
+verify_jwt = false
+
+[functions.update-user-password]
+verify_jwt = false

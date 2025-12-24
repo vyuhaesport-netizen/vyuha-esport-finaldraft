@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +21,10 @@ import {
   Instagram,
   FileText,
   Youtube,
-  Globe
+  Globe,
+  Wrench,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -48,6 +52,12 @@ interface SocialSettings {
   social_youtube: string;
 }
 
+interface MaintenanceSettings {
+  maintenance_mode: string;
+  maintenance_message: string;
+  maintenance_end_time: string;
+}
+
 const AdminSettings = () => {
   const [settings, setSettings] = useState<CommissionSettings>({
     organizer_commission_percent: '10',
@@ -69,11 +79,17 @@ const AdminSettings = () => {
     social_instagram: '',
     social_youtube: '',
   });
+  const [maintenanceSettings, setMaintenanceSettings] = useState<MaintenanceSettings>({
+    maintenance_mode: 'false',
+    maintenance_message: 'We are currently performing scheduled maintenance. Please check back soon!',
+    maintenance_end_time: '',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingOwnerContact, setSavingOwnerContact] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
 
   const qrInputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +146,12 @@ const AdminSettings = () => {
         social_youtube: '',
       };
 
+      const maintenanceMap: MaintenanceSettings = {
+        maintenance_mode: 'false',
+        maintenance_message: 'We are currently performing scheduled maintenance. Please check back soon!',
+        maintenance_end_time: '',
+      };
+
       data?.forEach((s) => {
         if (s.setting_key in commissionMap) {
           commissionMap[s.setting_key as keyof CommissionSettings] = s.setting_value;
@@ -143,12 +165,16 @@ const AdminSettings = () => {
         if (s.setting_key in socialMap) {
           socialMap[s.setting_key as keyof SocialSettings] = s.setting_value;
         }
+        if (s.setting_key in maintenanceMap) {
+          maintenanceMap[s.setting_key as keyof MaintenanceSettings] = s.setting_value;
+        }
       });
 
       setSettings(commissionMap);
       setPaymentSettings(paymentMap);
       setOwnerContactSettings(ownerContactMap);
       setSocialSettings(socialMap);
+      setMaintenanceSettings(maintenanceMap);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -289,6 +315,70 @@ const AdminSettings = () => {
     }
   };
 
+  const handleToggleMaintenance = async (enabled: boolean) => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can change settings.', variant: 'destructive' });
+      return;
+    }
+
+    setSavingMaintenance(true);
+
+    try {
+      const { error } = await supabase
+        .from('platform_settings')
+        .upsert({ 
+          setting_key: 'maintenance_mode',
+          setting_value: enabled ? 'true' : 'false',
+          updated_by: user?.id,
+        }, { onConflict: 'setting_key' });
+
+      if (error) throw error;
+
+      setMaintenanceSettings(prev => ({ ...prev, maintenance_mode: enabled ? 'true' : 'false' }));
+      
+      toast({ 
+        title: enabled ? 'Maintenance Mode Enabled' : 'Maintenance Mode Disabled', 
+        description: enabled ? 'Users cannot access the website now.' : 'Users can access the website now.',
+        variant: enabled ? 'destructive' : 'default'
+      });
+    } catch (error) {
+      console.error('Error toggling maintenance:', error);
+      toast({ title: 'Error', description: 'Failed to toggle maintenance mode.', variant: 'destructive' });
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
+  const handleSaveMaintenance = async () => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can change settings.', variant: 'destructive' });
+      return;
+    }
+
+    setSavingMaintenance(true);
+
+    try {
+      for (const [key, value] of Object.entries(maintenanceSettings)) {
+        const { error } = await supabase
+          .from('platform_settings')
+          .upsert({ 
+            setting_key: key,
+            setting_value: value,
+            updated_by: user?.id,
+          }, { onConflict: 'setting_key' });
+
+        if (error) throw error;
+      }
+
+      toast({ title: 'Maintenance Settings Saved', description: 'Maintenance configuration has been updated.' });
+    } catch (error) {
+      console.error('Error saving maintenance settings:', error);
+      toast({ title: 'Error', description: 'Failed to save maintenance settings.', variant: 'destructive' });
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -369,6 +459,89 @@ const AdminSettings = () => {
   return (
     <AdminLayout title="Platform Settings">
       <div className="p-4 space-y-4">
+        {/* Maintenance Mode - Most Important */}
+        <Card className={maintenanceSettings.maintenance_mode === 'true' ? 'border-destructive bg-destructive/5' : ''}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Wrench className={`h-5 w-5 ${maintenanceSettings.maintenance_mode === 'true' ? 'text-destructive' : 'text-primary'}`} />
+              Maintenance Mode
+              {maintenanceSettings.maintenance_mode === 'true' && (
+                <span className="ml-auto text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded-full animate-pulse">
+                  ACTIVE
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {maintenanceSettings.maintenance_mode === 'true' && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                <div>
+                  <p className="font-medium text-destructive">Website is currently in maintenance mode!</p>
+                  <p className="text-sm text-destructive/80 mt-1">
+                    No users can access the website. Only admins can disable this.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between py-3 border-b">
+              <div>
+                <p className="font-medium">Enable Maintenance Mode</p>
+                <p className="text-xs text-muted-foreground">Block all user access to the website</p>
+              </div>
+              <Switch
+                checked={maintenanceSettings.maintenance_mode === 'true'}
+                onCheckedChange={handleToggleMaintenance}
+                disabled={!isSuperAdmin || savingMaintenance}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Maintenance Message</Label>
+                <Textarea
+                  placeholder="Enter message to show users during maintenance..."
+                  value={maintenanceSettings.maintenance_message}
+                  onChange={(e) => setMaintenanceSettings(prev => ({ ...prev, maintenance_message: e.target.value }))}
+                  disabled={!isSuperAdmin}
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">This message will be displayed on the login page</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Estimated End Time
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={maintenanceSettings.maintenance_end_time ? maintenanceSettings.maintenance_end_time.slice(0, 16) : ''}
+                  onChange={(e) => setMaintenanceSettings(prev => ({ 
+                    ...prev, 
+                    maintenance_end_time: e.target.value ? new Date(e.target.value).toISOString() : '' 
+                  }))}
+                  disabled={!isSuperAdmin}
+                />
+                <p className="text-xs text-muted-foreground">Optional: Let users know when the site will be back</p>
+              </div>
+            </div>
+
+            {isSuperAdmin && (
+              <Button 
+                variant="gaming" 
+                className="w-full" 
+                onClick={handleSaveMaintenance}
+                disabled={savingMaintenance}
+              >
+                {savingMaintenance ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Save Maintenance Settings
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Payment Configuration */}
         <Card>
           <CardHeader>

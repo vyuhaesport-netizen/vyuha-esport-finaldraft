@@ -6,12 +6,18 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
-import { Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowLeft, Wrench, Clock } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+
+interface MaintenanceState {
+  isEnabled: boolean;
+  message: string;
+  endTime: string;
+}
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -23,6 +29,12 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [checkingMaintenance, setCheckingMaintenance] = useState(true);
+  const [maintenance, setMaintenance] = useState<MaintenanceState>({
+    isEnabled: false,
+    message: '',
+    endTime: '',
+  });
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -40,10 +52,47 @@ const Auth = () => {
   } = useToast();
 
   useEffect(() => {
-    if (user) {
+    checkMaintenanceMode();
+  }, []);
+
+  useEffect(() => {
+    if (user && !maintenance.isEnabled) {
       navigate('/home');
     }
-  }, [user, navigate]);
+  }, [user, navigate, maintenance.isEnabled]);
+
+  const checkMaintenanceMode = async () => {
+    try {
+      const { data } = await supabase
+        .from('platform_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['maintenance_mode', 'maintenance_message', 'maintenance_end_time']);
+
+      const maintenanceData: MaintenanceState = {
+        isEnabled: false,
+        message: 'We are currently performing scheduled maintenance. Please check back soon!',
+        endTime: '',
+      };
+
+      data?.forEach((s) => {
+        if (s.setting_key === 'maintenance_mode') {
+          maintenanceData.isEnabled = s.setting_value === 'true';
+        }
+        if (s.setting_key === 'maintenance_message' && s.setting_value) {
+          maintenanceData.message = s.setting_value;
+        }
+        if (s.setting_key === 'maintenance_end_time' && s.setting_value) {
+          maintenanceData.endTime = s.setting_value;
+        }
+      });
+
+      setMaintenance(maintenanceData);
+    } catch (error) {
+      console.error('Error checking maintenance mode:', error);
+    } finally {
+      setCheckingMaintenance(false);
+    }
+  };
 
 
   const getErrorMessage = (error: Error): string => {
@@ -209,6 +258,69 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Loading state
+  if (checkingMaintenance) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Maintenance Mode View
+  if (maintenance.isEnabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+        <div className="w-full max-w-md text-center">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700">
+            {/* Logo */}
+            <img 
+              src={vyuhaLogo} 
+              alt="Vyuha Esport" 
+              className="h-24 w-24 rounded-full object-cover mx-auto mb-6 border-4 border-orange-500/30" 
+            />
+            
+            {/* Maintenance Icon */}
+            <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Wrench className="h-10 w-10 text-orange-500 animate-pulse" />
+            </div>
+            
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-white mb-2">Under Maintenance</h1>
+            <p className="text-gray-400 mb-6 text-sm">{maintenance.message}</p>
+            
+            {/* Estimated Time */}
+            {maintenance.endTime && (
+              <div className="bg-gray-700/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-center gap-2 text-orange-400 mb-1">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-sm font-medium">Estimated Return</span>
+                </div>
+                <p className="text-white font-semibold">
+                  {new Date(maintenance.endTime).toLocaleString()}
+                </p>
+              </div>
+            )}
+            
+            {/* Status Indicators */}
+            <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <span>Maintenance in progress</span>
+            </div>
+            
+            {/* Refresh Button */}
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-6 py-2 bg-orange-500/10 text-orange-400 rounded-lg hover:bg-orange-500/20 transition-colors text-sm font-medium"
+            >
+              Check Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Forgot Password View
   if (isForgotPassword) {
