@@ -768,6 +768,158 @@ export type Database = {
           },
         ]
       }
+      payment_gateway_config: {
+        Row: {
+          additional_config: Json | null
+          api_key_id: string | null
+          api_key_secret: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          display_name: string
+          environment: string
+          gateway_name: string
+          id: string
+          is_default: boolean
+          is_enabled: boolean
+          max_amount: number | null
+          min_amount: number | null
+          platform_fee_fixed: number | null
+          platform_fee_percent: number | null
+          supports_auto_credit: boolean | null
+          supports_recurring: boolean | null
+          supports_refunds: boolean | null
+          updated_at: string
+          updated_by: string | null
+          webhook_secret: string | null
+        }
+        Insert: {
+          additional_config?: Json | null
+          api_key_id?: string | null
+          api_key_secret?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          display_name: string
+          environment?: string
+          gateway_name: string
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          platform_fee_fixed?: number | null
+          platform_fee_percent?: number | null
+          supports_auto_credit?: boolean | null
+          supports_recurring?: boolean | null
+          supports_refunds?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret?: string | null
+        }
+        Update: {
+          additional_config?: Json | null
+          api_key_id?: string | null
+          api_key_secret?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          display_name?: string
+          environment?: string
+          gateway_name?: string
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          platform_fee_fixed?: number | null
+          platform_fee_percent?: number | null
+          supports_auto_credit?: boolean | null
+          supports_recurring?: boolean | null
+          supports_refunds?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret?: string | null
+        }
+        Relationships: []
+      }
+      payment_gateway_transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          error_code: string | null
+          error_description: string | null
+          gateway_fee: number | null
+          gateway_name: string
+          id: string
+          metadata: Json | null
+          net_amount: number | null
+          order_id: string | null
+          payment_id: string | null
+          platform_fee: number | null
+          signature: string | null
+          status: string
+          transaction_type: string
+          updated_at: string
+          user_id: string
+          wallet_transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          error_code?: string | null
+          error_description?: string | null
+          gateway_fee?: number | null
+          gateway_name: string
+          id?: string
+          metadata?: Json | null
+          net_amount?: number | null
+          order_id?: string | null
+          payment_id?: string | null
+          platform_fee?: number | null
+          signature?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id: string
+          wallet_transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          error_code?: string | null
+          error_description?: string | null
+          gateway_fee?: number | null
+          gateway_name?: string
+          id?: string
+          metadata?: Json | null
+          net_amount?: number | null
+          order_id?: string | null
+          payment_id?: string | null
+          platform_fee?: number | null
+          signature?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+          wallet_transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_wallet_transaction"
+            columns: ["wallet_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           created_at: string
@@ -1510,6 +1662,18 @@ export type Database = {
             Returns: Json
           }
       generate_private_code: { Args: never; Returns: string }
+      get_active_payment_gateway: {
+        Args: never
+        Returns: {
+          api_key_id: string
+          display_name: string
+          environment: string
+          gateway_name: string
+          is_enabled: boolean
+          max_amount: number
+          min_amount: number
+        }[]
+      }
       get_user_ban_count: { Args: { p_user_id: string }; Returns: number }
       has_admin_permission: {
         Args: { _permission: string; _user_id: string }
