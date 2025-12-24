@@ -23,6 +23,7 @@ import {
   Megaphone,
   FileText,
   Building2,
+  CreditCard,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -48,6 +49,7 @@ const menuItems: MenuItem[] = [
   { icon: Receipt, label: 'Transactions', path: '/admin/transactions', permission: 'transactions:view' },
   { icon: Wallet, label: 'Wallet Audit', path: '/admin/wallet-audit', permission: 'transactions:view' },
   { icon: ArrowUpRight, label: 'Withdrawals', path: '/admin/withdrawals', permission: 'withdrawals:view' },
+  { icon: CreditCard, label: 'API Payment', path: '/admin/api-payment', superAdminOnly: true },
   { icon: HeadphonesIcon, label: 'Support', path: '/admin/support', permission: 'support:view' },
   { icon: Bell, label: 'Notifications', path: '/admin/notifications', permission: 'notifications:view' },
   { icon: Megaphone, label: 'Broadcast Channel', path: '/admin/messages', permission: 'notifications:view' },

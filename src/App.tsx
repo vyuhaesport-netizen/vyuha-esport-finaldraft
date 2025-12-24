@@ -35,6 +35,7 @@ import AdminDocumentation from "./pages/admin/AdminDocumentation";
 import AdminWalletAudit from "./pages/admin/AdminWalletAudit";
 import AdminBanManagement from "./pages/admin/AdminBanManagement";
 import AdminDhanaWithdrawals from "./pages/admin/AdminDhanaWithdrawals";
+import AdminApiPayment from "./pages/admin/AdminApiPayment";
 import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
 import OrganizerHub from "./pages/organizer/OrganizerHub";
 import OrganizerWallet from "./pages/organizer/OrganizerWallet";
@@ -216,6 +217,7 @@ const AppRoutes = () => {
       <Route path="/admin/bans" element={<ProtectedRoute><AdminBanManagement /></ProtectedRoute>} />
       <Route path="/admin/dhana-withdrawals" element={<ProtectedRoute><AdminDhanaWithdrawals /></ProtectedRoute>} />
       <Route path="/admin/local-tournaments" element={<ProtectedRoute><AdminLocalTournaments /></ProtectedRoute>} />
+      <Route path="/admin/api-payment" element={<ProtectedRoute><AdminApiPayment /></ProtectedRoute>} />
       
       {/* Organizer Routes */}
       <Route path="/organizer" element={<ProtectedRoute><OrganizerHub /></ProtectedRoute>} />

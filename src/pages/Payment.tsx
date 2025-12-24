@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Upload, Loader2, Clock, QrCode, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Upload, Loader2, Clock, QrCode, Shield, AlertTriangle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+
+interface ActiveGateway {
+  gateway_name: string;
+  display_name: string;
+  is_enabled: boolean;
+  environment: string;
+  min_amount: number;
+  max_amount: number;
+  api_key_id: string | null;
+}
 
 const Payment = () => {
   const navigate = useNavigate();
@@ -23,6 +33,8 @@ const Payment = () => {
   const [submitting, setSubmitting] = useState(false);
   const [adminUpiId, setAdminUpiId] = useState('abbishekvyuha@fam');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [activeGateway, setActiveGateway] = useState<ActiveGateway | null>(null);
+  const [loadingGateway, setLoadingGateway] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,9 +44,13 @@ const Payment = () => {
       return;
     }
     fetchPaymentSettings();
+    fetchActiveGateway();
   }, [amount, navigate]);
 
   useEffect(() => {
+    // Only run timer for manual UPI payments
+    if (activeGateway?.gateway_name === 'razorpay') return;
+    
     if (timeLeft <= 0) {
       toast({
         title: 'Time Expired',
@@ -50,7 +66,20 @@ const Payment = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, navigate, toast]);
+  }, [timeLeft, navigate, toast, activeGateway]);
+
+  const fetchActiveGateway = async () => {
+    try {
+      const { data } = await supabase.rpc('get_active_payment_gateway');
+      if (data && data.length > 0) {
+        setActiveGateway(data[0] as ActiveGateway);
+      }
+    } catch (error) {
+      console.error('Error fetching active gateway:', error);
+    } finally {
+      setLoadingGateway(false);
+    }
+  };
 
   const fetchPaymentSettings = async () => {
     try {
@@ -173,9 +202,244 @@ const Payment = () => {
     }
   };
 
+  // Razorpay payment handler
+  const handleRazorpayPayment = async () => {
+    if (!user || !activeGateway?.api_key_id) return;
+
+    setSubmitting(true);
+    try {
+      // Create order record first
+      const { data: txnData, error: txnError } = await supabase
+        .from('payment_gateway_transactions')
+        .insert({
+          user_id: user.id,
+          gateway_name: 'razorpay',
+          amount: amount,
+          transaction_type: 'credit',
+          status: 'created',
+          metadata: { initiated_at: new Date().toISOString() }
+        })
+        .select()
+        .single();
+
+      if (txnError) throw txnError;
+
+      // Load Razorpay script if not loaded
+      if (!(window as any).Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+
+      const options = {
+        key: activeGateway.api_key_id,
+        amount: amount * 100, // Razorpay expects amount in paise
+        currency: 'INR',
+        name: 'Vyuha Esports',
+        description: `Wallet Deposit - ₹${amount}`,
+        handler: async function (response: any) {
+          try {
+            // Update transaction with payment details
+            await supabase
+              .from('payment_gateway_transactions')
+              .update({
+                payment_id: response.razorpay_payment_id,
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                metadata: {
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature
+                }
+              })
+              .eq('id', txnData.id);
+
+            // Create wallet transaction and update balance
+            await supabase
+              .from('wallet_transactions')
+              .insert({
+                user_id: user.id,
+                type: 'deposit',
+                amount: amount,
+                status: 'completed',
+                description: `Razorpay Payment - ${response.razorpay_payment_id}`,
+              });
+
+            // Update wallet balance directly
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('wallet_balance')
+              .eq('user_id', user.id)
+              .single();
+
+            const currentBalance = profileData?.wallet_balance || 0;
+            await supabase
+              .from('profiles')
+              .update({ wallet_balance: currentBalance + amount })
+              .eq('user_id', user.id);
+
+            toast({
+              title: 'Payment Successful!',
+              description: `₹${amount} has been added to your wallet`,
+            });
+
+            navigate('/wallet');
+          } catch (error) {
+            console.error('Error processing payment:', error);
+            toast({
+              title: 'Payment Error',
+              description: 'Payment received but there was an error updating your wallet. Please contact support.',
+              variant: 'destructive',
+            });
+          }
+        },
+        prefill: {
+          email: user.email,
+        },
+        theme: {
+          color: '#FF6B00',
+        },
+        modal: {
+          ondismiss: function() {
+            setSubmitting(false);
+            // Update transaction as cancelled
+            supabase
+              .from('payment_gateway_transactions')
+              .update({ status: 'failed', error_description: 'User cancelled payment' })
+              .eq('id', txnData.id);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error('Error initiating Razorpay payment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to initiate payment. Please try again.',
+        variant: 'destructive',
+      });
+      setSubmitting(false);
+    }
+  };
+
   const isUrgent = timeLeft < 60;
   const isCritical = timeLeft <= 30;
   const isVeryLow = timeLeft <= 10;
+
+  if (loadingGateway) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Razorpay Payment UI
+  if (activeGateway?.gateway_name === 'razorpay') {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b-2 border-border px-4 py-3">
+          <div className="flex items-center justify-between max-w-lg mx-auto">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => navigate('/wallet')}
+                className="p-2 -ml-2 hover:bg-muted rounded-lg transition-colors border border-border"
+              >
+                <ArrowLeft className="h-5 w-5 text-foreground" />
+              </button>
+              <div>
+                <h1 className="text-lg font-bold text-foreground">Pay ₹{amount}</h1>
+                <p className="text-xs text-muted-foreground">Secure Razorpay Payment</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-lg mx-auto p-4 space-y-6">
+          {/* Razorpay Info Card */}
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/20 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <Zap className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">Instant Payment</h2>
+                <p className="text-sm text-muted-foreground">Powered by Razorpay</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="font-bold text-xl">₹{amount}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground">Credit Type</span>
+                <span className="text-green-600 font-medium">Instant Credit</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Environment Badge */}
+          {activeGateway.environment === 'test' && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <p className="text-sm text-yellow-700">Test Mode - No real charges will be made</p>
+            </div>
+          )}
+
+          {/* Payment Methods Info */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="font-medium mb-3">Accepted Payment Methods</h3>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="bg-muted rounded-lg p-3">
+                <span className="text-2xl">💳</span>
+                <p className="text-xs mt-1 text-muted-foreground">Cards</p>
+              </div>
+              <div className="bg-muted rounded-lg p-3">
+                <span className="text-2xl">📱</span>
+                <p className="text-xs mt-1 text-muted-foreground">UPI</p>
+              </div>
+              <div className="bg-muted rounded-lg p-3">
+                <span className="text-2xl">🏦</span>
+                <p className="text-xs mt-1 text-muted-foreground">NetBanking</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pay Button */}
+          <Button
+            onClick={handleRazorpayPayment}
+            disabled={submitting}
+            className="w-full h-14 text-lg font-bold"
+            size="lg"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 mr-2" />
+                Pay ₹{amount} Now
+              </>
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Your payment is secured by Razorpay. Amount will be instantly credited to your wallet.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Manual UPI Payment UI (existing code)
 
   return (
     <div className={`min-h-screen bg-background ${isCritical ? 'animate-pulse' : ''}`}>
