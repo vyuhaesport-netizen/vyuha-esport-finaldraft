@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ScanLine, Camera, Upload, X, Loader2, Keyboard } from 'lucide-react';
+import { ScanLine, Upload, Loader2, Keyboard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface TournamentScannerProps {
@@ -19,33 +19,13 @@ interface TournamentScannerProps {
 
 const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
   const [open, setOpen] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [mode, setMode] = useState<'camera' | 'upload' | 'manual' | null>(null);
+  const [mode, setMode] = useState<'upload' | 'manual' | null>(null);
   const [manualCode, setManualCode] = useState('');
-  const [cameraSupported, setCameraSupported] = useState(true);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  // Check camera support on mount
-  useEffect(() => {
-    const checkCamera = async () => {
-      try {
-        const devices = await navigator.mediaDevices?.enumerateDevices();
-        const hasCamera = devices?.some(d => d.kind === 'videoinput');
-        setCameraSupported(!!hasCamera && !!navigator.mediaDevices?.getUserMedia);
-      } catch {
-        setCameraSupported(false);
-      }
-    };
-    checkCamera();
-  }, []);
-
   const handleCodeDetected = async (code: string) => {
-    // Stop scanning
-    stopScanner();
-    
     // Extract private code from URL or use directly
     let privateCode = code;
     
@@ -86,53 +66,6 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
       title: 'Tournament Found!',
       description: `Joining with code: ${privateCode}`,
     });
-  };
-
-  const startCameraScanner = async () => {
-    setMode('camera');
-    setScanning(true);
-    
-    try {
-      const html5QrCode = new Html5Qrcode('qr-reader');
-      scannerRef.current = html5QrCode;
-      
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          handleCodeDetected(decodedText);
-        },
-        () => {
-          // QR code not found, continue scanning
-        }
-      );
-    } catch (error) {
-      console.error('Error starting camera:', error);
-      setCameraSupported(false);
-      setScanning(false);
-      setMode(null);
-      toast({
-        title: 'Camera Unavailable',
-        description: 'Use image upload or enter the code manually.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-      } catch (error) {
-        console.error('Error stopping scanner:', error);
-      }
-      scannerRef.current = null;
-    }
-    setScanning(false);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,17 +109,10 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
   };
 
   const handleClose = () => {
-    stopScanner();
     setMode(null);
     setManualCode('');
     setOpen(false);
   };
-
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
-  }, []);
 
   return (
     <>
@@ -213,20 +139,9 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
 
           <div className="space-y-4">
             {/* Mode Selection */}
-            {!mode && !scanning && !processing && (
+            {!mode && !processing && (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  {cameraSupported && (
-                    <Button
-                      variant="outline"
-                      className="h-20 flex-col gap-2"
-                      onClick={startCameraScanner}
-                    >
-                      <Camera className="h-6 w-6 text-primary" />
-                      <span className="text-xs">Camera</span>
-                    </Button>
-                  )}
-                  
                   <Button
                     variant="outline"
                     className="h-20 flex-col gap-2"
@@ -238,7 +153,7 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
                   
                   <Button
                     variant="outline"
-                    className={`h-20 flex-col gap-2 ${!cameraSupported ? 'col-span-1' : ''}`}
+                    className="h-20 flex-col gap-2"
                     onClick={() => setMode('manual')}
                   >
                     <Keyboard className="h-6 w-6 text-primary" />
@@ -287,30 +202,6 @@ const TournamentScanner = ({ onScanSuccess }: TournamentScannerProps) => {
                     Join Tournament
                   </Button>
                 </div>
-              </div>
-            )}
-
-            {/* Camera Scanner View */}
-            {scanning && (
-              <div className="space-y-3">
-                <div 
-                  id="qr-reader" 
-                  className="rounded-lg overflow-hidden bg-muted aspect-square"
-                />
-                <p className="text-center text-sm text-muted-foreground">
-                  Point camera at tournament QR code
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    stopScanner();
-                    setMode(null);
-                  }}
-                  className="w-full"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
               </div>
             )}
 
