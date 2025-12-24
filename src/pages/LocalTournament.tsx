@@ -1273,7 +1273,7 @@ const LocalTournamentPage = () => {
                   <Select
                     value={winnerPositions[p.user_id]?.toString() || ''}
                     onValueChange={(value) => {
-                      if (value) {
+                      if (value && value !== 'none') {
                         setWinnerPositions({ ...winnerPositions, [p.user_id]: parseInt(value) });
                       } else {
                         const updated = { ...winnerPositions };
@@ -1286,7 +1286,7 @@ const LocalTournamentPage = () => {
                       <SelectValue placeholder="Position" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {[1, 2, 3, 4, 5].map((pos) => (
                         <SelectItem key={pos} value={pos.toString()}>
                           #{pos} - ₹{editablePrizeDistribution[pos.toString()] || 0}
