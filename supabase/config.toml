@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.send-welcome-broadcast]
 verify_jwt = false
+
+[functions.auto-cancel-tournaments]
+verify_jwt = false
