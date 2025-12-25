@@ -1,11 +1,44 @@
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { 
   Trophy, Target, Gamepad2, Users, Shield, Star, 
   Zap, Eye, Heart, Smartphone, Lock, Scale, 
-  Users2, MessageSquare, Award, Swords
+  Users2, MessageSquare, Award, Swords, Instagram, Youtube,
+  ExternalLink, Mail, Phone
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const AboutUs = () => {
+  const [socialLinks, setSocialLinks] = useState({
+    discord: '',
+    instagram: '',
+    youtube: '',
+  });
+
+  useEffect(() => {
+    const fetchSocialLinks = async () => {
+      try {
+        const { data } = await supabase
+          .from('platform_settings')
+          .select('setting_key, setting_value')
+          .in('setting_key', ['social_discord', 'social_instagram', 'social_youtube']);
+        
+        if (data) {
+          const links: any = {};
+          data.forEach((s) => {
+            if (s.setting_key === 'social_discord') links.discord = s.setting_value;
+            if (s.setting_key === 'social_instagram') links.instagram = s.setting_value;
+            if (s.setting_key === 'social_youtube') links.youtube = s.setting_value;
+          });
+          setSocialLinks(links);
+        }
+      } catch (error) {
+        console.error('Error fetching social links:', error);
+      }
+    };
+    fetchSocialLinks();
+  }, []);
+
   return (
     <AppLayout title="About Us">
       <div className="p-4 pb-8 space-y-6">
@@ -24,6 +57,60 @@ const AboutUs = () => {
             </p>
           </div>
         </div>
+
+        {/* Social Links Section */}
+        {(socialLinks.discord || socialLinks.instagram || socialLinks.youtube) && (
+          <div className="bg-card rounded-xl border-2 border-border overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 p-4 border-b border-border bg-primary/5">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ExternalLink className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">Connect With Us</h2>
+                <p className="text-xs text-muted-foreground">Follow us on social media</p>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex justify-center gap-4">
+                {socialLinks.discord && (
+                  <a
+                    href={socialLinks.discord}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors min-w-[80px]"
+                  >
+                    <svg className="h-8 w-8 text-indigo-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">Discord</span>
+                  </a>
+                )}
+                {socialLinks.instagram && (
+                  <a
+                    href={socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-pink-500/10 border border-pink-500/20 hover:bg-pink-500/20 transition-colors min-w-[80px]"
+                  >
+                    <Instagram className="h-8 w-8 text-pink-500" />
+                    <span className="text-xs font-medium text-pink-600 dark:text-pink-400">Instagram</span>
+                  </a>
+                )}
+                {socialLinks.youtube && (
+                  <a
+                    href={socialLinks.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors min-w-[80px]"
+                  >
+                    <Youtube className="h-8 w-8 text-red-500" />
+                    <span className="text-xs font-medium text-red-600 dark:text-red-400">YouTube</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* The Meaning of Vyuha */}
         <div className="bg-card rounded-xl border-2 border-border overflow-hidden shadow-sm">
@@ -87,6 +174,22 @@ const AboutUs = () => {
           </div>
         </div>
 
+        {/* Platform Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-card rounded-xl border-2 border-border p-4 text-center">
+            <p className="text-2xl font-bold text-primary">1000+</p>
+            <p className="text-xs text-muted-foreground">Tournaments</p>
+          </div>
+          <div className="bg-card rounded-xl border-2 border-border p-4 text-center">
+            <p className="text-2xl font-bold text-green-500">₹50L+</p>
+            <p className="text-xs text-muted-foreground">Prize Distributed</p>
+          </div>
+          <div className="bg-card rounded-xl border-2 border-border p-4 text-center">
+            <p className="text-2xl font-bold text-blue-500">10K+</p>
+            <p className="text-xs text-muted-foreground">Active Players</p>
+          </div>
+        </div>
+
         {/* The Three Pillars */}
         <div className="space-y-4">
           <h2 className="font-bold text-lg px-1">Our Three Pillars</h2>
@@ -99,7 +202,7 @@ const AboutUs = () => {
                 <h3 className="font-bold">Transparency</h3>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Room details are hidden until 30 minutes before the match to prevent stream sniping. Our <strong className="text-foreground">80/20 prize split</strong> is clear: 80% to players, 10% to organizers, 10% platform fee.
+                Room details are hidden until 30 minutes before the match to prevent stream sniping. Our <strong className="text-foreground">70/20/10 prize split</strong> is clear: 70% to players, 20% to organizers, 10% platform fee.
               </p>
             </div>
 
@@ -243,18 +346,24 @@ const AboutUs = () => {
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
             Have questions, want to organize a tournament for your school/college, or need support? We're here to help!
           </p>
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-2 rounded-lg text-xs font-medium bg-card border border-border">
-              📧 vyuhaesport@gmail.com
-            </span>
-            <span className="px-3 py-2 rounded-lg text-xs font-medium bg-card border border-border">
-              📱 In-App Support
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border">
+              <Mail className="h-4 w-4 text-primary" />
+              <span className="text-sm">vyuhaesport@gmail.com</span>
+            </div>
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card border border-border">
+              <Phone className="h-4 w-4 text-primary" />
+              <span className="text-sm">In-App Support Available 24/7</span>
+            </div>
           </div>
         </div>
 
         <p className="text-center text-xs text-muted-foreground pt-2">
           Join thousands of gamers. Compete. Win. Rise. 🎮
+        </p>
+        
+        <p className="text-center text-xs text-muted-foreground">
+          © 2025 Vyuha Esport. All rights reserved.
         </p>
       </div>
     </AppLayout>
