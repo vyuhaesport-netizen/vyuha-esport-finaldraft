@@ -68,6 +68,7 @@ interface Registration {
     room_password: string | null;
     joined_users: string[] | null;
     winner_user_id: string | null;
+    winner_declared_at: string | null;
     prize_distribution: { position: number; amount: number; user_id?: string }[] | null;
     current_prize_pool: number | null;
   };
@@ -138,6 +139,7 @@ const MyMatch = () => {
             room_password,
             joined_users,
             winner_user_id,
+            winner_declared_at,
             prize_distribution,
             current_prize_pool
           )
@@ -243,7 +245,7 @@ const MyMatch = () => {
 
   const upcomingMatches = registrations.filter(r => r.tournaments.status === 'upcoming');
   const liveMatches = registrations.filter(r => r.tournaments.status === 'ongoing');
-  const completedMatches = registrations.filter(r => r.tournaments.status === 'completed');
+  const completedMatches = registrations.filter(r => r.tournaments.status === 'completed' || r.tournaments.status === 'cancelled');
 
   // Local Tournament Card Component
   const LocalTournamentCard = ({ tournament }: { tournament: LocalTournament }) => {
@@ -358,7 +360,7 @@ const MyMatch = () => {
             {tournament.current_prize_pool && tournament.current_prize_pool > 0 && (
               <div className="flex items-center gap-1 mt-2 text-xs">
                 <Trophy className="h-3 w-3 text-yellow-500" />
-                <span className="text-yellow-500 font-medium">Prize Pool: ₹{tournament.current_prize_pool}</span>
+                <span className="text-yellow-500 font-medium">Prize Pool: ₹{Math.round(tournament.current_prize_pool)}</span>
               </div>
             )}
 
@@ -518,9 +520,21 @@ const MyMatch = () => {
     const endDate = registration.tournaments.end_date ? new Date(registration.tournaments.end_date) : null;
     const winnerDeclarationTime = endDate ? new Date(endDate.getTime() + 30 * 60 * 1000) : null;
     const isAwaitingWinner = registration.tournaments.status === 'completed' && 
-                             !registration.tournaments.winner_user_id && 
+                             !registration.tournaments.winner_declared_at && 
                              winnerDeclarationTime && 
                              new Date() < winnerDeclarationTime;
+    
+    // Check if result is not out (winner not declared and 30 min window passed or still waiting)
+    const isResultNotOut = registration.tournaments.status === 'completed' && 
+                           !registration.tournaments.winner_declared_at;
+    
+    // Check if user lost (result declared but user is not a winner)
+    const isLoser = registration.tournaments.status === 'completed' && 
+                    registration.tournaments.winner_declared_at && 
+                    !isWinner;
+    
+    // Check if tournament was cancelled
+    const isCancelled = registration.tournaments.status === 'cancelled';
 
     // Show confetti animation state for this specific card
     const [showCardConfetti, setShowCardConfetti] = useState(false);
@@ -729,7 +743,9 @@ const MyMatch = () => {
             {registration.tournaments.prize_pool && (
               <div className="flex items-center gap-1 mt-1 text-xs">
                 <Trophy className="h-3 w-3 text-primary" />
-                <span className="text-primary font-medium">{registration.tournaments.prize_pool}</span>
+                <span className="text-primary font-medium">
+                  ₹{Math.round(parseFloat(registration.tournaments.prize_pool.replace(/[₹,]/g, '')) || 0)}
+                </span>
               </div>
             )}
           </div>
@@ -743,10 +759,31 @@ const MyMatch = () => {
                 </Badge>
                 {winnerAmount && (
                   <Badge className="bg-green-500/20 text-green-600 border border-green-500/30 text-[10px] font-semibold">
-                    Won ₹{winnerAmount}
+                    Won ₹{Math.round(winnerAmount)}
                   </Badge>
                 )}
               </div>
+            )}
+            
+            {/* You Lost Badge */}
+            {isLoser && (
+              <Badge className="bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-medium">
+                😔 You Lost
+              </Badge>
+            )}
+            
+            {/* Result Not Out Badge */}
+            {isResultNotOut && !isAwaitingWinner && (
+              <Badge className="bg-gray-500/10 text-gray-500 border border-gray-500/20 text-[10px] font-medium">
+                ⏳ Result Not Out
+              </Badge>
+            )}
+            
+            {/* Cancelled Badge */}
+            {isCancelled && (
+              <Badge className="bg-orange-500/10 text-orange-500 border border-orange-500/20 text-[10px] font-medium">
+                🚫 Cancelled (Refunded)
+              </Badge>
             )}
             
             {/* Winner Declaration Countdown */}
@@ -777,6 +814,8 @@ const MyMatch = () => {
                   ? 'bg-primary/10 text-primary' 
                   : registration.tournaments.status === 'ongoing'
                   ? 'bg-green-500/10 text-green-600'
+                  : registration.tournaments.status === 'cancelled'
+                  ? 'bg-orange-500/10 text-orange-500'
                   : 'bg-muted text-muted-foreground'
               }`}
             >

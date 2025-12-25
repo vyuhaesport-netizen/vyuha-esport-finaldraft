@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminCounts } from '@/hooks/useAdminCounts';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
 import {
   Menu,
@@ -24,6 +26,7 @@ import {
   FileText,
   Building2,
   CreditCard,
+  Coins,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -37,24 +40,26 @@ interface MenuItem {
   path: string;
   permission?: string;
   superAdminOnly?: boolean;
+  countKey?: 'pendingDeposits' | 'pendingWithdrawals' | 'pendingDhanaWithdrawals' | 'pendingOrganizerApps' | 'pendingLocalTournamentApps' | 'pendingSupport' | 'pendingReports';
 }
 
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin', permission: 'dashboard:view' },
   { icon: Users, label: 'Users', path: '/admin/users', permission: 'users:view' },
   { icon: Trophy, label: 'Tournaments', path: '/admin/tournaments', permission: 'tournaments:view' },
-  { icon: ShieldCheck, label: 'Organizer Management', path: '/admin/organizers', permission: 'organizers:view' },
+  { icon: ShieldCheck, label: 'Organizer Management', path: '/admin/organizers', permission: 'organizers:view', countKey: 'pendingOrganizerApps' },
   { icon: Palette, label: 'Creator Management', path: '/admin/creators', permission: 'creators:view' },
-  { icon: ArrowDownLeft, label: 'Deposits', path: '/admin/deposits', permission: 'deposits:view' },
+  { icon: ArrowDownLeft, label: 'Deposits', path: '/admin/deposits', permission: 'deposits:view', countKey: 'pendingDeposits' },
   { icon: Receipt, label: 'Transactions', path: '/admin/transactions', permission: 'transactions:view' },
   { icon: Wallet, label: 'Wallet Audit', path: '/admin/wallet-audit', permission: 'transactions:view' },
-  { icon: ArrowUpRight, label: 'Withdrawals', path: '/admin/withdrawals', permission: 'withdrawals:view' },
+  { icon: ArrowUpRight, label: 'Withdrawals', path: '/admin/withdrawals', permission: 'withdrawals:view', countKey: 'pendingWithdrawals' },
+  { icon: Coins, label: 'Dhana Withdrawals', path: '/admin/dhana-withdrawals', permission: 'withdrawals:view', countKey: 'pendingDhanaWithdrawals' },
   { icon: CreditCard, label: 'API Payment', path: '/admin/api-payment', superAdminOnly: true },
-  { icon: HeadphonesIcon, label: 'Support', path: '/admin/support', permission: 'support:view' },
+  { icon: HeadphonesIcon, label: 'Support', path: '/admin/support', permission: 'support:view', countKey: 'pendingSupport' },
   { icon: Bell, label: 'Notifications', path: '/admin/notifications', permission: 'notifications:view' },
   { icon: Megaphone, label: 'Broadcast Channel', path: '/admin/messages', permission: 'notifications:view' },
   { icon: Settings, label: 'Settings', path: '/admin/settings', permission: 'settings:view' },
-  { icon: Building2, label: 'Local Tournaments', path: '/admin/local-tournaments', permission: 'tournaments:view' },
+  { icon: Building2, label: 'Local Tournaments', path: '/admin/local-tournaments', permission: 'tournaments:view', countKey: 'pendingLocalTournamentApps' },
   { icon: FileText, label: 'Documentation', path: '/admin/docs', superAdminOnly: true },
   { icon: UsersRound, label: 'Team', path: '/admin/team', superAdminOnly: true },
 ];
@@ -62,6 +67,7 @@ const menuItems: MenuItem[] = [
 const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { hasPermission, isSuperAdmin, signOut } = useAuth();
+  const { counts } = useAdminCounts();
   const navigate = useNavigate();
 
   const filteredMenuItems = menuItems.filter((item) => {
@@ -80,6 +86,11 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     navigate('/');
   };
 
+  const getCountForItem = (item: MenuItem): number => {
+    if (!item.countKey) return 0;
+    return counts[item.countKey] || 0;
+  };
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Sidebar Header */}
@@ -93,6 +104,14 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             </p>
           </div>
         </div>
+        {/* Total pending count badge */}
+        {counts.total > 0 && (
+          <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p className="text-xs text-red-500 font-medium text-center">
+              🔔 {counts.total} pending request{counts.total > 1 ? 's' : ''} need attention
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Menu Items */}
@@ -100,6 +119,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
         {filteredMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = window.location.pathname === item.path;
+          const count = getCountForItem(item);
           
           return (
             <button
@@ -112,7 +132,12 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               }`}
             >
               <Icon className="h-5 w-5" />
-              {item.label}
+              <span className="flex-1 text-left">{item.label}</span>
+              {count > 0 && (
+                <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-[10px] font-bold">
+                  {count}
+                </Badge>
+              )}
             </button>
           );
         })}
