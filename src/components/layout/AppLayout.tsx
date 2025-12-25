@@ -15,7 +15,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <h1 className="font-gaming text-lg font-bold text-center">{title}</h1>
         </header>
       )}
-      <main className="flex-1 pb-20 overflow-y-auto">
+      <main className="flex-1 pb-20 overflow-y-auto px-1">
         {children}
       </main>
       <BottomNav />

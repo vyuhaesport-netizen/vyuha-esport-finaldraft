@@ -842,11 +842,11 @@ const CreatorDashboard = () => {
                     <div className="p-4">
                       <div className="grid grid-cols-4 gap-2 text-center mb-3">
                         <div>
-                          <p className="text-sm font-bold text-pink-500">{t.prize_pool}</p>
+                          <p className="text-sm font-bold text-pink-500">₹{Math.round(t.current_prize_pool || 0)}</p>
                           <p className="text-[9px] text-muted-foreground">Prize</p>
                         </div>
                         <div>
-                          <p className="text-sm font-bold">₹{t.entry_fee || 0}</p>
+                          <p className="text-sm font-bold">₹{Math.round(t.entry_fee || 0)}</p>
                           <p className="text-[9px] text-muted-foreground">Entry</p>
                         </div>
                         <div>
@@ -854,7 +854,7 @@ const CreatorDashboard = () => {
                           <p className="text-[9px] text-muted-foreground">Players</p>
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-green-500">₹{t.organizer_earnings?.toFixed(0) || 0}</p>
+                          <p className="text-sm font-bold text-green-500">₹{Math.round(t.organizer_earnings || 0)}</p>
                           <p className="text-[9px] text-muted-foreground">Earned</p>
                         </div>
                       </div>
@@ -1256,7 +1256,7 @@ const CreatorDashboard = () => {
 
       {/* Declare Winner Dialog */}
       <Dialog open={winnerDialogOpen} onOpenChange={setWinnerDialogOpen}>
-        <DialogContent className="max-h-[90vh]">
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Award className="h-5 w-5 text-amber-500" />
@@ -1270,10 +1270,10 @@ const CreatorDashboard = () => {
           </DialogHeader>
 
           {selectedTournament && (
-            <div className="bg-primary/10 rounded-lg p-4 text-center">
+            <div className="bg-primary/10 rounded-lg p-4 text-center flex-shrink-0">
               <p className="text-sm text-muted-foreground">Prize Pool</p>
               <p className="text-2xl font-gaming font-bold text-primary">
-                ₹{selectedTournament.current_prize_pool || 0}
+                ₹{Math.round(selectedTournament.current_prize_pool || 0)}
               </p>
             </div>
           )}
