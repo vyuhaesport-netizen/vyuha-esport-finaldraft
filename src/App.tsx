@@ -51,6 +51,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Terms from "./pages/Terms";
 import RefundPolicy from "./pages/RefundPolicy";
 import AboutUs from "./pages/AboutUs";
+import Documentation from "./pages/Documentation";
 import TournamentDetails from "./pages/TournamentDetails";
 import LocalTournament from "./pages/LocalTournament";
 import JoinLocalTournament from "./pages/JoinLocalTournament";
@@ -245,7 +246,9 @@ const AppRoutes = () => {
       <Route path="/terms" element={<Terms />} />
       <Route path="/refund-policy" element={<RefundPolicy />} />
       <Route path="/about" element={<AboutUs />} />
+      <Route path="/docs" element={<Documentation />} />
       <Route path="/tournament/:id" element={<TournamentDetails />} />
+      <Route path="*" element={<NotFound />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
