@@ -401,41 +401,60 @@ const AdminApiPayment = () => {
         </Card>
 
         {/* Active Gateway Status */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <Card className={`${razorpayGateway?.is_enabled ? 'border-green-500/50 bg-green-500/5' : 'border-border'}`}>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Zap className={`h-5 w-5 ${razorpayGateway?.is_enabled ? 'text-green-500' : 'text-muted-foreground'}`} />
-                  <span className="font-medium">Razorpay</span>
+                  <Zap className={`h-4 w-4 ${razorpayGateway?.is_enabled ? 'text-green-500' : 'text-muted-foreground'}`} />
+                  <span className="font-medium text-sm">Razorpay</span>
                 </div>
                 {razorpayGateway?.is_enabled ? (
-                  <Badge className="bg-green-500 text-white">Active</Badge>
+                  <Badge className="bg-green-500 text-white text-xs">Active</Badge>
                 ) : (
-                  <Badge variant="secondary">Inactive</Badge>
+                  <Badge variant="secondary" className="text-xs">Inactive</Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {razorpayGateway?.is_enabled ? 'Auto-credit enabled' : 'Enable for instant payments'}
+                {razorpayGateway?.is_enabled ? 'Auto-credit' : 'Instant payments'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className={`${zapupiGateway?.is_enabled ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-border'}`}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className={`h-4 w-4 ${zapupiGateway?.is_enabled ? 'text-cyan-500' : 'text-muted-foreground'}`} />
+                  <span className="font-medium text-sm">ZapUPI</span>
+                </div>
+                {zapupiGateway?.is_enabled ? (
+                  <Badge className="bg-cyan-500 text-white text-xs">Active</Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {zapupiGateway?.is_enabled ? 'Auto-credit' : 'UPI payments'}
               </p>
             </CardContent>
           </Card>
 
           <Card className={`${manualGateway?.is_enabled ? 'border-blue-500/50 bg-blue-500/5' : 'border-border'}`}>
-            <CardContent className="pt-4">
+            <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Shield className={`h-5 w-5 ${manualGateway?.is_enabled ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                  <span className="font-medium">Manual UPI</span>
+                  <Shield className={`h-4 w-4 ${manualGateway?.is_enabled ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                  <span className="font-medium text-sm">Manual</span>
                 </div>
                 {manualGateway?.is_enabled ? (
-                  <Badge className="bg-blue-500 text-white">Active</Badge>
+                  <Badge className="bg-blue-500 text-white text-xs">Active</Badge>
                 ) : (
-                  <Badge variant="secondary">Inactive</Badge>
+                  <Badge variant="secondary" className="text-xs">Inactive</Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {manualGateway?.is_enabled ? 'Admin approval required' : 'Current backup method'}
+                {manualGateway?.is_enabled ? 'Admin approval' : 'Backup method'}
               </p>
             </CardContent>
           </Card>
@@ -677,12 +696,12 @@ const AdminApiPayment = () => {
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="pt-4">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-primary mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">Integration Guide</p>
+                    <p className="font-medium text-sm">Available Gateways</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Only Razorpay and Manual UPI are currently available. Other gateways require integration 
-                      development. Contact support if you need a specific gateway integrated.
+                      Razorpay, ZapUPI, and Manual UPI are fully integrated and ready to use. 
+                      Other gateways are coming soon.
                     </p>
                   </div>
                 </div>
