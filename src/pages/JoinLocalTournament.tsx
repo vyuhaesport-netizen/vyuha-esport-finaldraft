@@ -291,8 +291,23 @@ const JoinLocalTournamentPage = () => {
         }
       }
 
+      // Join leader first
+      const { data: leaderResult, error: leaderError } = await supabase.rpc('join_local_tournament', {
+        p_user_id: user.id,
+        p_private_code: code.toUpperCase(),
+      });
+
+      if (leaderError) throw leaderError;
+
+      const leaderData = leaderResult as { success: boolean; error?: string };
+      if (!leaderData.success && leaderData.error !== 'Already joined this tournament') {
+        toast({ title: 'Error', description: leaderData.error, variant: 'destructive' });
+        setJoining(false);
+        return;
+      }
+
       // Join each team member
-      for (const memberId of allMembers) {
+      for (const memberId of selectedTeamMembers) {
         const { data, error } = await supabase.rpc('join_local_tournament', {
           p_user_id: memberId,
           p_private_code: code.toUpperCase(),
@@ -308,9 +323,10 @@ const JoinLocalTournamentPage = () => {
         }
       }
 
+      const totalMembers = selectedTeamMembers.length + 1; // +1 for leader
       toast({ 
         title: 'Team Joined!', 
-        description: `Team "${teamName}" joined the tournament. ₹${entryFee * allMembers.length} total deducted.` 
+        description: `Team "${teamName}" joined the tournament. ₹${entryFee * totalMembers} total deducted.` 
       });
       
       setTeamSelectDialog(false);

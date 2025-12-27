@@ -272,10 +272,13 @@ const TournamentDetails = () => {
     setJoining(true);
 
     try {
+      // Include leader in the team members array
+      const allTeamMemberIds = [user.id, ...selectedTeamMembers];
+      
       const { data, error } = await supabase.rpc('process_team_tournament_join', {
         p_leader_id: user.id,
         p_tournament_id: tournament.id,
-        p_team_member_ids: selectedTeamMembers,
+        p_team_member_ids: allTeamMemberIds,
         p_team_name: teamName.trim(),
       });
 
