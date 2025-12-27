@@ -86,10 +86,10 @@ serve(async (req) => {
       );
     }
 
-    // Prepare ZapUPI API request
+    // Prepare ZapUPI API request - using correct parameter names
     const payload = new URLSearchParams();
-    payload.append('token', ZAPUPI_TOKEN);
-    payload.append('secret', ZAPUPI_SECRET);
+    payload.append('token_key', ZAPUPI_TOKEN);
+    payload.append('secret_key', ZAPUPI_SECRET);
     payload.append('amount', amount.toString());
     payload.append('order_id', orderId);
     payload.append('customer_mobile', mobile || '');
