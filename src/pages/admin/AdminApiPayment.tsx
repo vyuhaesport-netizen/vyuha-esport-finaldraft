@@ -121,6 +121,14 @@ const AdminApiPayment = () => {
     max_amount: '50000',
   });
 
+  // Form state for ZapUPI
+  const [zapupiForm, setZapupiForm] = useState({
+    api_key_id: '',
+    api_key_secret: '',
+    min_amount: '10',
+    max_amount: '50000',
+  });
+
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -165,6 +173,17 @@ const AdminApiPayment = () => {
             environment: razorpay.environment || 'test',
             min_amount: razorpay.min_amount?.toString() || '10',
             max_amount: razorpay.max_amount?.toString() || '50000',
+          });
+        }
+
+        // Initialize ZapUPI form with existing data
+        const zapupi = gatewayRes.data.find(g => g.gateway_name === 'zapupi');
+        if (zapupi) {
+          setZapupiForm({
+            api_key_id: zapupi.api_key_id || '',
+            api_key_secret: zapupi.api_key_secret || '',
+            min_amount: zapupi.min_amount?.toString() || '10',
+            max_amount: zapupi.max_amount?.toString() || '50000',
           });
         }
       }
@@ -219,6 +238,58 @@ const AdminApiPayment = () => {
       fetchData();
     } catch (error) {
       console.error('Error saving Razorpay config:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveZapupi = async () => {
+    if (!zapupiForm.api_key_id.trim()) {
+      toast({
+        title: 'API Token Required',
+        description: 'Please enter your ZapUPI API Token',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!zapupiForm.api_key_secret.trim()) {
+      toast({
+        title: 'Secret Key Required',
+        description: 'Please enter your ZapUPI Secret Key',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('payment_gateway_config')
+        .update({
+          api_key_id: zapupiForm.api_key_id.trim(),
+          api_key_secret: zapupiForm.api_key_secret.trim(),
+          min_amount: parseFloat(zapupiForm.min_amount) || 10,
+          max_amount: parseFloat(zapupiForm.max_amount) || 50000,
+          updated_by: user?.id,
+        })
+        .eq('gateway_name', 'zapupi');
+
+      if (error) throw error;
+
+      toast({
+        title: 'Saved',
+        description: 'ZapUPI API credentials have been updated',
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error saving ZapUPI config:', error);
       toast({
         title: 'Error',
         description: 'Failed to save settings',
@@ -1099,7 +1170,7 @@ const AdminApiPayment = () => {
               </CardHeader>
             </Card>
 
-            {/* ZapUPI Info */}
+            {/* ZapUPI API Configuration */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -1107,28 +1178,62 @@ const AdminApiPayment = () => {
                   API Configuration
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  ZapUPI API credentials are stored securely in backend secrets
+                  Enter your ZapUPI API credentials from zapupi.com dashboard
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-700">API Keys Configured</span>
+                <div className="space-y-2">
+                  <Label className="text-sm">API Token *</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. e15e8420af753175d16fce4be2836ac6"
+                    value={zapupiForm.api_key_id}
+                    onChange={(e) => setZapupiForm({ ...zapupiForm, api_key_id: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">Your ZapUPI API Token from the dashboard</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Secret Key *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showSecrets['zapupi_secret'] ? 'text' : 'password'}
+                      placeholder="Enter Secret Key"
+                      value={zapupiForm.api_key_secret}
+                      onChange={(e) => setZapupiForm({ ...zapupiForm, api_key_secret: e.target.value })}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowSecrets({ ...showSecrets, zapupi_secret: !showSecrets['zapupi_secret'] })}
+                    >
+                      {showSecrets['zapupi_secret'] ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
                   </div>
-                  <p className="text-xs text-green-600">
-                    Your ZapUPI Token and Secret keys are securely stored in the backend and ready to use.
-                  </p>
+                  <p className="text-xs text-muted-foreground">Your ZapUPI Secret Key for authentication</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className="text-sm">Min Amount (₹)</Label>
-                    <Input value={zapupiGateway?.min_amount || 10} disabled className="bg-muted" />
+                    <Input
+                      type="number"
+                      value={zapupiForm.min_amount}
+                      onChange={(e) => setZapupiForm({ ...zapupiForm, min_amount: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm">Max Amount (₹)</Label>
-                    <Input value={zapupiGateway?.max_amount || 50000} disabled className="bg-muted" />
+                    <Input
+                      type="number"
+                      value={zapupiForm.max_amount}
+                      onChange={(e) => setZapupiForm({ ...zapupiForm, max_amount: e.target.value })}
+                    />
                   </div>
                 </div>
 
@@ -1142,6 +1247,42 @@ const AdminApiPayment = () => {
                     <Input value="INR" disabled className="bg-muted" />
                   </div>
                 </div>
+
+                <Button
+                  onClick={handleSaveZapupi}
+                  disabled={saving}
+                  className="w-full"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save ZapUPI Settings
+                </Button>
+
+                {/* Current Status */}
+                {zapupiForm.api_key_id && zapupiForm.api_key_secret ? (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">API Keys Configured</span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      Token: {zapupiForm.api_key_id.substring(0, 8)}...{zapupiForm.api_key_id.slice(-4)}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      <span className="text-sm font-medium text-yellow-700">API Keys Not Configured</span>
+                    </div>
+                    <p className="text-xs text-yellow-600 mt-1">
+                      Please enter your ZapUPI credentials above to enable payments.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

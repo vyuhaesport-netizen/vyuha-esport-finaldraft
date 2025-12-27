@@ -13,9 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // ZapUPI API credentials
-    const ZAPUPI_TOKEN = 'e15e8420af753175d16fce4be2836ac6';
-    const ZAPUPI_SECRET = '16b8bac54e4d0de4683c200e953ebff6';
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -31,6 +28,34 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Fetch ZapUPI credentials from payment_gateway_config table
+    const { data: gatewayConfig, error: configError } = await supabase
+      .from('payment_gateway_config')
+      .select('api_key_id, api_key_secret')
+      .eq('gateway_name', 'zapupi')
+      .single();
+
+    if (configError || !gatewayConfig) {
+      console.error('Error fetching ZapUPI config:', configError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'ZapUPI gateway not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const ZAPUPI_TOKEN = gatewayConfig.api_key_id;
+    const ZAPUPI_SECRET = gatewayConfig.api_key_secret;
+
+    if (!ZAPUPI_TOKEN || !ZAPUPI_SECRET) {
+      console.error('ZapUPI credentials not configured in database');
+      return new Response(
+        JSON.stringify({ success: false, error: 'ZapUPI API credentials not configured. Please set them in Admin → API Payment.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('ZapUPI credentials loaded from database, token starts with:', ZAPUPI_TOKEN.substring(0, 8));
 
     // Generate unique order ID - ZapUPI requires alphanumeric only, max 25 chars
     const orderId = `VYUHA${Date.now()}`;
@@ -62,26 +87,12 @@ serve(async (req) => {
     }
 
     // Prepare ZapUPI API request
-    // ZapUPI parameter naming can vary by account/version; we send common aliases.
     const payload = new URLSearchParams();
-
-    // Token / Secret (aliases)
-    payload.append('token_key', ZAPUPI_TOKEN);
-    payload.append('api_token', ZAPUPI_TOKEN);
     payload.append('token', ZAPUPI_TOKEN);
-
-    payload.append('secret_key', ZAPUPI_SECRET);
-    payload.append('api_secret', ZAPUPI_SECRET);
     payload.append('secret', ZAPUPI_SECRET);
-
-    // Order info
     payload.append('amount', amount.toString());
     payload.append('order_id', orderId);
-
-    // Customer phone (aliases)
     payload.append('customer_mobile', mobile || '');
-    payload.append('custumer_mobile', mobile || '');
-
     payload.append('redirect_url', redirectUrl || `${req.headers.get('origin')}/wallet`);
     payload.append('remark', 'Vyuha Esport Payment');
 
