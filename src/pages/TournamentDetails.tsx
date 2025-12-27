@@ -243,9 +243,13 @@ const TournamentDetails = () => {
       setJoinDialog(false);
       fetchTournament();
       fetchWalletBalance();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error joining tournament:', error);
-      toast({ title: 'Error', description: 'Failed to join tournament.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: error?.message || error?.details || 'Failed to join tournament.',
+        variant: 'destructive',
+      });
     } finally {
       setJoining(false);
     }
@@ -272,13 +276,11 @@ const TournamentDetails = () => {
     setJoining(true);
 
     try {
-      // Include leader in the team members array
-      const allTeamMemberIds = [user.id, ...selectedTeamMembers];
-      
       const { data, error } = await supabase.rpc('process_team_tournament_join', {
         p_leader_id: user.id,
         p_tournament_id: tournament.id,
-        p_team_member_ids: allTeamMemberIds,
+        // Pass teammates only; leader is provided separately via p_leader_id
+        p_team_member_ids: selectedTeamMembers,
         p_team_name: teamName.trim(),
       });
 
@@ -310,9 +312,13 @@ const TournamentDetails = () => {
       setTeamName('');
       fetchTournament();
       fetchWalletBalance();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error joining tournament:', error);
-      toast({ title: 'Error', description: 'Failed to join tournament.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: error?.message || error?.details || 'Failed to join tournament.',
+        variant: 'destructive',
+      });
     } finally {
       setJoining(false);
     }
@@ -560,29 +566,28 @@ const TournamentDetails = () => {
       <div className="h-20" />
 
       {/* Join Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
-        {!user ? (
-          <Button className="w-full" onClick={() => navigate('/')}>
-            Login to Join
-          </Button>
-        ) : isJoined ? (
-          <div className="flex items-center justify-center gap-2 py-2 bg-emerald-500/10 rounded-lg text-emerald-600">
-            <Clock className="h-4 w-4" />
-            <span className="font-medium">You have joined this tournament</span>
-          </div>
-        ) : canJoin ? (
-          <Button 
-            className="w-full bg-gradient-to-r from-primary to-primary/80" 
-            onClick={handleJoinClick}
-          >
-            Join Tournament • ₹{entryFee}
-            {tournament.tournament_mode && tournament.tournament_mode !== 'solo' && ' per player'}
-          </Button>
-        ) : (
-          <Button className="w-full" disabled>
-            {spotsLeft <= 0 ? 'Tournament Full' : 'Registration Closed'}
-          </Button>
-        )}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border safe-area-bottom">
+        <div className="max-w-lg mx-auto">
+          {!user ? (
+            <Button className="w-full" onClick={() => navigate('/')}>
+              Login to Join
+            </Button>
+          ) : isJoined ? (
+            <div className="flex items-center justify-center gap-2 py-2 bg-emerald-500/10 rounded-lg text-emerald-600">
+              <Clock className="h-4 w-4" />
+              <span className="font-medium">You have joined this tournament</span>
+            </div>
+          ) : canJoin ? (
+            <Button className="w-full bg-gradient-to-r from-primary to-primary/80" onClick={handleJoinClick}>
+              Join Tournament • ₹{entryFee}
+              {tournament.tournament_mode && tournament.tournament_mode !== 'solo' && ' per player'}
+            </Button>
+          ) : (
+            <Button className="w-full" disabled>
+              {spotsLeft <= 0 ? 'Tournament Full' : 'Registration Closed'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Solo Join Dialog */}
@@ -635,212 +640,237 @@ const TournamentDetails = () => {
       </Dialog>
 
       {/* Team Selection Dialog */}
-      <Dialog open={teamSelectDialog} onOpenChange={(open) => { 
-        setTeamSelectDialog(open); 
-        if (!open) {
-          setSelectedTeamMembers([]);
-          setTeamName('');
-          setSelectedTeamId(null);
-        }
-      }}>
-        <DialogContent className="max-w-md">
+      <Dialog
+        open={teamSelectDialog}
+        onOpenChange={(open) => {
+          setTeamSelectDialog(open);
+          if (!open) {
+            setSelectedTeamMembers([]);
+            setTeamName('');
+            setSelectedTeamId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-primary" />
               Select Team Members
             </DialogTitle>
             <DialogDescription>
-              {tournament.tournament_mode === 'duo' 
-                ? 'Select your team first, then pick 1 teammate for duo match' 
+              {tournament.tournament_mode === 'duo'
+                ? 'Select your team first, then pick 1 teammate for duo match'
                 : 'Select your team first, then pick 3 teammates for squad match'}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            {/* Team Name Input */}
-            <div className="space-y-2">
-              <Label>Team Name *</Label>
-              <Input
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                placeholder="Enter team name for this match"
-                maxLength={30}
-              />
-            </div>
 
-            {/* Your Info */}
-            <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Gamepad2 className="h-4 w-4 text-primary" />
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto pr-1">
+            <div className="py-4 space-y-4">
+              {/* Team Name Input */}
+              <div className="space-y-2">
+                <Label>Team Name *</Label>
+                <Input
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Enter team name for this match"
+                  maxLength={30}
+                />
+              </div>
+
+              {/* Your Info */}
+              <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Gamepad2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">You (Leader)</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">You (Leader)</p>
-                  </div>
+                  <Badge className="bg-green-500/10 text-green-600">₹{walletBalance}</Badge>
                 </div>
-                <Badge className="bg-green-500/10 text-green-600">₹{walletBalance}</Badge>
               </div>
-            </div>
 
-            {/* Team Members Selection */}
-            {loadingTeams ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : playerTeams.length === 0 ? (
-              <div className="text-center py-6 bg-muted/50 rounded-lg">
-                <Users className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm font-medium">No Player Team Found</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  You must join or create a player team first to participate in {tournament.tournament_mode} matches.
-                </p>
-                <Button size="sm" className="mt-3" onClick={() => { setTeamSelectDialog(false); navigate('/team'); }}>
-                  Go to Teams
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Step 1: Select Team */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground font-semibold">
-                    Step 1: Select Your Player Team
-                  </Label>
-                  <div className="grid gap-2">
-                    {playerTeams.map((team) => {
-                      const isSelected = selectedTeamId === team.id;
-                      const teamMemberCount = team.members.length;
-                      const requiredSize = getRequiredTeamSize();
-                      const hasEnoughMembers = teamMemberCount >= requiredSize;
-
-                      return (
-                        <div
-                          key={team.id}
-                          onClick={() => hasEnoughMembers && handleTeamSelect(team.id)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                            isSelected 
-                              ? 'bg-primary/10 border-primary' 
-                              : !hasEnoughMembers
-                              ? 'bg-muted/50 border-border opacity-60 cursor-not-allowed'
-                              : 'bg-card border-border hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-primary" />
-                              <span className="font-medium text-sm">{team.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px]">
-                                {teamMemberCount} members
-                              </Badge>
-                              {!hasEnoughMembers && (
-                                <span className="text-[10px] text-destructive">
-                                  Need {requiredSize}+ members
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Team Members Selection */}
+              {loadingTeams ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
-
-                {/* Step 2: Select Teammates (only if team is selected) */}
-                {selectedTeamId && (
+              ) : playerTeams.length === 0 ? (
+                <div className="text-center py-6 bg-muted/50 rounded-lg">
+                  <Users className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm font-medium">No Player Team Found</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You must join or create a player team first to participate in {tournament.tournament_mode} matches.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      setTeamSelectDialog(false);
+                      navigate('/team');
+                    }}
+                  >
+                    Go to Teams
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Step 1: Select Team */}
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground font-semibold">
-                      Step 2: Select {getRequiredTeamSize() - 1} Teammate(s) • Entry ₹{entryFee} per player
+                      Step 1: Select Your Player Team
                     </Label>
-                    <ScrollArea className="h-[180px]">
-                      <div className="space-y-2">
-                        {teamMembersList.map((member) => {
-                          const isSelected = selectedTeamMembers.includes(member.user_id);
-                          const hasInsufficientBalance = member.wallet_balance < entryFee;
-                          const maxSelected = selectedTeamMembers.length >= (getRequiredTeamSize() - 1);
+                    <div className="grid gap-2">
+                      {playerTeams.map((team) => {
+                        const isSelected = selectedTeamId === team.id;
+                        const teamMemberCount = team.members.length;
+                        const requiredSize = getRequiredTeamSize();
+                        const hasEnoughMembers = teamMemberCount >= requiredSize;
 
-                          return (
-                            <div 
-                              key={member.user_id}
-                              onClick={() => !hasInsufficientBalance && toggleMemberSelection(member.user_id)}
-                              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                                isSelected 
-                                  ? 'bg-primary/10 border-primary' 
-                                  : hasInsufficientBalance
-                                  ? 'bg-muted/50 border-border opacity-60 cursor-not-allowed'
-                                  : maxSelected && !isSelected
-                                  ? 'bg-muted/30 border-border opacity-50'
-                                  : 'bg-card border-border hover:bg-muted/50'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <Checkbox 
-                                  checked={isSelected} 
-                                  disabled={hasInsufficientBalance || (maxSelected && !isSelected)}
-                                />
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={member.avatar_url || ''} />
-                                  <AvatarFallback className="bg-muted text-xs">
-                                    {member.username?.charAt(0).toUpperCase() || '?'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="text-sm font-medium">{member.in_game_name || member.username || 'Player'}</p>
-                                  <p className="text-xs text-muted-foreground">@{member.username}</p>
-                                </div>
+                        return (
+                          <div
+                            key={team.id}
+                            onClick={() => hasEnoughMembers && handleTeamSelect(team.id)}
+                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-primary/10 border-primary'
+                                : !hasEnoughMembers
+                                ? 'bg-muted/50 border-border opacity-60 cursor-not-allowed'
+                                : 'bg-card border-border hover:bg-muted/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-primary" />
+                                <span className="font-medium text-sm">{team.name}</span>
                               </div>
-                              <div className="flex flex-col items-end gap-1">
-                                <Badge className={`text-[10px] ${
-                                  member.wallet_balance >= entryFee 
-                                    ? 'bg-green-500/10 text-green-600' 
-                                    : 'bg-red-500/10 text-red-600'
-                                }`}>
-                                  ₹{member.wallet_balance}
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px]">
+                                  {teamMemberCount} members
                                 </Badge>
-                                {hasInsufficientBalance && (
-                                  <span className="text-[9px] text-destructive flex items-center gap-0.5">
-                                    <AlertCircle className="h-3 w-3" /> Low balance
-                                  </span>
+                                {!hasEnoughMembers && (
+                                  <span className="text-[10px] text-destructive">Need {requiredSize}+ members</span>
                                 )}
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </ScrollArea>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* Summary */}
-            {selectedTeamMembers.length > 0 && (
-              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Team Members</span>
-                  <span className="font-medium">{selectedTeamMembers.length + 1} / {getRequiredTeamSize()}</span>
+                  {/* Step 2: Select Teammates (only if team is selected) */}
+                  {selectedTeamId && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground font-semibold">
+                        Step 2: Select {getRequiredTeamSize() - 1} Teammate(s) • Entry ₹{entryFee} per player
+                      </Label>
+                      <ScrollArea className="h-[220px]">
+                        <div className="space-y-2">
+                          {teamMembersList.map((member) => {
+                            const isSelected = selectedTeamMembers.includes(member.user_id);
+                            const hasInsufficientBalance = member.wallet_balance < entryFee;
+                            const maxSelected = selectedTeamMembers.length >= getRequiredTeamSize() - 1;
+
+                            return (
+                              <div
+                                key={member.user_id}
+                                onClick={() => !hasInsufficientBalance && toggleMemberSelection(member.user_id)}
+                                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? 'bg-primary/10 border-primary'
+                                    : hasInsufficientBalance
+                                    ? 'bg-muted/50 border-border opacity-60 cursor-not-allowed'
+                                    : maxSelected && !isSelected
+                                    ? 'bg-muted/30 border-border opacity-50'
+                                    : 'bg-card border-border hover:bg-muted/50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    disabled={hasInsufficientBalance || (maxSelected && !isSelected)}
+                                  />
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={member.avatar_url || ''} />
+                                    <AvatarFallback className="bg-muted text-xs">
+                                      {member.username?.charAt(0).toUpperCase() || '?'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="text-sm font-medium">
+                                      {member.in_game_name || member.username || 'Player'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">@{member.username}</p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge
+                                    className={`text-[10px] ${
+                                      member.wallet_balance >= entryFee
+                                        ? 'bg-green-500/10 text-green-600'
+                                        : 'bg-red-500/10 text-red-600'
+                                    }`}
+                                  >
+                                    ₹{member.wallet_balance}
+                                  </Badge>
+                                  {hasInsufficientBalance && (
+                                    <span className="text-[9px] text-destructive flex items-center gap-0.5">
+                                      <AlertCircle className="h-3 w-3" /> Low balance
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Entry Per Player</span>
-                  <span className="font-medium">₹{entryFee}</span>
+              )}
+
+              {/* Summary */}
+              {selectedTeamMembers.length > 0 && (
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Team Members</span>
+                    <span className="font-medium">
+                      {selectedTeamMembers.length + 1} / {getRequiredTeamSize()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Entry Per Player</span>
+                    <span className="font-medium">₹{entryFee}</span>
+                  </div>
+                  <div className="flex justify-between text-sm border-t pt-2">
+                    <span className="text-muted-foreground font-semibold">Total Fee</span>
+                    <span className="font-bold text-primary">
+                      ₹{entryFee * (selectedTeamMembers.length + 1)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm border-t pt-2">
-                  <span className="text-muted-foreground font-semibold">Total Fee</span>
-                  <span className="font-bold text-primary">₹{entryFee * (selectedTeamMembers.length + 1)}</span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setTeamSelectDialog(false); setSelectedTeamMembers([]); setTeamName(''); setSelectedTeamId(null); }}>
+          {/* Fixed footer (always visible) */}
+          <DialogFooter className="pt-2 border-t border-border">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTeamSelectDialog(false);
+                setSelectedTeamMembers([]);
+                setTeamName('');
+                setSelectedTeamId(null);
+              }}
+            >
               Cancel
             </Button>
-            <Button 
-              onClick={handleTeamJoin}
-              disabled={joining || !canTeamJoin()}
-            >
+            <Button onClick={handleTeamJoin} disabled={joining || !canTeamJoin()}>
               {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Join as Team'}
             </Button>
           </DialogFooter>
