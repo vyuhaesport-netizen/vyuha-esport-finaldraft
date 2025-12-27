@@ -276,11 +276,13 @@ const TournamentDetails = () => {
     setJoining(true);
 
     try {
+      // RPC expects ALL team member IDs including the leader
+      const allTeamMemberIds = [user.id, ...selectedTeamMembers];
+      
       const { data, error } = await supabase.rpc('process_team_tournament_join', {
         p_leader_id: user.id,
         p_tournament_id: tournament.id,
-        // Pass teammates only; leader is provided separately via p_leader_id
-        p_team_member_ids: selectedTeamMembers,
+        p_team_member_ids: allTeamMemberIds,
         p_team_name: teamName.trim(),
       });
 
@@ -562,28 +564,31 @@ const TournamentDetails = () => {
         </div>
       </div>
 
-      {/* Spacer for bottom button */}
-      <div className="h-20" />
+      {/* Spacer for bottom button - accounts for safe area */}
+      <div className="h-24" />
 
-      {/* Join Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border safe-area-bottom">
-        <div className="max-w-lg mx-auto">
+      {/* Join Button - Fixed at bottom with safe area support */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="px-4 pt-3 max-w-lg mx-auto">
           {!user ? (
-            <Button className="w-full" onClick={() => navigate('/')}>
+            <Button className="w-full h-12" onClick={() => navigate('/')}>
               Login to Join
             </Button>
           ) : isJoined ? (
-            <div className="flex items-center justify-center gap-2 py-2 bg-emerald-500/10 rounded-lg text-emerald-600">
+            <div className="flex items-center justify-center gap-2 py-3 bg-emerald-500/10 rounded-lg text-emerald-600">
               <Clock className="h-4 w-4" />
               <span className="font-medium">You have joined this tournament</span>
             </div>
           ) : canJoin ? (
-            <Button className="w-full bg-gradient-to-r from-primary to-primary/80" onClick={handleJoinClick}>
+            <Button className="w-full h-12 bg-gradient-to-r from-primary to-primary/80" onClick={handleJoinClick}>
               Join Tournament • ₹{entryFee}
               {tournament.tournament_mode && tournament.tournament_mode !== 'solo' && ' per player'}
             </Button>
           ) : (
-            <Button className="w-full" disabled>
+            <Button className="w-full h-12" disabled>
               {spotsLeft <= 0 ? 'Tournament Full' : 'Registration Closed'}
             </Button>
           )}
