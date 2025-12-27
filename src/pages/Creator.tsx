@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,6 +69,7 @@ const Creator = () => {
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchTournaments();
@@ -163,6 +165,12 @@ const Creator = () => {
 
   const handleRegister = async (tournament: Tournament) => {
     if (!user) return;
+
+    // For duo/squad tournaments, redirect to tournament details page for team selection
+    if (tournament.tournament_mode === 'duo' || tournament.tournament_mode === 'squad') {
+      navigate(`/tournament/${tournament.id}`);
+      return;
+    }
 
     setRegistering(tournament.id);
 
