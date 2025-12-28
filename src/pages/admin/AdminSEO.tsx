@@ -580,6 +580,51 @@ const AdminSEO = () => {
           </TabsContent>
 
           <TabsContent value="tools" className="space-y-4">
+            {/* Google Indexing Guide */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  Get Indexed on Google
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Follow these steps to appear in Google search results
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2 p-2 bg-background rounded-lg">
+                    <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">1</span>
+                    <div>
+                      <p className="font-medium">Add Site to Google Search Console</p>
+                      <p className="text-xs text-muted-foreground">Verify ownership using HTML meta tag</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-background rounded-lg">
+                    <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">2</span>
+                    <div>
+                      <p className="font-medium">Submit Sitemap</p>
+                      <p className="text-xs text-muted-foreground">Submit your sitemap.xml URL in Search Console</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-background rounded-lg">
+                    <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">3</span>
+                    <div>
+                      <p className="font-medium">Request Indexing</p>
+                      <p className="text-xs text-muted-foreground">Use URL Inspection tool to request indexing of pages</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-2 bg-background rounded-lg">
+                    <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">4</span>
+                    <div>
+                      <p className="font-medium">Wait for Crawling</p>
+                      <p className="text-xs text-muted-foreground">Google typically indexes new sites within 1-2 weeks</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* External Tools */}
             <Card>
               <CardHeader className="pb-3">
@@ -603,6 +648,14 @@ const AdminSEO = () => {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
+                  onClick={() => window.open(`https://search.google.com/search-console/welcome?resource_id=${encodeURIComponent(seoSettings.canonical_url || 'https://vyuhaesport.in')}`, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Add Site to Search Console
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
                   onClick={() => window.open('https://analytics.google.com', '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -611,7 +664,7 @@ const AdminSEO = () => {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => window.open('https://pagespeed.web.dev/', '_blank')}
+                  onClick={() => window.open(`https://pagespeed.web.dev/analysis?url=${encodeURIComponent(seoSettings.canonical_url || 'https://vyuhaesport.in')}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   PageSpeed Insights
@@ -619,7 +672,7 @@ const AdminSEO = () => {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => window.open('https://www.google.com/webmasters/tools/mobile-friendly/', '_blank')}
+                  onClick={() => window.open(`https://www.google.com/webmasters/tools/mobile-friendly/?url=${encodeURIComponent(seoSettings.canonical_url || 'https://vyuhaesport.in')}`, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Mobile-Friendly Test
@@ -627,10 +680,10 @@ const AdminSEO = () => {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => window.open('https://www.ssllabs.com/ssltest/', '_blank')}
+                  onClick={() => window.open(`https://www.google.com/search?q=site:${encodeURIComponent((seoSettings.canonical_url || 'https://vyuhaesport.in').replace('https://', ''))}`, '_blank')}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  SSL Labs Test
+                  <Eye className="h-4 w-4 mr-2" />
+                  Check Indexed Pages
                 </Button>
               </CardContent>
             </Card>

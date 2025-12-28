@@ -151,27 +151,42 @@ const AdminTournaments = () => {
 
   const fetchAllTournaments = async () => {
     try {
-      // Fetch regular tournaments (organizer/creator)
+      // Fetch regular tournaments
       const { data: regularTournaments, error: regularError } = await supabase
         .from('tournaments')
-        .select('*, profiles!tournaments_created_by_fkey(full_name, username)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       // Fetch local tournaments
       const { data: localTournaments, error: localError } = await supabase
         .from('local_tournaments')
-        .select('*, profiles!local_tournaments_organizer_id_fkey(full_name, username)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (regularError) console.error('Error fetching regular tournaments:', regularError);
       if (localError) console.error('Error fetching local tournaments:', localError);
 
+      // Get all unique creator IDs
+      const creatorIds = [
+        ...(regularTournaments?.map(t => t.created_by).filter(Boolean) || []),
+        ...(localTournaments?.map(t => t.organizer_id).filter(Boolean) || [])
+      ];
+      
+      // Fetch all profiles for creators
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, username')
+        .in('user_id', creatorIds);
+      
+      const profileMap = new Map<string, { full_name: string | null; username: string | null }>();
+      profiles?.forEach(p => profileMap.set(p.user_id, { full_name: p.full_name, username: p.username }));
+
       // Get creator roles to determine tournament type
-      const creatorIds = regularTournaments?.map(t => t.created_by).filter(Boolean) || [];
+      const roleCreatorIds = regularTournaments?.map(t => t.created_by).filter(Boolean) || [];
       const { data: creatorRoles } = await supabase
         .from('user_roles')
         .select('user_id, role')
-        .in('user_id', creatorIds)
+        .in('user_id', roleCreatorIds)
         .in('role', ['organizer', 'creator']);
 
       const roleMap = new Map<string, string>();
@@ -186,7 +201,7 @@ const AdminTournaments = () => {
       const transformedRegular: UnifiedTournament[] = (regularTournaments || []).map(t => {
         const creatorRole = roleMap.get(t.created_by || '') || 'organizer';
         const type = creatorRole === 'creator' ? 'creator' : 'organizer';
-        const profile = (t as any).profiles;
+        const profile = profileMap.get(t.created_by || '');
         
         return {
           id: t.id,
@@ -208,7 +223,7 @@ const AdminTournaments = () => {
 
       // Transform local tournaments
       const transformedLocal: UnifiedTournament[] = (localTournaments || []).map(t => {
-        const profile = (t as any).profiles;
+        const profile = profileMap.get(t.organizer_id || '');
         
         return {
           id: t.id,
