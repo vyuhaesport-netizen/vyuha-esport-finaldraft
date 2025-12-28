@@ -7,7 +7,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://vyuhaesport.in/</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -15,7 +15,7 @@
   <!-- Tournament Pages -->
   <url>
     <loc>https://vyuhaesport.in/creator</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -23,7 +23,7 @@
   <!-- Leaderboard -->
   <url>
     <loc>https://vyuhaesport.in/leaderboard</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -31,7 +31,7 @@
   <!-- Local Tournaments -->
   <url>
     <loc>https://vyuhaesport.in/local-tournament</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
@@ -39,23 +39,23 @@
   <!-- My Matches -->
   <url>
     <loc>https://vyuhaesport.in/my-match</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>hourly</changefreq>
     <priority>0.7</priority>
   </url>
   
-  <!-- Achievements -->
+  <!-- Avatar Selection -->
   <url>
-    <loc>https://vyuhaesport.in/achievements</loc>
-    <lastmod>2024-12-24</lastmod>
+    <loc>https://vyuhaesport.in/avatar-selection</loc>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
   
   <!-- Profile -->
   <url>
     <loc>https://vyuhaesport.in/profile</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -63,7 +63,7 @@
   <!-- Wallet -->
   <url>
     <loc>https://vyuhaesport.in/wallet</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
@@ -71,7 +71,7 @@
   <!-- Team -->
   <url>
     <loc>https://vyuhaesport.in/team</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -79,7 +79,7 @@
   <!-- About Us -->
   <url>
     <loc>https://vyuhaesport.in/about</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -87,7 +87,7 @@
   <!-- Help & Support -->
   <url>
     <loc>https://vyuhaesport.in/help</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -95,7 +95,7 @@
   <!-- Terms & Conditions -->
   <url>
     <loc>https://vyuhaesport.in/terms</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -103,7 +103,7 @@
   <!-- Refund Policy -->
   <url>
     <loc>https://vyuhaesport.in/refund-policy</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -111,7 +111,7 @@
   <!-- Authentication -->
   <url>
     <loc>https://vyuhaesport.in/auth</loc>
-    <lastmod>2024-12-24</lastmod>
+    <lastmod>2025-12-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
