@@ -2,16 +2,6 @@ import { useState } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Import all preset avatars
-import avatar1 from '@/assets/avatars/avatar-1.png';
-import avatar2 from '@/assets/avatars/avatar-2.png';
-import avatar3 from '@/assets/avatars/avatar-3.png';
-import avatar4 from '@/assets/avatars/avatar-4.png';
-import avatar5 from '@/assets/avatars/avatar-5.png';
-import avatar6 from '@/assets/avatars/avatar-6.png';
-import avatar7 from '@/assets/avatars/avatar-7.png';
-import avatar8 from '@/assets/avatars/avatar-8.png';
-
 // Import anime avatars
 import animeSamurai from '@/assets/avatars/anime-samurai.png';
 import animeNinja from '@/assets/avatars/anime-ninja.png';
@@ -21,8 +11,16 @@ import animeCommander from '@/assets/avatars/anime-commander.png';
 import animeFiremage from '@/assets/avatars/anime-firemage.png';
 import animeIcequeen from '@/assets/avatars/anime-icequeen.png';
 import animeAssassin from '@/assets/avatars/anime-assassin.png';
+import animeWarrior from '@/assets/avatars/anime-warrior.png';
+import animeDemonhunter from '@/assets/avatars/anime-demonhunter.png';
+import animeLightningmage from '@/assets/avatars/anime-lightningmage.png';
+import animeRogue from '@/assets/avatars/anime-rogue.png';
+import animeAngel from '@/assets/avatars/anime-angel.png';
+import animeVampire from '@/assets/avatars/anime-vampire.png';
+import animeHacker from '@/assets/avatars/anime-hacker.png';
+import animeKitsune from '@/assets/avatars/anime-kitsune.png';
 
-// Import unlockable avatars (achievement rewards - now freely available)
+// Import premium avatars
 import championGold from '@/assets/avatars/unlockable/champion-gold.png';
 import legendaryPhoenix from '@/assets/avatars/unlockable/legendary-phoenix.png';
 import eliteDragon from '@/assets/avatars/unlockable/elite-dragon.png';
@@ -34,29 +32,39 @@ import goldChampion from '@/assets/avatars/unlockable/gold-champion.png';
 import silverKnight from '@/assets/avatars/unlockable/silver-knight.png';
 import localHero from '@/assets/avatars/unlockable/local-hero.png';
 
-// All avatars combined
+// All avatars - quick selection (subset for profile dialog)
+export const quickAvatars = [
+  { id: 'anime-samurai', src: animeSamurai, name: 'Dark Samurai' },
+  { id: 'anime-ninja', src: animeNinja, name: 'Red Ninja' },
+  { id: 'anime-sorcerer', src: animeSorcerer, name: 'Blue Sorcerer' },
+  { id: 'anime-warrior', src: animeWarrior, name: 'Blade Warrior' },
+  { id: 'anime-firemage', src: animeFiremage, name: 'Fire Mage' },
+  { id: 'anime-icequeen', src: animeIcequeen, name: 'Ice Queen' },
+  { id: 'anime-angel', src: animeAngel, name: 'Divine Angel' },
+  { id: 'champion-gold', src: championGold, name: 'Gold Champion' },
+];
+
+// All avatars for full gallery
 export const allAvatars = [
-  // Gaming Characters
-  { id: 'warrior', src: avatar1, name: 'Cyber Warrior', category: 'gaming' },
-  { id: 'ninja', src: avatar2, name: 'Shadow Ninja', category: 'gaming' },
-  { id: 'mech', src: avatar3, name: 'Mech Soldier', category: 'gaming' },
-  { id: 'skull', src: avatar4, name: 'Flame Skull', category: 'gaming' },
-  { id: 'wolf', src: avatar5, name: 'Ice Wolf', category: 'gaming' },
-  { id: 'dragon', src: avatar6, name: 'Fire Dragon', category: 'gaming' },
-  { id: 'eagle', src: avatar7, name: 'Thunder Eagle', category: 'gaming' },
-  { id: 'panther', src: avatar8, name: 'Neon Panther', category: 'gaming' },
-  
   // Anime Characters
-  { id: 'anime-samurai', src: animeSamurai, name: 'Dark Samurai', category: 'anime' },
-  { id: 'anime-ninja', src: animeNinja, name: 'Red Ninja', category: 'anime' },
-  { id: 'anime-sorcerer', src: animeSorcerer, name: 'Blue Sorcerer', category: 'anime' },
-  { id: 'anime-dragonslayer', src: animeDragonslayer, name: 'Dragon Slayer', category: 'anime' },
-  { id: 'anime-commander', src: animeCommander, name: 'Space Commander', category: 'anime' },
-  { id: 'anime-firemage', src: animeFiremage, name: 'Fire Mage', category: 'anime' },
-  { id: 'anime-icequeen', src: animeIcequeen, name: 'Ice Queen', category: 'anime' },
-  { id: 'anime-assassin', src: animeAssassin, name: 'Skull Assassin', category: 'anime' },
+  { id: 'anime-samurai', src: animeSamurai, name: 'Dark Samurai', category: 'warriors' },
+  { id: 'anime-ninja', src: animeNinja, name: 'Red Ninja', category: 'assassins' },
+  { id: 'anime-sorcerer', src: animeSorcerer, name: 'Blue Sorcerer', category: 'mages' },
+  { id: 'anime-dragonslayer', src: animeDragonslayer, name: 'Dragon Slayer', category: 'warriors' },
+  { id: 'anime-commander', src: animeCommander, name: 'Space Commander', category: 'legends' },
+  { id: 'anime-firemage', src: animeFiremage, name: 'Fire Mage', category: 'mages' },
+  { id: 'anime-icequeen', src: animeIcequeen, name: 'Ice Queen', category: 'mages' },
+  { id: 'anime-assassin', src: animeAssassin, name: 'Skull Assassin', category: 'assassins' },
+  { id: 'anime-warrior', src: animeWarrior, name: 'Blade Warrior', category: 'warriors' },
+  { id: 'anime-demonhunter', src: animeDemonhunter, name: 'Demon Hunter', category: 'warriors' },
+  { id: 'anime-lightningmage', src: animeLightningmage, name: 'Storm Mage', category: 'mages' },
+  { id: 'anime-rogue', src: animeRogue, name: 'Shadow Rogue', category: 'assassins' },
+  { id: 'anime-angel', src: animeAngel, name: 'Divine Angel', category: 'legends' },
+  { id: 'anime-vampire', src: animeVampire, name: 'Blood Lord', category: 'assassins' },
+  { id: 'anime-hacker', src: animeHacker, name: 'Neon Hacker', category: 'legends' },
+  { id: 'anime-kitsune', src: animeKitsune, name: 'Spirit Fox', category: 'legends' },
   
-  // Premium Characters (previously unlockable)
+  // Premium Characters
   { id: 'champion-gold', src: championGold, name: 'Gold Champion', category: 'premium' },
   { id: 'legendary-phoenix', src: legendaryPhoenix, name: 'Legendary Phoenix', category: 'premium' },
   { id: 'elite-dragon', src: eliteDragon, name: 'Elite Dragon', category: 'premium' },
@@ -73,16 +81,18 @@ interface AvatarGalleryProps {
   currentAvatarUrl?: string | null;
   onSelect: (avatarUrl: string) => Promise<void>;
   disabled?: boolean;
+  onViewAll?: () => void;
 }
 
 export const AvatarGallery = ({
   currentAvatarUrl,
   onSelect,
   disabled = false,
+  onViewAll,
 }: AvatarGalleryProps) => {
   const [selecting, setSelecting] = useState<string | null>(null);
 
-  const handleSelect = async (avatar: typeof allAvatars[0]) => {
+  const handleSelect = async (avatar: typeof quickAvatars[0]) => {
     if (disabled || selecting) return;
     
     setSelecting(avatar.id);
@@ -95,73 +105,71 @@ export const AvatarGallery = ({
 
   const isCurrentAvatar = (src: string) => {
     if (!currentAvatarUrl) return false;
-    // Check if the current avatar URL contains the same filename
     const srcFileName = src.split('/').pop()?.split('?')[0] || '';
     return currentAvatarUrl.includes(srcFileName);
   };
 
-  const categories = [
-    { key: 'gaming', label: 'Gaming Characters' },
-    { key: 'anime', label: 'Anime Characters' },
-    { key: 'premium', label: 'Premium Characters' },
-  ];
-
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground font-medium">Choose your avatar:</p>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Quick Select Avatar</p>
+        {onViewAll && (
+          <button
+            onClick={onViewAll}
+            className="text-xs text-primary hover:underline"
+          >
+            View All →
+          </button>
+        )}
+      </div>
       
-      {categories.map((category) => {
-        const categoryAvatars = allAvatars.filter(a => a.category === category.key);
-        
-        return (
-          <div key={category.key} className="space-y-2">
-            <p className="text-xs text-muted-foreground">{category.label}</p>
-            <div className="grid grid-cols-4 gap-2">
-              {categoryAvatars.map((avatar) => {
-                const isSelected = isCurrentAvatar(avatar.src);
-                const isSelecting = selecting === avatar.id;
-                
-                return (
-                  <button
-                    key={avatar.id}
-                    onClick={() => handleSelect(avatar)}
-                    disabled={disabled || !!selecting}
-                    className={cn(
-                      "relative aspect-square rounded-full overflow-hidden border-2 transition-all",
-                      "hover:scale-105 hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-                      isSelected ? "border-primary ring-2 ring-primary ring-offset-2" : "border-border",
-                      (disabled || selecting) && "opacity-50 cursor-not-allowed hover:scale-100"
-                    )}
-                    title={avatar.name}
-                  >
-                    <img
-                      src={avatar.src}
-                      alt={avatar.name}
-                      className="w-full h-full object-cover"
-                    />
-                    
-                    {/* Selection overlay */}
-                    {isSelected && !isSelecting && (
-                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="w-3 h-3 text-primary-foreground" />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Loading overlay */}
-                    {isSelecting && (
-                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      <div className="grid grid-cols-4 gap-2">
+        {quickAvatars.map((avatar) => {
+          const isSelected = isCurrentAvatar(avatar.src);
+          const isSelecting = selecting === avatar.id;
+          
+          return (
+            <button
+              key={avatar.id}
+              onClick={() => handleSelect(avatar)}
+              disabled={disabled || !!selecting}
+              className={cn(
+                "relative aspect-square rounded-full overflow-hidden border-2 transition-all",
+                "hover:scale-105 hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                isSelected ? "border-primary ring-2 ring-primary ring-offset-2" : "border-border",
+                (disabled || selecting) && "opacity-50 cursor-not-allowed hover:scale-100"
+              )}
+              title={avatar.name}
+            >
+              <img
+                src={avatar.src}
+                alt={avatar.name}
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Selection overlay */}
+              {isSelected && !isSelecting && (
+                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary-foreground" />
+                  </div>
+                </div>
+              )}
+              
+              {/* Loading overlay */}
+              {isSelecting && (
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      
+      <p className="text-xs text-muted-foreground text-center">
+        Tap to select • Click "View All" for more options
+      </p>
     </div>
   );
 };

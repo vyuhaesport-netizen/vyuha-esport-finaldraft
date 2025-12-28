@@ -58,6 +58,7 @@ import TournamentDetails from "./pages/TournamentDetails";
 import LocalTournament from "./pages/LocalTournament";
 import JoinLocalTournament from "./pages/JoinLocalTournament";
 import AdminLocalTournaments from "./pages/admin/AdminLocalTournaments";
+import AvatarSelection from "./pages/AvatarSelection";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -193,6 +194,7 @@ const AppRoutes = () => {
       <Route path="/my-match" element={<ProtectedRoute><MyMatch /></ProtectedRoute>} />
       <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/avatar-selection" element={<ProtectedRoute><AvatarSelection /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
       <Route path="/broadcast" element={<ProtectedRoute><BroadcastChannel /></ProtectedRoute>} />
       <Route path="/help-support" element={<ProtectedRoute><HelpSupport /></ProtectedRoute>} />

@@ -633,7 +633,15 @@ const ProfilePage = () => {
               </div>
               
               {/* Avatar Gallery */}
-              <AvatarGallery currentAvatarUrl={profile?.avatar_url} onSelect={handlePresetAvatarSelect} disabled={uploadingAvatar} />
+              <AvatarGallery 
+                currentAvatarUrl={profile?.avatar_url} 
+                onSelect={handlePresetAvatarSelect} 
+                disabled={uploadingAvatar}
+                onViewAll={() => {
+                  setEditDialogOpen(false);
+                  navigate('/avatar-selection');
+                }}
+              />
             </div>
 
             {/* Gaming Details Section */}
