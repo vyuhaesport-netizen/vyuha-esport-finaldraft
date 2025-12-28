@@ -1210,6 +1210,7 @@ export type Database = {
           user_id: string
           username: string | null
           wallet_balance: number | null
+          withdrawable_balance: number | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1231,6 +1232,7 @@ export type Database = {
           user_id: string
           username?: string | null
           wallet_balance?: number | null
+          withdrawable_balance?: number | null
         }
         Update: {
           avatar_url?: string | null
@@ -1252,6 +1254,7 @@ export type Database = {
           user_id?: string
           username?: string | null
           wallet_balance?: number | null
+          withdrawable_balance?: number | null
         }
         Relationships: []
       }
@@ -1442,9 +1445,11 @@ export type Database = {
           end_date: string | null
           entry_fee: number | null
           game: string
+          giveaway_prize_pool: number | null
           id: string
           image_url: string | null
           instagram_link: string | null
+          is_giveaway: boolean | null
           joined_users: string[] | null
           max_participants: number | null
           organizer_earnings: number | null
@@ -1474,9 +1479,11 @@ export type Database = {
           end_date?: string | null
           entry_fee?: number | null
           game: string
+          giveaway_prize_pool?: number | null
           id?: string
           image_url?: string | null
           instagram_link?: string | null
+          is_giveaway?: boolean | null
           joined_users?: string[] | null
           max_participants?: number | null
           organizer_earnings?: number | null
@@ -1506,9 +1513,11 @@ export type Database = {
           end_date?: string | null
           entry_fee?: number | null
           game?: string
+          giveaway_prize_pool?: number | null
           id?: string
           image_url?: string | null
           instagram_link?: string | null
+          is_giveaway?: boolean | null
           joined_users?: string[] | null
           max_participants?: number | null
           organizer_earnings?: number | null
