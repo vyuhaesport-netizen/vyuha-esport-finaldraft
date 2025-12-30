@@ -407,7 +407,7 @@ const TournamentDetails = () => {
   const spotsLeft = (tournament.max_participants || 100) - (tournament.joined_users?.length || 0);
   const isJoined = user && tournament.joined_users?.includes(user.id);
   const canJoin = !isJoined && tournament.status === 'upcoming' && spotsLeft > 0;
-  const entryFee = tournament.entry_fee || 0;
+  const entryFee = tournament.is_giveaway ? 1 : (tournament.entry_fee || 0);
   const teamMembersList = getAllTeamMembersList();
 
   return (
@@ -619,7 +619,7 @@ const TournamentDetails = () => {
           <div className="py-4 space-y-4">
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Entry Fee</span>
+                <span className="text-muted-foreground">{tournament.is_giveaway ? 'Platform Fee' : 'Entry Fee'}</span>
                 <span className="font-semibold">₹{entryFee}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -633,6 +633,12 @@ const TournamentDetails = () => {
                 </span>
               </div>
             </div>
+
+            {tournament.is_giveaway && (
+              <div className="bg-emerald-500/10 text-emerald-600 text-sm p-3 rounded-lg">
+                🎁 This is a giveaway tournament! Prize pool is funded by the organizer.
+              </div>
+            )}
 
             {walletBalance < entryFee && (
               <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">

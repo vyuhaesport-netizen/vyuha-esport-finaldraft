@@ -524,28 +524,42 @@ const HomePage = () => {
           
           {joinDialog.tournament && (
             <div className="py-4 space-y-4">
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Entry Fee</span>
-                  <span className="font-semibold">₹{joinDialog.tournament.entry_fee || 0}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Your Balance</span>
-                  <span className="font-semibold">₹{walletBalance}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between text-sm">
-                  <span className="text-muted-foreground">After Joining</span>
-                  <span className={`font-semibold ${walletBalance - (joinDialog.tournament.entry_fee || 0) < 0 ? 'text-destructive' : 'text-green-600'}`}>
-                    ₹{walletBalance - (joinDialog.tournament.entry_fee || 0)}
-                  </span>
-                </div>
-              </div>
+              {(() => {
+                const isGiveaway = joinDialog.tournament.is_giveaway;
+                const effectiveFee = isGiveaway ? 1 : (joinDialog.tournament.entry_fee || 0);
+                return (
+                  <>
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{isGiveaway ? 'Platform Fee' : 'Entry Fee'}</span>
+                        <span className="font-semibold">₹{effectiveFee}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Your Balance</span>
+                        <span className="font-semibold">₹{walletBalance}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between text-sm">
+                        <span className="text-muted-foreground">After Joining</span>
+                        <span className={`font-semibold ${walletBalance - effectiveFee < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                          ₹{walletBalance - effectiveFee}
+                        </span>
+                      </div>
+                    </div>
 
-              {walletBalance < (joinDialog.tournament.entry_fee || 0) && (
-                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-                  Insufficient balance. Please add ₹{(joinDialog.tournament.entry_fee || 0) - walletBalance} to your wallet.
-                </div>
-              )}
+                    {isGiveaway && (
+                      <div className="bg-emerald-500/10 text-emerald-600 text-sm p-3 rounded-lg">
+                        🎁 This is a giveaway tournament! Prize pool is funded by the organizer.
+                      </div>
+                    )}
+
+                    {walletBalance < effectiveFee && (
+                      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+                        Insufficient balance. Please add ₹{effectiveFee - walletBalance} to your wallet.
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
 
@@ -556,7 +570,7 @@ const HomePage = () => {
             <Button 
               variant="gaming" 
               onClick={handleJoinTournament}
-              disabled={joining || walletBalance < (joinDialog.tournament?.entry_fee || 0)}
+              disabled={joining || walletBalance < (joinDialog.tournament?.is_giveaway ? 1 : (joinDialog.tournament?.entry_fee || 0))}
             >
               {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm & Join'}
             </Button>
