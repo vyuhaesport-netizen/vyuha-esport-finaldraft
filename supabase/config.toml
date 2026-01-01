@@ -24,8 +24,5 @@ verify_jwt = false
 [functions.zapupi-webhook]
 verify_jwt = false
 
-[functions.verify-upi]
-verify_jwt = false
-
 [functions.zapupi-diagnostics]
 verify_jwt = false
