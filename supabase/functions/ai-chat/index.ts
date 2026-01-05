@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,14 +84,87 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   try {
-    const { messages, type = 'support' } = await req.json();
+    const { messages, type = 'support', userId } = await req.json();
 
     if (!groqApiKey) {
       console.error('GROQ_API_KEY is not configured');
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if AI is enabled and within token limits
+    const { data: limitData } = await supabase
+      .from('ai_token_limits')
+      .select('*')
+      .eq('limit_type', 'global')
+      .single();
+
+    if (limitData && !limitData.is_enabled) {
+      return new Response(
+        JSON.stringify({ error: 'AI service is currently disabled' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check daily token usage
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { data: dailyUsage } = await supabase
+      .from('ai_usage_logs')
+      .select('total_tokens')
+      .gte('created_at', today.toISOString())
+      .eq('status', 'success');
+
+    const totalDailyTokens = dailyUsage?.reduce((sum, log) => sum + (log.total_tokens || 0), 0) || 0;
+
+    if (limitData && totalDailyTokens >= limitData.daily_limit) {
+      return new Response(
+        JSON.stringify({ error: 'Daily AI token limit reached. Please try again tomorrow.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check monthly token usage
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const { data: monthlyUsage } = await supabase
+      .from('ai_usage_logs')
+      .select('total_tokens')
+      .gte('created_at', monthStart.toISOString())
+      .eq('status', 'success');
+
+    const totalMonthlyTokens = monthlyUsage?.reduce((sum, log) => sum + (log.total_tokens || 0), 0) || 0;
+
+    if (limitData && totalMonthlyTokens >= limitData.monthly_limit) {
+      return new Response(
+        JSON.stringify({ error: 'Monthly AI token limit reached. Please contact admin.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get AI configuration
+    const { data: configData } = await supabase
+      .from('platform_settings')
+      .select('setting_key, setting_value')
+      .in('setting_key', ['ai_model', 'ai_max_tokens', 'ai_temperature', 'ai_enabled']);
+
+    const config: Record<string, string> = {};
+    configData?.forEach(s => {
+      config[s.setting_key] = s.setting_value;
+    });
+
+    // Check if AI is globally enabled
+    if (config.ai_enabled === 'false') {
+      return new Response(
+        JSON.stringify({ error: 'AI service is currently disabled' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -107,7 +183,11 @@ Flag content that contains:
 Respond with JSON: { "flagged": boolean, "reason": string, "severity": "low"|"medium"|"high" }`;
     }
 
-    console.log('Calling Groq API with type:', type);
+    const model = config.ai_model || 'llama-3.3-70b-versatile';
+    const maxTokens = parseInt(config.ai_max_tokens) || 1024;
+    const temperature = parseFloat(config.ai_temperature) || 0.7;
+
+    console.log('Calling Groq API with type:', type, 'model:', model);
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -116,19 +196,31 @@ Respond with JSON: { "flagged": boolean, "reason": string, "severity": "low"|"me
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        temperature: 0.7,
-        max_tokens: 1024,
+        temperature,
+        max_tokens: maxTokens,
       }),
     });
+
+    const responseTime = Date.now() - startTime;
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API error:', response.status, errorText);
+
+      // Log failed request
+      await supabase.from('ai_usage_logs').insert({
+        user_id: userId || null,
+        request_type: type,
+        model,
+        response_time_ms: responseTime,
+        status: 'error',
+        error_message: errorText.substring(0, 500),
+      });
       
       if (response.status === 429) {
         return new Response(
@@ -145,16 +237,44 @@ Respond with JSON: { "flagged": boolean, "reason": string, "severity": "low"|"me
 
     const data = await response.json();
     const generatedText = data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
-    console.log('Groq API response received successfully');
+    // Log successful request
+    await supabase.from('ai_usage_logs').insert({
+      user_id: userId || null,
+      request_type: type,
+      input_tokens: usage.prompt_tokens,
+      output_tokens: usage.completion_tokens,
+      total_tokens: usage.total_tokens,
+      model,
+      response_time_ms: responseTime,
+      status: 'success',
+    });
+
+    console.log('Groq API response received successfully, tokens used:', usage.total_tokens);
 
     return new Response(
-      JSON.stringify({ response: generatedText }),
+      JSON.stringify({ response: generatedText, usage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
+    const responseTime = Date.now() - startTime;
     console.error('Error in ai-chat function:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+
+    // Log error
+    try {
+      await supabase.from('ai_usage_logs').insert({
+        request_type: 'support',
+        model: 'unknown',
+        response_time_ms: responseTime,
+        status: 'error',
+        error_message: errorMessage.substring(0, 500),
+      });
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

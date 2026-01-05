@@ -137,6 +137,78 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_token_limits: {
+        Row: {
+          created_at: string
+          daily_limit: number
+          id: string
+          is_enabled: boolean
+          limit_type: string
+          monthly_limit: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          is_enabled?: boolean
+          limit_type: string
+          monthly_limit?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          is_enabled?: boolean
+          limit_type?: string
+          monthly_limit?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_usage_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          input_tokens: number | null
+          model: string
+          output_tokens: number | null
+          request_type: string
+          response_time_ms: number | null
+          status: string
+          total_tokens: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_tokens?: number | null
+          model: string
+          output_tokens?: number | null
+          request_type?: string
+          response_time_ms?: number | null
+          status?: string
+          total_tokens?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          output_tokens?: number | null
+          request_type?: string
+          response_time_ms?: number | null
+          status?: string
+          total_tokens?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_groups: {
         Row: {
           avatar_url: string | null

@@ -9,8 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { 
   Bot, 
   Key, 
@@ -23,9 +25,12 @@ import {
   TestTube,
   Zap,
   MessageSquare,
-  Shield,
   Clock,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Gauge
 } from 'lucide-react';
 
 interface AIConfig {
@@ -36,12 +41,30 @@ interface AIConfig {
   isEnabled: boolean;
 }
 
+interface TokenLimits {
+  dailyLimit: number;
+  monthlyLimit: number;
+  isEnabled: boolean;
+}
+
 interface UsageStats {
   totalRequests: number;
   successfulRequests: number;
   failedRequests: number;
+  totalTokensUsed: number;
+  dailyTokensUsed: number;
+  monthlyTokensUsed: number;
   averageResponseTime: number;
-  lastUsed: string | null;
+}
+
+interface UsageLog {
+  id: string;
+  request_type: string;
+  total_tokens: number;
+  status: string;
+  response_time_ms: number;
+  error_message: string | null;
+  created_at: string;
 }
 
 const AdminAI = () => {
@@ -51,6 +74,8 @@ const AdminAI = () => {
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
   const [isSaving, setIsSaving] = useState(false);
   const [testResponse, setTestResponse] = useState('');
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
 
   const [config, setConfig] = useState<AIConfig>({
     model: 'llama-3.3-70b-versatile',
@@ -60,12 +85,20 @@ const AdminAI = () => {
     isEnabled: true,
   });
 
+  const [tokenLimits, setTokenLimits] = useState<TokenLimits>({
+    dailyLimit: 100000,
+    monthlyLimit: 3000000,
+    isEnabled: true,
+  });
+
   const [usageStats, setUsageStats] = useState<UsageStats>({
     totalRequests: 0,
     successfulRequests: 0,
     failedRequests: 0,
+    totalTokensUsed: 0,
+    dailyTokensUsed: 0,
+    monthlyTokensUsed: 0,
     averageResponseTime: 0,
-    lastUsed: null,
   });
 
   const availableModels = [
@@ -75,10 +108,11 @@ const AdminAI = () => {
     { id: 'gemma2-9b-it', name: 'Gemma 2 9B', description: 'Efficient' },
   ];
 
-  // Load saved config from platform_settings
   useEffect(() => {
     loadAIConfig();
+    loadTokenLimits();
     loadUsageStats();
+    loadUsageLogs();
   }, []);
 
   const loadAIConfig = async () => {
@@ -107,16 +141,87 @@ const AdminAI = () => {
     }
   };
 
+  const loadTokenLimits = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_token_limits')
+        .select('*')
+        .eq('limit_type', 'global')
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        setTokenLimits({
+          dailyLimit: data.daily_limit,
+          monthlyLimit: data.monthly_limit,
+          isEnabled: data.is_enabled,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading token limits:', error);
+    }
+  };
+
   const loadUsageStats = async () => {
-    // In a real implementation, you'd track these in a table
-    // For now, we'll show placeholder stats
-    setUsageStats({
-      totalRequests: 156,
-      successfulRequests: 148,
-      failedRequests: 8,
-      averageResponseTime: 1.2,
-      lastUsed: new Date().toISOString(),
-    });
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // Get all logs
+      const { data: allLogs, error } = await supabase
+        .from('ai_usage_logs')
+        .select('total_tokens, status, response_time_ms, created_at');
+
+      if (error) throw error;
+
+      const logs = allLogs || [];
+      const totalRequests = logs.length;
+      const successfulRequests = logs.filter(l => l.status === 'success').length;
+      const failedRequests = logs.filter(l => l.status === 'error').length;
+      const totalTokensUsed = logs.reduce((sum, l) => sum + (l.total_tokens || 0), 0);
+      
+      const dailyLogs = logs.filter(l => new Date(l.created_at) >= today);
+      const dailyTokensUsed = dailyLogs.reduce((sum, l) => sum + (l.total_tokens || 0), 0);
+      
+      const monthlyLogs = logs.filter(l => new Date(l.created_at) >= monthStart);
+      const monthlyTokensUsed = monthlyLogs.reduce((sum, l) => sum + (l.total_tokens || 0), 0);
+      
+      const avgResponseTime = logs.length > 0 
+        ? logs.reduce((sum, l) => sum + (l.response_time_ms || 0), 0) / logs.length / 1000 
+        : 0;
+
+      setUsageStats({
+        totalRequests,
+        successfulRequests,
+        failedRequests,
+        totalTokensUsed,
+        dailyTokensUsed,
+        monthlyTokensUsed,
+        averageResponseTime: parseFloat(avgResponseTime.toFixed(2)),
+      });
+    } catch (error) {
+      console.error('Error loading usage stats:', error);
+    }
+  };
+
+  const loadUsageLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('ai_usage_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setUsageLogs(data || []);
+    } catch (error) {
+      console.error('Error loading usage logs:', error);
+    } finally {
+      setIsLoadingLogs(false);
+    }
   };
 
   const handleTestConnection = async () => {
@@ -126,7 +231,7 @@ const AdminAI = () => {
     try {
       const response = await supabase.functions.invoke('ai-chat', {
         body: { 
-          message: 'Hello, this is a test message. Please respond with a brief greeting.',
+          messages: [{ role: 'user', content: 'Hello, this is a test. Please respond briefly.' }],
           type: 'test'
         }
       });
@@ -136,6 +241,8 @@ const AdminAI = () => {
       setConnectionStatus('connected');
       setTestResponse(response.data.response || 'Connection successful!');
       toast.success('Groq API connection successful!');
+      loadUsageStats();
+      loadUsageLogs();
     } catch (error: any) {
       setConnectionStatus('error');
       setTestResponse(error.message || 'Connection failed');
@@ -177,6 +284,33 @@ const AdminAI = () => {
     }
   };
 
+  const handleSaveTokenLimits = async () => {
+    setIsSaving(true);
+    
+    try {
+      const { error } = await supabase
+        .from('ai_token_limits')
+        .upsert({
+          limit_type: 'global',
+          daily_limit: tokenLimits.dailyLimit,
+          monthly_limit: tokenLimits.monthlyLimit,
+          is_enabled: tokenLimits.isEnabled,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'limit_type' });
+
+      if (error) throw error;
+      toast.success('Token limits saved successfully');
+    } catch (error: any) {
+      console.error('Error saving token limits:', error);
+      toast.error('Failed to save token limits');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const dailyUsagePercent = (usageStats.dailyTokensUsed / tokenLimits.dailyLimit) * 100;
+  const monthlyUsagePercent = (usageStats.monthlyTokensUsed / tokenLimits.monthlyLimit) * 100;
+
   return (
     <AdminLayout title="Vyuha AI Management">
       <div className="p-4 space-y-6">
@@ -203,7 +337,11 @@ const AdminAI = () => {
                   <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{((usageStats.successfulRequests / usageStats.totalRequests) * 100).toFixed(1)}%</p>
+                  <p className="text-2xl font-bold">
+                    {usageStats.totalRequests > 0 
+                      ? ((usageStats.successfulRequests / usageStats.totalRequests) * 100).toFixed(1) 
+                      : 0}%
+                  </p>
                   <p className="text-xs text-muted-foreground">Success Rate</p>
                 </div>
               </div>
@@ -214,11 +352,11 @@ const AdminAI = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Clock className="h-5 w-5 text-blue-500" />
+                  <Gauge className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{usageStats.averageResponseTime}s</p>
-                  <p className="text-xs text-muted-foreground">Avg Response</p>
+                  <p className="text-2xl font-bold">{(usageStats.totalTokensUsed / 1000).toFixed(1)}K</p>
+                  <p className="text-xs text-muted-foreground">Total Tokens</p>
                 </div>
               </div>
             </CardContent>
@@ -231,8 +369,8 @@ const AdminAI = () => {
                   <Zap className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
-                  <Badge variant={config.isEnabled ? 'default' : 'secondary'}>
-                    {config.isEnabled ? 'Active' : 'Disabled'}
+                  <Badge variant={tokenLimits.isEnabled && config.isEnabled ? 'default' : 'secondary'}>
+                    {tokenLimits.isEnabled && config.isEnabled ? 'Active' : 'Disabled'}
                   </Badge>
                   <p className="text-xs text-muted-foreground mt-1">Status</p>
                 </div>
@@ -241,19 +379,68 @@ const AdminAI = () => {
           </Card>
         </div>
 
+        {/* Token Usage Bars */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Daily Token Usage</span>
+                <span className="text-xs text-muted-foreground">
+                  {usageStats.dailyTokensUsed.toLocaleString()} / {tokenLimits.dailyLimit.toLocaleString()}
+                </span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${
+                    dailyUsagePercent > 90 ? 'bg-red-500' : 
+                    dailyUsagePercent > 70 ? 'bg-amber-500' : 'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min(dailyUsagePercent, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{dailyUsagePercent.toFixed(1)}% used today</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Monthly Token Usage</span>
+                <span className="text-xs text-muted-foreground">
+                  {usageStats.monthlyTokensUsed.toLocaleString()} / {tokenLimits.monthlyLimit.toLocaleString()}
+                </span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${
+                    monthlyUsagePercent > 90 ? 'bg-red-500' : 
+                    monthlyUsagePercent > 70 ? 'bg-amber-500' : 'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min(monthlyUsagePercent, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{monthlyUsagePercent.toFixed(1)}% used this month</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="connection" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="connection" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
-              <span className="hidden sm:inline">API Key</span>
+              <span className="hidden sm:inline">API</span>
             </TabsTrigger>
             <TabsTrigger value="config" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Configuration</span>
+              <span className="hidden sm:inline">Config</span>
             </TabsTrigger>
-            <TabsTrigger value="monitor" className="flex items-center gap-2">
+            <TabsTrigger value="limits" className="flex items-center gap-2">
+              <Gauge className="h-4 w-4" />
+              <span className="hidden sm:inline">Limits</span>
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
-              <span className="hidden sm:inline">Monitor</span>
+              <span className="hidden sm:inline">Logs</span>
             </TabsTrigger>
           </TabsList>
 
@@ -333,7 +520,7 @@ const AdminAI = () => {
                     connectionStatus === 'connected' ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'
                   }`}>
                     <p className="font-medium mb-1">Response:</p>
-                    <p>{testResponse}</p>
+                    <p className="line-clamp-3">{testResponse}</p>
                   </div>
                 )}
               </CardContent>
@@ -438,80 +625,143 @@ const AdminAI = () => {
             </Card>
           </TabsContent>
 
-          {/* Monitor */}
-          <TabsContent value="monitor" className="space-y-4">
+          {/* Token Limits */}
+          <TabsContent value="limits" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  AI Usage Monitor
+                  <Gauge className="h-5 w-5" />
+                  Token Limits
                 </CardTitle>
                 <CardDescription>
-                  Monitor AI usage and performance across your platform
+                  Control AI usage by setting token limits. When limits are reached, AI will be temporarily disabled.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium">Support Chatbot</p>
-                        <p className="text-xs text-muted-foreground">Help & Support page</p>
-                      </div>
-                    </div>
-                    <Badge variant="default">Active</Badge>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Token Limits</Label>
+                    <p className="text-xs text-muted-foreground">Enforce daily and monthly limits</p>
+                  </div>
+                  <Switch
+                    checked={tokenLimits.isEnabled}
+                    onCheckedChange={(checked) => setTokenLimits({ ...tokenLimits, isEnabled: checked })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Daily Token Limit</Label>
+                    <Input
+                      type="number"
+                      value={tokenLimits.dailyLimit}
+                      onChange={(e) => setTokenLimits({ ...tokenLimits, dailyLimit: parseInt(e.target.value) || 100000 })}
+                      min={1000}
+                    />
+                    <p className="text-xs text-muted-foreground">Max tokens per day</p>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Shield className="h-5 w-5 text-amber-500" />
-                      <div>
-                        <p className="font-medium">Content Moderation</p>
-                        <p className="text-xs text-muted-foreground">Reports & user content</p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Ready</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Bot className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <p className="font-medium">General Assistant</p>
-                        <p className="text-xs text-muted-foreground">Multi-purpose AI</p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Ready</Badge>
+                  <div className="space-y-2">
+                    <Label>Monthly Token Limit</Label>
+                    <Input
+                      type="number"
+                      value={tokenLimits.monthlyLimit}
+                      onChange={(e) => setTokenLimits({ ...tokenLimits, monthlyLimit: parseInt(e.target.value) || 3000000 })}
+                      min={10000}
+                    />
+                    <p className="text-xs text-muted-foreground">Max tokens per month</p>
                   </div>
                 </div>
 
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="font-medium mb-3">Recent Activity</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-muted-foreground">Last API call</span>
-                      <span>{usageStats.lastUsed ? new Date(usageStats.lastUsed).toLocaleString() : 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-muted-foreground">Successful calls</span>
-                      <span className="text-green-500">{usageStats.successfulRequests}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-muted-foreground">Failed calls</span>
-                      <span className="text-red-500">{usageStats.failedRequests}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-muted-foreground">Current model</span>
-                      <span>{config.model}</span>
+                {(dailyUsagePercent > 80 || monthlyUsagePercent > 80) && (
+                  <div className="p-3 bg-amber-500/10 rounded-lg flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amber-600">Usage Warning</p>
+                      <p className="text-sm text-muted-foreground">
+                        {dailyUsagePercent > 80 && 'Daily usage is above 80%. '}
+                        {monthlyUsagePercent > 80 && 'Monthly usage is above 80%. '}
+                        Consider increasing limits or reducing usage.
+                      </p>
                     </div>
                   </div>
-                </div>
+                )}
 
-                <Button variant="outline" onClick={loadUsageStats} className="w-full">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Stats
+                <Button onClick={handleSaveTokenLimits} disabled={isSaving} className="w-full">
+                  {isSaving ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Token Limits
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Usage Logs */}
+          <TabsContent value="logs" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Usage Logs
+                    </CardTitle>
+                    <CardDescription>
+                      Recent AI usage activity
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={loadUsageLogs} disabled={isLoadingLogs}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px]">
+                  {usageLogs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p>No usage logs yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {usageLogs.map((log) => (
+                        <div key={log.id} className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              {log.status === 'success' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              )}
+                              <span className="font-medium capitalize">{log.request_type}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {log.total_tokens || 0} tokens
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(log.created_at), 'MMM d, HH:mm')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {(log.response_time_ms / 1000).toFixed(2)}s
+                            </span>
+                            {log.error_message && (
+                              <span className="text-red-500 truncate max-w-xs">
+                                {log.error_message}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
