@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
+import SEOHead from '@/components/SEOHead';
 import { 
   Trophy, 
   Users, 
@@ -411,7 +412,14 @@ const TournamentDetails = () => {
   const teamMembersList = getAllTeamMembersList();
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <SEOHead
+        title={`${tournament.title} - ${tournament.game} Tournament`}
+        description={tournament.description || `Join ${tournament.title} - a ${tournament.game} ${tournament.tournament_mode || 'solo'} tournament on Vyuha Esport. Prize pool: ₹${tournament.current_prize_pool || tournament.prize_pool || 0}`}
+        url={`https://vyuhaesport.in/tournament/${tournament.id}`}
+        type="event"
+      />
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-card border-b border-border">
         <div className="flex items-center gap-3 px-4 h-14">
@@ -902,6 +910,7 @@ const TournamentDetails = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 
