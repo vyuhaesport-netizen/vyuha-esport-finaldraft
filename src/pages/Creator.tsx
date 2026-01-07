@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import TournamentCard from '@/components/TournamentCard';
 import TournamentShareDialog from '@/components/TournamentShareDialog';
+import SEOHead from '@/components/SEOHead';
 import {
   Trophy,
   Search,
@@ -363,7 +364,13 @@ const Creator = () => {
   };
 
   return (
-    <AppLayout title="Creator Tournaments">
+    <>
+      <SEOHead
+        title="Creator Tournaments"
+        description="Browse and join creator-hosted BGMI, Free Fire, and COD Mobile tournaments. Compete for prizes and climb the leaderboards on Vyuha Esport."
+        url="https://vyuhaesport.in/creator-tournaments"
+      />
+      <AppLayout title="Creator Tournaments">
       {/* Search */}
       <div className="p-4">
         <div className="relative">
@@ -540,6 +547,7 @@ const Creator = () => {
         </DrawerContent>
       </Drawer>
     </AppLayout>
+    </>
   );
 };
 

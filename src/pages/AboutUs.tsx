@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import SEOHead from '@/components/SEOHead';
 import { 
   Trophy, Target, Gamepad2, Users, Shield, Star, 
   Zap, Eye, Heart, Smartphone, Lock, Scale, 
@@ -40,7 +41,13 @@ const AboutUs = () => {
   }, []);
 
   return (
-    <AppLayout title="About Us">
+    <>
+      <SEOHead
+        title="About Us"
+        description="Learn about Vyuha Esport - India's mobile-first competitive gaming platform. Discover our mission, values, and commitment to the esports community."
+        url="https://vyuhaesport.in/about"
+      />
+      <AppLayout title="About Us">
       <div className="p-4 pb-8 space-y-6">
         {/* Hero Section */}
         <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-2xl border-2 border-border p-6 overflow-hidden">
@@ -367,6 +374,7 @@ const AboutUs = () => {
         </p>
       </div>
     </AppLayout>
+    </>
   );
 };
 
