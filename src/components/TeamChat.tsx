@@ -59,7 +59,16 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
             .eq('user_id', newMsg.sender_id)
             .single();
           
-          setMessages((prev) => [...prev, { ...newMsg, sender: profile || undefined }]);
+          const messageWithSender = { ...newMsg, sender: profile || undefined };
+          setMessages((prev) => [...prev, messageWithSender]);
+          
+          // Show toast notification for messages from others
+          if (newMsg.sender_id !== user?.id) {
+            toast({
+              title: `💬 ${profile?.full_name || profile?.username || 'Teammate'}`,
+              description: newMsg.content.length > 50 ? newMsg.content.slice(0, 50) + '...' : newMsg.content,
+            });
+          }
         }
       )
       .subscribe();
@@ -67,7 +76,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [teamId]);
+  }, [teamId, user?.id, toast]);
 
   useEffect(() => {
     // Auto-scroll to bottom on new messages
@@ -180,7 +189,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-320px)] bg-muted/20 rounded-xl border border-border/60 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-200px)] min-h-[400px] bg-muted/20 rounded-xl border border-border/60 overflow-hidden">
       {/* Chat Header */}
       <div className="px-4 py-3 bg-card border-b border-border/60 flex items-center gap-2">
         <MessageCircle className="h-5 w-5 text-primary" />
