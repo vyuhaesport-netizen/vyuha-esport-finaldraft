@@ -212,9 +212,9 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] bg-background">
+    <div className="flex flex-col h-[calc(100vh-130px)] bg-background">
       {/* Chat Header */}
-      <div className="px-4 py-3 bg-card border-b border-border/60 flex items-center gap-2">
+      <div className="px-4 py-3 bg-card border-b border-border/60 flex items-center gap-2 shrink-0">
         <MessageCircle className="h-5 w-5 text-primary" />
         <span className="font-semibold text-sm">Team Chat</span>
         <span className="text-xs text-muted-foreground">({messages.length} messages)</span>
@@ -229,7 +229,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
             <p className="text-xs text-muted-foreground mt-1">Start the conversation with your team!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-2">
             {groupedMessages.map((group) => (
               <div key={group.date}>
                 <div className="flex items-center gap-3 my-4">
@@ -291,8 +291,8 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
         )}
       </ScrollArea>
 
-      {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="p-3 bg-card border-t border-border/60">
+      {/* Message Input - Fixed at bottom */}
+      <form onSubmit={handleSendMessage} className="p-3 bg-card border-t border-border/60 shrink-0 safe-area-bottom">
         <div className="flex gap-2">
           <Input
             placeholder="Type a message..."
