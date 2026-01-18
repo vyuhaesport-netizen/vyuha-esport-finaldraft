@@ -279,7 +279,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   const groupedMessages = groupMessagesByDate(messages);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)] bg-background">
+    <div className="flex flex-col h-full min-h-0 bg-background overflow-hidden">
       {/* Chat Header */}
       <div className="px-4 py-3 bg-card border-b border-border/60 flex items-center gap-2 shrink-0">
         <MessageCircle className="h-5 w-5 text-primary" />
@@ -288,7 +288,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <MessageCircle className="h-12 w-12 text-muted-foreground/30 mb-3" />
@@ -389,7 +389,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
       )}
 
       {/* Message Input - Fixed at bottom */}
-      <form onSubmit={handleSendMessage} className="p-3 bg-card border-t border-border/60 shrink-0 safe-area-bottom">
+      <form onSubmit={handleSendMessage} className="sticky bottom-0 z-10 p-3 bg-card border-t border-border/60 shrink-0 safe-area-bottom">
         <div className="flex gap-2">
           <Input
             placeholder="Type a message..."
