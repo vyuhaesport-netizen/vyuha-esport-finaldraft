@@ -285,16 +285,18 @@ const CreatorWallet = () => {
           </Card>
         </div>
 
-        {/* Withdraw Button */}
-        {(balance?.available_dhana || 0) >= 50 && (
-          <Button 
-            className="w-full bg-green-600 hover:bg-green-700 text-white h-12"
-            onClick={() => setWithdrawDialogOpen(true)}
-          >
-            <ArrowUpRight className="h-5 w-5 mr-2" />
-            Withdraw Dhana (Min ₹50)
-          </Button>
-        )}
+        {/* Withdraw Button - Always visible */}
+        <Button 
+          className="w-full bg-green-600 hover:bg-green-700 text-white h-12 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => setWithdrawDialogOpen(true)}
+          disabled={(balance?.available_dhana || 0) < 50}
+        >
+          <ArrowUpRight className="h-5 w-5 mr-2" />
+          {(balance?.available_dhana || 0) < 50 
+            ? `Withdraw (Need ${50 - (balance?.available_dhana || 0)} more Dhana)` 
+            : 'Withdraw Dhana (Min ₹50)'
+          }
+        </Button>
       </div>
 
       {/* Settlement Info */}
