@@ -20,7 +20,12 @@ import {
   TrendingUp,
   Calendar,
   Sparkles,
-  History
+  History,
+  XCircle,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  CreditCard
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 
@@ -49,6 +54,9 @@ interface DhanaWithdrawal {
   id: string;
   amount: number;
   status: string;
+  upi_id: string;
+  phone: string | null;
+  rejection_reason: string | null;
   created_at: string;
   processed_at: string | null;
 }
@@ -67,6 +75,7 @@ const OrganizerWallet = () => {
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawRequest, setWithdrawRequest] = useState<WithdrawRequest>({ amount: 0, upi_id: '', phone: '' });
+  const [showAllWithdrawals, setShowAllWithdrawals] = useState(false);
   
   const { user, isOrganizer, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -217,6 +226,23 @@ const OrganizerWallet = () => {
     return { label: status, color: 'bg-gray-500' };
   };
 
+  const getWithdrawalStatusInfo = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return { icon: Clock, color: 'text-amber-500', bgColor: 'bg-amber-500/10', label: 'Pending', description: 'Awaiting review' };
+      case 'processing':
+        return { icon: Loader2, color: 'text-blue-500', bgColor: 'bg-blue-500/10', label: 'Processing', description: 'Being processed' };
+      case 'approved':
+        return { icon: CheckCircle, color: 'text-green-500', bgColor: 'bg-green-500/10', label: 'Completed', description: 'Payment sent' };
+      case 'rejected':
+        return { icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-500/10', label: 'Rejected', description: 'Request denied' };
+      case 'failed':
+        return { icon: AlertCircle, color: 'text-red-500', bgColor: 'bg-red-500/10', label: 'Failed', description: 'Payment failed' };
+      default:
+        return { icon: Clock, color: 'text-muted-foreground', bgColor: 'bg-muted', label: status, description: '' };
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -316,35 +342,116 @@ const OrganizerWallet = () => {
         </Card>
       </div>
 
-      {/* Recent Withdrawals */}
-      {withdrawals.length > 0 && (
-        <div className="px-4 pb-4">
-          <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Withdrawal Requests
+      {/* Withdrawal History - Enhanced */}
+      <div className="px-4 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Withdrawal History
           </h3>
-          <div className="space-y-2">
-            {withdrawals.slice(0, 3).map((w) => (
-              <Card key={w.id}>
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{w.amount} Dhana</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(w.created_at), 'MMM dd, yyyy')}</p>
-                    </div>
-                    <Badge className={
-                      w.status === 'approved' ? 'bg-green-500' :
-                      w.status === 'rejected' ? 'bg-red-500' : 'bg-amber-500'
-                    }>
-                      {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {withdrawals.length > 3 && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowAllWithdrawals(!showAllWithdrawals)}
+              className="text-xs h-7"
+            >
+              {showAllWithdrawals ? (
+                <>Show Less <ChevronUp className="h-3 w-3 ml-1" /></>
+              ) : (
+                <>View All ({withdrawals.length}) <ChevronDown className="h-3 w-3 ml-1" /></>
+              )}
+            </Button>
+          )}
         </div>
-      )}
+        
+        {withdrawals.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <CreditCard className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-muted-foreground text-sm">No withdrawals yet</p>
+              <p className="text-xs text-muted-foreground/70">Your withdrawal history will appear here</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {(showAllWithdrawals ? withdrawals : withdrawals.slice(0, 3)).map((w) => {
+              const statusInfo = getWithdrawalStatusInfo(w.status);
+              const StatusIcon = statusInfo.icon;
+              
+              return (
+                <Card key={w.id} className={`border-l-4 ${
+                  w.status === 'approved' ? 'border-l-green-500' :
+                  w.status === 'rejected' ? 'border-l-red-500' :
+                  w.status === 'processing' ? 'border-l-blue-500' :
+                  'border-l-amber-500'
+                }`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${statusInfo.bgColor}`}>
+                          <StatusIcon className={`h-4 w-4 ${statusInfo.color} ${w.status === 'processing' ? 'animate-spin' : ''}`} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-lg">{w.amount} Dhana</p>
+                          <p className="text-xs text-muted-foreground">= ₹{w.amount}</p>
+                        </div>
+                      </div>
+                      <Badge className={`${
+                        w.status === 'approved' ? 'bg-green-500' :
+                        w.status === 'rejected' ? 'bg-red-500' :
+                        w.status === 'processing' ? 'bg-blue-500' :
+                        'bg-amber-500'
+                      } text-white`}>
+                        {statusInfo.label}
+                      </Badge>
+                    </div>
+                    
+                    {/* Timeline */}
+                    <div className="border-t border-border/50 pt-3 mt-2">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <p className="text-muted-foreground">Requested</p>
+                          <p className="font-medium">{format(new Date(w.created_at), 'MMM dd, yyyy h:mm a')}</p>
+                        </div>
+                        {w.processed_at && (
+                          <div>
+                            <p className="text-muted-foreground">Processed</p>
+                            <p className="font-medium">{format(new Date(w.processed_at), 'MMM dd, yyyy h:mm a')}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* UPI Info */}
+                      <div className="mt-2 pt-2 border-t border-border/30">
+                        <p className="text-xs text-muted-foreground">UPI: <span className="font-medium text-foreground">{w.upi_id}</span></p>
+                      </div>
+                      
+                      {/* Rejection Reason */}
+                      {w.status === 'rejected' && w.rejection_reason && (
+                        <div className="mt-2 p-2 bg-red-500/10 rounded-lg">
+                          <p className="text-xs text-red-600 dark:text-red-400">
+                            <strong>Reason:</strong> {w.rejection_reason}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Processing Note */}
+                      {w.status === 'pending' && (
+                        <div className="mt-2 p-2 bg-amber-500/10 rounded-lg">
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            Usually processed within 24-48 hours
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Transaction History */}
       <div className="px-4 pb-20">
