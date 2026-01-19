@@ -66,6 +66,7 @@ import AvatarSelection from "./pages/AvatarSelection";
 import NotFound from "./pages/NotFound";
 import PlayerStats from "./pages/PlayerStats";
 import AuthRequiredLock from "./components/AuthRequiredLock";
+import BanCheckWrapper from "./components/BanCheckWrapper";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -302,7 +303,9 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <AppRoutes />
+              <BanCheckWrapper>
+                <AppRoutes />
+              </BanCheckWrapper>
             </BrowserRouter>
           </TooltipProvider>
         </NotificationProvider>
