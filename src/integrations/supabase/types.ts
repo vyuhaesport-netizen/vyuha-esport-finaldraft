@@ -1461,6 +1461,7 @@ export type Database = {
           id: string
           is_edited: boolean | null
           reactions: Json | null
+          reply_to: string | null
           sender_id: string
           team_id: string
         }
@@ -1471,6 +1472,7 @@ export type Database = {
           id?: string
           is_edited?: boolean | null
           reactions?: Json | null
+          reply_to?: string | null
           sender_id: string
           team_id: string
         }
@@ -1481,10 +1483,18 @@ export type Database = {
           id?: string
           is_edited?: boolean | null
           reactions?: Json | null
+          reply_to?: string | null
           sender_id?: string
           team_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "team_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_messages_team_id_fkey"
             columns: ["team_id"]
