@@ -1457,21 +1457,30 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          edited_at: string | null
           id: string
+          is_edited: boolean | null
+          reactions: Json | null
           sender_id: string
           team_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          is_edited?: boolean | null
+          reactions?: Json | null
           sender_id: string
           team_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          is_edited?: boolean | null
+          reactions?: Json | null
           sender_id?: string
           team_id?: string
         }
