@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +16,6 @@ import {
   Megaphone
 } from 'lucide-react';
 import { format } from 'date-fns';
-import AppLayout from '@/components/layout/AppLayout';
 
 interface AdminBroadcast {
   id: string;
@@ -35,6 +34,8 @@ interface AdminBroadcast {
 const BroadcastChannel = () => {
   const [broadcasts, setBroadcasts] = useState<AdminBroadcast[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -51,6 +52,15 @@ const BroadcastChannel = () => {
       fetchBroadcasts();
     }
   }, [user]);
+
+  // Auto-scroll to bottom when broadcasts load
+  useEffect(() => {
+    if (!loading && broadcasts.length > 0) {
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 100);
+    }
+  }, [loading, broadcasts.length]);
 
   // Play notification sound for new broadcasts
   const playBroadcastSound = () => {
@@ -88,7 +98,8 @@ const BroadcastChannel = () => {
         (payload) => {
           const newBroadcast = payload.new as AdminBroadcast;
           if (newBroadcast.is_published !== false) {
-            setBroadcasts(prev => [newBroadcast, ...prev]);
+            // Add new broadcast at the END (bottom)
+            setBroadcasts(prev => [...prev, newBroadcast]);
             // Show toast and play sound for new broadcast
             playBroadcastSound();
             toast({
@@ -96,6 +107,10 @@ const BroadcastChannel = () => {
               description: newBroadcast.message.length > 60 ? newBroadcast.message.slice(0, 60) + '...' : newBroadcast.message,
               duration: 6000,
             });
+            // Scroll to new message
+            setTimeout(() => {
+              bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
           }
         }
       )
@@ -112,7 +127,7 @@ const BroadcastChannel = () => {
         .from('admin_broadcasts')
         .select('id, title, message, created_at, media_url, media_type, banner_url, video_link, attachment_url, attachment_name')
         .eq('is_published', true)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true }) // Oldest first, newest at bottom
         .limit(100);
 
       setBroadcasts(data || []);
@@ -132,41 +147,41 @@ const BroadcastChannel = () => {
   }
 
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-gradient-to-r from-primary/20 to-primary/5 border-b border-primary/20">
-          <div className="flex items-center gap-3 px-4 h-16">
-            <Avatar className="h-12 w-12 ring-2 ring-primary/50">
-              <AvatarImage src={vyuhaLogo} />
-              <AvatarFallback className="bg-primary text-primary-foreground">V</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <p className="font-bold text-lg">Broadcast Channel</p>
-                <Badge variant="secondary" className="text-[10px] bg-primary/20 text-primary">Official</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">Vyuha Esport • Official Announcements</p>
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      {/* Header */}
+      <header className="shrink-0 bg-gradient-to-r from-primary/20 to-primary/5 border-b border-primary/20">
+        <div className="flex items-center gap-3 px-4 h-16">
+          <Avatar className="h-12 w-12 ring-2 ring-primary/50">
+            <AvatarImage src={vyuhaLogo} />
+            <AvatarFallback className="bg-primary text-primary-foreground">V</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-lg">Broadcast Channel</p>
+              <Badge variant="secondary" className="text-[10px] bg-primary/20 text-primary">Official</Badge>
             </div>
-            <Megaphone className="h-5 w-5 text-primary" />
+            <p className="text-xs text-muted-foreground">Vyuha Esport • Official Announcements</p>
           </div>
-        </header>
+          <Megaphone className="h-5 w-5 text-primary" />
+        </div>
+      </header>
 
-        {/* Broadcasts List */}
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-4 pb-24">
-            {broadcasts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-                  <img src={vyuhaLogo} alt="" className="h-16 w-16 rounded-full opacity-70" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">No Broadcasts Yet</h3>
-                <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                  Official announcements, updates, and important messages from Vyuha Esport will appear here.
-                </p>
+      {/* Broadcasts List */}
+      <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+        <div className="p-4 space-y-4 pb-20">
+          {broadcasts.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <img src={vyuhaLogo} alt="" className="h-16 w-16 rounded-full opacity-70" />
               </div>
-            ) : (
-              broadcasts.map((broadcast) => (
+              <h3 className="font-semibold text-lg mb-2">No Broadcasts Yet</h3>
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                Official announcements, updates, and important messages from Vyuha Esport will appear here.
+              </p>
+            </div>
+          ) : (
+            <>
+              {broadcasts.map((broadcast) => (
                 <div key={broadcast.id} className="flex items-start gap-3">
                   <Avatar className="h-10 w-10 flex-shrink-0 mt-1">
                     <AvatarImage src={vyuhaLogo} />
@@ -237,19 +252,21 @@ const BroadcastChannel = () => {
                     </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+              ))}
+              {/* Scroll anchor for auto-scroll to bottom */}
+              <div ref={bottomRef} />
+            </>
+          )}
+        </div>
+      </ScrollArea>
 
-        {/* Footer Info */}
-        <div className="fixed bottom-16 left-0 right-0 p-3 bg-gradient-to-t from-background via-background to-transparent">
-          <div className="text-center text-xs text-muted-foreground py-2 px-4 bg-card/80 backdrop-blur-sm rounded-full mx-auto w-fit border border-border">
-            📢 This is an official broadcast channel
-          </div>
+      {/* Footer Info */}
+      <div className="shrink-0 p-3 bg-gradient-to-t from-background via-background/95 to-transparent border-t border-border/50">
+        <div className="text-center text-xs text-muted-foreground py-2 px-4 bg-card/80 backdrop-blur-sm rounded-full mx-auto w-fit border border-border">
+          📢 This is an official broadcast channel
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
 };
 
