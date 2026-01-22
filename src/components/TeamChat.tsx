@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Send, Loader2, MessageCircle, Crown, MoreVertical, 
-  Pencil, Trash2, SmilePlus, X, Check 
+  Pencil, Trash2, SmilePlus, X, Check, Reply, CornerDownRight
 } from 'lucide-react';
 import { format, isToday, isYesterday, differenceInMinutes } from 'date-fns';
 import {
@@ -29,9 +29,10 @@ interface TeamMessage {
   sender_id: string;
   content: string;
   created_at: string;
-  reactions?: Record<string, string[]>; // emoji -> user_ids
+  reactions?: Record<string, string[]>;
   is_edited?: boolean;
   edited_at?: string;
+  reply_to?: string | null;
   sender?: {
     username: string | null;
     full_name: string | null;
@@ -52,6 +53,12 @@ interface TeamChatProps {
 
 const EMOJI_REACTIONS = ['👍', '❤️', '😂', '🔥', '👏', '😮'];
 
+// Helper to safely parse reactions from database JSON
+const parseReactions = (reactions: unknown): Record<string, string[]> => {
+  if (!reactions || typeof reactions !== 'object') return {};
+  return reactions as Record<string, string[]>;
+};
+
 const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   const [messages, setMessages] = useState<TeamMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -60,7 +67,9 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [replyingTo, setReplyingTo] = useState<TeamMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingBroadcast = useRef<number>(0);
   const { user } = useAuth();
@@ -93,7 +102,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     if (!user) return;
     
     const now = Date.now();
-    // Throttle: only broadcast every 2 seconds
     if (now - lastTypingBroadcast.current < 2000) return;
     lastTypingBroadcast.current = now;
 
@@ -109,7 +117,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     });
   }, [teamId, user]);
 
-  // Handle input change with typing broadcast
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
     if (e.target.value.trim()) {
@@ -120,34 +127,33 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   useEffect(() => {
     fetchMessages();
     
-    // Set up realtime subscription for messages
     const messageChannel = supabase
       .channel(`team_chat_${teamId}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'team_messages',
           filter: `team_id=eq.${teamId}`,
         },
         async (payload) => {
           if (payload.eventType === 'INSERT') {
-            const newMsg = payload.new as TeamMessage;
-            // Fetch sender info
+            const newMsg = payload.new as any;
             const { data: profile } = await supabase
               .from('profiles')
               .select('username, full_name, avatar_url')
               .eq('user_id', newMsg.sender_id)
               .single();
             
-            const messageWithSender = { ...newMsg, sender: profile || undefined };
+            const messageWithSender: TeamMessage = {
+              ...newMsg,
+              reactions: parseReactions(newMsg.reactions),
+              sender: profile || undefined,
+            };
             setMessages((prev) => [...prev, messageWithSender]);
-            
-            // Remove typing indicator for the user who sent the message
             setTypingUsers((prev) => prev.filter((u) => u.id !== newMsg.sender_id));
             
-            // Show toast and play sound for messages from others
             if (newMsg.sender_id !== user?.id) {
               playMessageSound();
               toast({
@@ -156,11 +162,11 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
               });
             }
           } else if (payload.eventType === 'UPDATE') {
-            const updatedMsg = payload.new as TeamMessage;
+            const updatedMsg = payload.new as any;
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === updatedMsg.id
-                  ? { ...msg, ...updatedMsg }
+                  ? { ...msg, ...updatedMsg, reactions: parseReactions(updatedMsg.reactions) }
                   : msg
               )
             );
@@ -172,11 +178,10 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
       )
       .subscribe();
 
-    // Set up typing indicator channel
     const typingChannel = supabase
       .channel(`typing_${teamId}`)
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        if (payload.userId === user?.id) return; // Ignore own typing
+        if (payload.userId === user?.id) return;
         
         setTypingUsers((prev) => {
           const exists = prev.find((u) => u.id === payload.userId);
@@ -184,7 +189,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
           return [...prev, { id: payload.userId, name: payload.name, avatar: payload.avatar }];
         });
 
-        // Clear typing indicator after 3 seconds
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
@@ -204,7 +208,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
   }, [teamId, user?.id, toast]);
 
   useEffect(() => {
-    // Auto-scroll to bottom on new messages
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -221,7 +224,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
 
       if (error) throw error;
 
-      // Fetch sender profiles
       if (data && data.length > 0) {
         const senderIds = [...new Set(data.map((m) => m.sender_id))];
         const { data: profiles } = await supabase
@@ -233,8 +235,9 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
           profiles?.map((p) => [p.user_id, { username: p.username, full_name: p.full_name, avatar_url: p.avatar_url }])
         );
 
-        const messagesWithSenders = data.map((msg) => ({
+        const messagesWithSenders: TeamMessage[] = data.map((msg: any) => ({
           ...msg,
+          reactions: parseReactions(msg.reactions),
           sender: profileMap.get(msg.sender_id),
         }));
 
@@ -253,14 +256,21 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
 
     setSending(true);
     try {
-      const { error } = await supabase.from('team_messages').insert({
+      const insertData: any = {
         team_id: teamId,
         sender_id: user.id,
         content: newMessage.trim(),
-      });
+      };
+      
+      if (replyingTo) {
+        insertData.reply_to = replyingTo.id;
+      }
+
+      const { error } = await supabase.from('team_messages').insert(insertData);
 
       if (error) throw error;
       setNewMessage('');
+      setReplyingTo(null);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({ title: 'Error', description: 'Failed to send message.', variant: 'destructive' });
@@ -269,14 +279,12 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     }
   };
 
-  // Check if user can edit/delete (within 5 minutes)
   const canModifyMessage = (msg: TeamMessage) => {
     if (msg.sender_id !== user?.id) return false;
     const minutesDiff = differenceInMinutes(new Date(), new Date(msg.created_at));
     return minutesDiff <= 5;
   };
 
-  // Handle edit message
   const handleStartEdit = (msg: TeamMessage) => {
     setEditingMessageId(msg.id);
     setEditContent(msg.content);
@@ -297,7 +305,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
           content: editContent.trim(),
           is_edited: true,
           edited_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', msgId)
         .eq('sender_id', user?.id);
 
@@ -312,7 +320,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     }
   };
 
-  // Handle delete message
   const handleDeleteMessage = async (msgId: string) => {
     try {
       const { error } = await supabase
@@ -329,7 +336,15 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     }
   };
 
-  // Handle reaction
+  const handleReply = (msg: TeamMessage) => {
+    setReplyingTo(msg);
+    inputRef.current?.focus();
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
   const handleReaction = async (msgId: string, emoji: string) => {
     if (!user) return;
 
@@ -342,7 +357,6 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     let newReactions: Record<string, string[]>;
     
     if (emojiUsers.includes(user.id)) {
-      // Remove reaction
       const filtered = emojiUsers.filter((id) => id !== user.id);
       if (filtered.length === 0) {
         const { [emoji]: _, ...rest } = currentReactions;
@@ -351,9 +365,15 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
         newReactions = { ...currentReactions, [emoji]: filtered };
       }
     } else {
-      // Add reaction
       newReactions = { ...currentReactions, [emoji]: [...emojiUsers, user.id] };
     }
+
+    // Optimistically update UI
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === msgId ? { ...m, reactions: newReactions } : m
+      )
+    );
 
     try {
       const { error } = await supabase
@@ -364,6 +384,12 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
       if (error) throw error;
     } catch (error) {
       console.error('Error updating reaction:', error);
+      // Revert on error
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId ? { ...m, reactions: currentReactions } : m
+        )
+      );
     }
   };
 
@@ -399,6 +425,11 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
     if (isToday(date)) return 'Today';
     if (isYesterday(date)) return 'Yesterday';
     return format(date, 'MMMM d, yyyy');
+  };
+
+  const getReplyMessage = (replyToId: string | undefined | null) => {
+    if (!replyToId) return null;
+    return messages.find((m) => m.id === replyToId);
   };
 
   if (loading) {
@@ -447,6 +478,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
                     const isEditing = editingMessageId === msg.id;
                     const reactions = msg.reactions || {};
                     const hasReactions = Object.keys(reactions).length > 0;
+                    const repliedMessage = getReplyMessage(msg.reply_to);
 
                     return (
                       <div
@@ -474,6 +506,17 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
                           )}
                           
                           <div className="relative">
+                            {/* Reply preview */}
+                            {repliedMessage && (
+                              <div className={`flex items-start gap-1.5 mb-1 ${isOwnMessage ? 'justify-end' : ''}`}>
+                                <CornerDownRight className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                                <div className="text-[11px] text-muted-foreground bg-muted/50 px-2 py-1 rounded-md max-w-[200px] truncate">
+                                  <span className="font-medium">{repliedMessage.sender?.full_name || 'Player'}: </span>
+                                  {repliedMessage.content.slice(0, 40)}{repliedMessage.content.length > 40 ? '...' : ''}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Message bubble */}
                             {isEditing ? (
                               <div className="flex items-center gap-2">
@@ -505,8 +548,18 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
                                   )}
                                 </div>
                                 
-                                {/* Actions (Edit/Delete/React) */}
+                                {/* Actions */}
                                 <div className={`flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ${isOwnMessage ? 'order-first' : ''}`}>
+                                  {/* Reply button */}
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={() => handleReply(msg)}
+                                  >
+                                    <Reply className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </Button>
+
                                   {/* Reaction picker */}
                                   <Popover>
                                     <PopoverTrigger asChild>
@@ -529,7 +582,7 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
                                     </PopoverContent>
                                   </Popover>
                                   
-                                  {/* Edit/Delete menu for own messages */}
+                                  {/* Edit/Delete menu */}
                                   {isOwnMessage && canModify && (
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
@@ -621,11 +674,30 @@ const TeamChat = ({ teamId, leaderId }: TeamChatProps) => {
         </div>
       )}
 
+      {/* Reply Preview */}
+      {replyingTo && (
+        <div className="px-3 py-2 bg-muted/50 border-t border-border/60 flex items-center gap-2 animate-fade-in">
+          <Reply className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-primary">
+              Replying to {replyingTo.sender?.full_name || replyingTo.sender?.username || 'Player'}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {replyingTo.content}
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={cancelReply}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Message Input */}
       <form onSubmit={handleSendMessage} className="shrink-0 bg-card border-t border-border/60">
-        <div className="flex gap-2 px-3 pt-3">
+        <div className="flex gap-2 px-3 pt-3 pb-3">
           <Input
-            placeholder="Type a message..."
+            ref={inputRef}
+            placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
             value={newMessage}
             onChange={handleInputChange}
             className="flex-1 bg-muted/30 border-border/60 h-10"
