@@ -423,7 +423,7 @@ const Auth = () => {
           <div className="flex flex-col items-center mb-6">
             <img src={vyuhaLogo} alt="Vyuha Esport" className="h-20 w-20 rounded-full object-cover mb-4 border-slate-400" />
             <h1 className="text-center mb-8 text-slate-950 font-normal text-base">
-              {isLogin ? 'eSports Journey start here' : 'Create Your Account'}
+              {isLogin ? 'Your Gaming Journey Starts Here' : 'Create Your Account'}
             </h1>
           </div>
 

@@ -394,7 +394,7 @@ const HomePage = () => {
           <div className="flex items-center gap-3">
             <img src={vyuhaLogo} alt="Vyuha" className="h-10 w-10 rounded-full object-cover" />
             <div>
-              <h1 className="font-gaming text-lg font-bold">Vyuha Esport</h1>
+              <h1 className="font-gaming text-lg font-bold">Vyuha eSports</h1>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -486,7 +486,7 @@ const HomePage = () => {
       {/* Tournaments Section */}
       <div className="px-4 pb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-gaming font-semibold">Available Tournaments</h2>
+          <h2 className="font-gaming font-semibold">Live Tournaments</h2>
           <span className="text-xs text-muted-foreground">{getFilteredTournaments().length} matches</span>
         </div>
 
