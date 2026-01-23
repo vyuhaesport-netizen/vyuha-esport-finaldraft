@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import FollowButton from '@/components/FollowButton';
 import OrganizerProfilePreview from '@/components/OrganizerProfilePreview';
-import { Trophy, Users, Wallet, Share2, Calendar, Eye, ChevronLeft, Zap, Clock, Youtube, Instagram, Gift, ScrollText } from 'lucide-react';
+import { Trophy, Users, Wallet, Share2, Calendar, Eye, ChevronLeft, Clock, Youtube, Instagram, Gift, ScrollText, Gamepad2 } from 'lucide-react';
 
 interface Tournament {
   id: string;
@@ -47,7 +47,7 @@ interface TournamentCardProps {
   onFollowChange?: (isFollowing: boolean) => void;
   joinDisabled?: boolean;
   joinDisabledReason?: string;
-  exitDisabled?: boolean; // Exit only allowed for solo tournaments
+  exitDisabled?: boolean;
   exitDisabledReason?: string;
 }
 
@@ -97,8 +97,9 @@ const TournamentCard = ({
   const spotsLeft = (tournament.max_participants || 100) - (tournament.joined_users?.length || 0);
   const prizeAmount = tournament.prize_pool || `₹${tournament.current_prize_pool || 0}`;
   const entryFee = tournament.entry_fee ? `₹${tournament.entry_fee}` : 'Free';
+  const playerCount = tournament.joined_users?.length || 0;
+  const maxPlayers = tournament.max_participants || 100;
 
-  // Countdown timer effect
   useEffect(() => {
     if (!tournament.registration_deadline) {
       setCountdown('');
@@ -111,17 +112,14 @@ const TournamentCard = ({
       const remaining = deadline - now;
       
       setCountdown(formatCountdown(remaining));
-      // Mark as "soon" if less than 1 hour remaining
       setIsDeadlineSoon(remaining > 0 && remaining < 60 * 60 * 1000);
     };
 
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
-    
     return () => clearInterval(interval);
   }, [tournament.registration_deadline]);
 
-  // Swipe state
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const startXRef = useRef(0);
@@ -139,7 +137,6 @@ const TournamentCard = ({
     if (!isSwiping || !canSwipeJoin) return;
     const currentX = e.touches[0].clientX;
     const diff = currentX - startXRef.current;
-    // Only allow left swipe (negative values)
     if (diff < 0) {
       setSwipeX(Math.max(diff, -150));
     }
@@ -154,114 +151,157 @@ const TournamentCard = ({
     setIsSwiping(false);
   };
 
-  return <div className="relative">
-      {/* Card */}
-      <div ref={cardRef} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} style={{
-      transform: `translateX(${swipeX}px)`,
-      transition: isSwiping ? 'none' : 'transform 0.3s ease-out'
-    }} className="bg-card rounded-lg border border-border/50 p-3 hover:border-primary/30 transition-all relative overflow-hidden">
+  const getModeColor = () => {
+    if (variant === 'creator') return 'from-purple-500 to-pink-500';
+    return 'from-primary to-gaming-blue';
+  };
+
+  const getStatusBadge = () => {
+    switch (tournament.status) {
+      case 'upcoming':
+        return <span className="badge-upcoming"><span className="w-1.5 h-1.5 bg-white rounded-full" />Live</span>;
+      case 'ongoing':
+        return <span className="badge-live"><span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />In Progress</span>;
+      default:
+        return <span className="badge-completed">{tournament.status}</span>;
+    }
+  };
+
+  return (
+    <div className="relative">
+      <div 
+        ref={cardRef} 
+        onTouchStart={handleTouchStart} 
+        onTouchMove={handleTouchMove} 
+        onTouchEnd={handleTouchEnd} 
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.3s ease-out'
+        }} 
+        className="premium-card p-4 hover-lift shine-effect"
+      >
+        {/* Swipe indicator */}
+        {canSwipeJoin && (
+          <div className={`absolute inset-y-0 right-0 w-16 pointer-events-none rounded-r-2xl bg-gradient-to-l from-success to-success/50 flex items-center justify-end pr-3 transition-opacity ${swipeX < -30 ? 'opacity-100' : 'opacity-0'}`}>
+            <span className="text-white text-xs font-bold">Join</span>
+          </div>
+        )}
         
-        {/* Swipe indicator inside card */}
-        {canSwipeJoin && <div className={`absolute inset-y-0 right-0 w-16 pointer-events-none bg-gradient-to-l from-emerald-500 to-emerald-500/50 flex items-center justify-end pr-2 transition-opacity ${swipeX < -30 ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="text-white text-xs font-semibold">Join</span>
-          </div>}
-        
-        {/* Header Row */}
-        <div className="flex items-start justify-between gap-2 mb-2">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground truncate text-sm">
-              {tournament.title}
-            </h3>
-            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-              <span className="text-[10px] text-muted-foreground">{tournament.game}</span>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-foreground truncate">
+                {tournament.title}
+              </h3>
               {tournament.is_giveaway && (
-                <Badge className="text-[8px] px-1.5 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 font-bold shadow-md shadow-emerald-500/40">
-                  <Gift className="h-2.5 w-2.5 mr-0.5" />
-                  GIVEAWAY
+                <Badge className="text-[10px] px-2 py-0.5 bg-gradient-to-r from-success to-gaming-cyan text-white border-0 font-bold shadow-glow-success">
+                  <Gift className="h-3 w-3 mr-0.5" />
+                  Giveaway
                 </Badge>
               )}
-              <Badge className={`text-[8px] px-1 py-0 capitalize ${variant === 'creator' ? 'bg-purple-500/10 text-purple-600' : 'bg-gaming-orange/10 text-gaming-orange'}`}>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Gamepad2 className="h-3 w-3" />
+                {tournament.game}
+              </span>
+              <Badge className={`text-[10px] px-2 py-0.5 capitalize bg-gradient-to-r ${getModeColor()} text-white border-0`}>
                 {tournament.tournament_mode || 'Solo'}
               </Badge>
-              <Badge className={`text-[8px] px-1 py-0 capitalize ${tournament.status === 'upcoming' ? 'bg-emerald-500/10 text-emerald-600' : tournament.status === 'ongoing' ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'}`}>
-                {tournament.status}
-              </Badge>
+              {getStatusBadge()}
             </div>
-            {/* Organizer Info */}
             {organizerName && tournament.created_by && (
-              <button onClick={() => setProfilePreviewOpen(true)} className="text-[9px] text-muted-foreground hover:text-primary hover:underline transition-colors mt-0.5">
+              <button 
+                onClick={() => setProfilePreviewOpen(true)} 
+                className="text-xs text-muted-foreground hover:text-primary hover:underline transition-colors mt-1"
+              >
                 by {organizerName}
               </button>
             )}
           </div>
-          {/* Follow Button - Right Side */}
           {tournament.created_by && onFollowChange && (
-            <div className="flex-shrink-0">
-              <FollowButton organizerId={tournament.created_by} isFollowing={isFollowing} onFollowChange={onFollowChange} organizerName={organizerName} />
-            </div>
+            <FollowButton 
+              organizerId={tournament.created_by} 
+              isFollowing={isFollowing} 
+              onFollowChange={onFollowChange} 
+              organizerName={organizerName} 
+            />
           )}
         </div>
 
-        {/* Organizer Profile Preview Dialog */}
-        {tournament.created_by && <OrganizerProfilePreview organizerId={tournament.created_by} open={profilePreviewOpen} onOpenChange={setProfilePreviewOpen} isFollowing={isFollowing} onFollowChange={onFollowChange} />}
+        {tournament.created_by && (
+          <OrganizerProfilePreview 
+            organizerId={tournament.created_by} 
+            open={profilePreviewOpen} 
+            onOpenChange={setProfilePreviewOpen} 
+            isFollowing={isFollowing} 
+            onFollowChange={onFollowChange} 
+          />
+        )}
 
-        {/* Registration Deadline Countdown */}
+        {/* Deadline Countdown */}
         {countdown && !isJoined && (
-          <div className={`flex items-center gap-1.5 mb-2 px-2 py-1 rounded text-[10px] font-medium ${
+          <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-xl text-xs font-medium ${
             isDeadlineSoon 
-              ? 'bg-red-500/10 text-red-600 animate-pulse' 
-              : 'bg-orange-500/10 text-orange-600'
+              ? 'bg-destructive/10 text-destructive animate-pulse' 
+              : 'bg-warning/10 text-warning'
           }`}>
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3.5 w-3.5" />
             <span>Registration closes in {countdown}</span>
           </div>
         )}
 
-        {/* Stats Row */}
-        <div className="flex items-center gap-2 mb-2 text-[10px] flex-wrap">
-          <div className="flex items-center gap-1 text-amber-600">
-            <Trophy className="h-3 w-3" />
-            <span className="font-medium">{prizeAmount}</span>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="stat-card text-center">
+            <Trophy className="h-4 w-4 text-warning mx-auto mb-1" />
+            <p className="text-xs font-bold text-warning">{prizeAmount}</p>
+            <p className="text-[10px] text-muted-foreground">Prize</p>
           </div>
-          <span className="text-muted-foreground">•</span>
-          <div className="flex items-center gap-1 text-emerald-600">
-            <Wallet className="h-3 w-3" />
-            <span className="font-medium">{tournament.is_giveaway ? '₹1' : entryFee}</span>
+          <div className="stat-card text-center">
+            <Wallet className="h-4 w-4 text-success mx-auto mb-1" />
+            <p className="text-xs font-bold text-success">{tournament.is_giveaway ? '₹1' : entryFee}</p>
+            <p className="text-[10px] text-muted-foreground">Entry</p>
           </div>
-          <span className="text-muted-foreground">•</span>
-          <div className="flex items-center gap-1 text-blue-600">
-            <Users className="h-3 w-3" />
-            <span className="font-medium">{spotsLeft} left</span>
+          <div className="stat-card text-center">
+            <Users className="h-4 w-4 text-primary mx-auto mb-1" />
+            <p className="text-xs font-bold">{playerCount}/{maxPlayers}</p>
+            <p className="text-[10px] text-muted-foreground">Players</p>
           </div>
-          <span className="text-muted-foreground">•</span>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span>{format(new Date(tournament.start_date), 'MMM dd, h:mm a')}</span>
+          <div className="stat-card text-center">
+            <Calendar className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+            <p className="text-xs font-bold">{format(new Date(tournament.start_date), 'MMM dd')}</p>
+            <p className="text-[10px] text-muted-foreground">{format(new Date(tournament.start_date), 'h:mm a')}</p>
           </div>
         </div>
 
         {/* Room Details */}
-        {isJoined && showRoomDetails && tournament.room_id && <div className="p-1.5 bg-emerald-500/10 rounded border border-emerald-500/20 mb-2">
-            <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-medium">
-              <Eye className="h-3 w-3" />
+        {isJoined && showRoomDetails && tournament.room_id && (
+          <div className="p-3 bg-success/10 rounded-xl border border-success/20 mb-3">
+            <div className="flex items-center gap-2 text-success text-sm font-medium">
+              <Eye className="h-4 w-4" />
               <span>Room: {tournament.room_id}</span>
-              {tournament.room_password && <span className="text-muted-foreground">| Pass: {tournament.room_password}</span>}
+              {tournament.room_password && (
+                <span className="text-muted-foreground">• Pass: {tournament.room_password}</span>
+              )}
             </div>
-          </div>}
+          </div>
+        )}
 
         {/* Social Links */}
         {(tournament.youtube_link || tournament.instagram_link) && (
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-2 mb-3">
             {tournament.youtube_link && (
               <a 
                 href={tournament.youtube_link} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-red-600 text-[10px] hover:bg-red-500/20 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 text-xs font-medium hover:bg-red-500/20 transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Youtube className="h-3 w-3" />
-                <span>YouTube</span>
+                <Youtube className="h-3.5 w-3.5" />
+                YouTube
               </a>
             )}
             {tournament.instagram_link && (
@@ -269,57 +309,71 @@ const TournamentCard = ({
                 href={tournament.instagram_link} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2 py-1 rounded bg-pink-500/10 text-pink-600 text-[10px] hover:bg-pink-500/20 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-500 text-xs font-medium hover:bg-pink-500/20 transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Instagram className="h-3 w-3" />
-                <span>Instagram</span>
+                <Instagram className="h-3.5 w-3.5" />
+                Instagram
               </a>
             )}
           </div>
         )}
 
-        {/* Action Row */}
-        <div className="flex items-center gap-1.5">
+        {/* Actions */}
+        <div className="flex items-center gap-2">
           {isJoined ? (
             exitDisabled ? (
-              <div className="flex-1 h-7 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 text-[10px]">
+              <div className="flex-1 h-10 rounded-xl bg-warning/10 border border-warning/30 flex items-center justify-center text-warning text-xs font-medium">
                 {exitDisabledReason || 'Exit not allowed'}
               </div>
             ) : (
-              <Button onClick={onExitClick} disabled={isLoading} variant="outline" size="sm" className="flex-1 h-7 text-xs text-destructive border-destructive/50 hover:bg-destructive/10">
-                {isLoading ? 'Processing...' : 'Exit'}
+              <Button 
+                onClick={onExitClick} 
+                disabled={isLoading} 
+                variant="outline" 
+                className="flex-1 h-10 text-sm text-destructive border-destructive/50 hover:bg-destructive/10 rounded-xl"
+              >
+                {isLoading ? 'Processing...' : 'Exit Tournament'}
               </Button>
             )
+          ) : canSwipeJoin ? (
+            <Button 
+              onClick={onJoinClick} 
+              disabled={isLoading} 
+              className="flex-1 h-10 text-sm rounded-xl bg-gradient-to-r from-success to-gaming-green hover:opacity-90 shadow-glow-success"
+            >
+              {isLoading ? 'Processing...' : 'Join Now'}
+            </Button>
+          ) : joinDisabled ? (
+            <div className="flex-1 h-10 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-center text-destructive text-xs font-medium">
+              {joinDisabledReason || 'Registration Closed'}
+            </div>
           ) : (
-            canSwipeJoin ? (
-              <Button onClick={onJoinClick} disabled={isLoading} variant="default" size="sm" className="flex-1 h-7 text-xs bg-emerald-600 hover:bg-emerald-700">
-                {isLoading ? 'Processing...' : 'Join Now'}
-              </Button>
-            ) : joinDisabled ? (
-              <div className="flex-1 h-7 rounded bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-600 text-[10px]">
-                {joinDisabledReason || 'Registration Closed'}
-              </div>
-            ) : (
-              <div className="flex-1 h-7 rounded bg-muted/50 flex items-center justify-center text-muted-foreground text-[10px]">
-                {spotsLeft <= 0 ? 'Full' : 'Not Available'}
-              </div>
-            )
+            <div className="flex-1 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground text-xs font-medium">
+              {spotsLeft <= 0 ? 'Tournament Full' : 'Not Available'}
+            </div>
           )}
           
-          <Button variant="outline" size="sm" onClick={onRulesClick} className="h-7 px-2 text-[10px] gap-1">
-            <ScrollText className="h-3 w-3" />
-            Rules
+          <Button 
+            variant="outline" 
+            onClick={onRulesClick} 
+            className="h-10 px-3 rounded-xl gap-1.5"
+          >
+            <ScrollText className="h-4 w-4" />
+            <span className="hidden sm:inline">Rules</span>
           </Button>
           
-          <Button variant="outline" size="sm" onClick={onPrizeClick} className="h-7 px-2 text-[10px] gap-1">
-            <Trophy className="h-3 w-3" />
-            Prizes
+          <Button 
+            variant="outline" 
+            onClick={onPrizeClick} 
+            className="h-10 px-3 rounded-xl gap-1.5"
+          >
+            <Trophy className="h-4 w-4" />
+            <span className="hidden sm:inline">Prizes</span>
           </Button>
           
           <Button 
             variant="outline"
-            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -327,21 +381,23 @@ const TournamentCard = ({
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className="h-7 w-7 p-0 touch-manipulation"
+            className="h-10 w-10 p-0 rounded-xl touch-manipulation"
           >
-            <Share2 className="h-3 w-3" />
+            <Share2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
       
-      {/* Swipe indicator below card */}
+      {/* Swipe indicator */}
       {canSwipeJoin && (
-        <div className="flex items-center justify-center gap-2 mt-2 text-emerald-600">
-          <ChevronLeft className="h-4 w-4 animate-pulse" />
+        <div className="flex items-center justify-center gap-2 mt-2 text-success/80">
+          <ChevronLeft className="h-4 w-4 animate-bounce-soft" />
           <span className="text-xs font-medium">Swipe to join</span>
-          <ChevronLeft className="h-4 w-4 animate-pulse" />
+          <ChevronLeft className="h-4 w-4 animate-bounce-soft" />
         </div>
       )}
-    </div>;
+    </div>
+  );
 };
+
 export default TournamentCard;
