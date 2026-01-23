@@ -410,61 +410,61 @@ const JoinLocalTournamentPage = () => {
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-lg font-bold">Join Local Tournament</h1>
-            <p className="text-xs text-muted-foreground">Private school/college event</p>
+            <h1 className="text-sm font-bold">Join Local Tournament</h1>
+            <p className="text-[10px] text-muted-foreground">Private school/college event</p>
           </div>
         </div>
       </header>
 
-      <div className="p-4 space-y-4">
+      <div className="p-3 space-y-3">
         {!code && (
           <Card>
-            <CardContent className="p-6 text-center">
-              <p className="text-muted-foreground">Scan a tournament QR code to join</p>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">Scan a tournament QR code to join</p>
             </CardContent>
           </Card>
         )}
 
         {tournament && (
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle>{tournament.tournament_name}</CardTitle>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                  <CardTitle className="text-sm">{tournament.tournament_name}</CardTitle>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                     <Building2 className="h-3 w-3" />
                     {tournament.institution_name}
                   </p>
                 </div>
                 <div className="flex gap-1">
                   <Badge variant={tournament.status === 'ongoing' ? 'default' : 'outline'}
-                    className={tournament.status === 'ongoing' ? 'bg-green-500' : ''}>
+                    className={`text-[10px] ${tournament.status === 'ongoing' ? 'bg-green-500' : ''}`}>
                     {tournament.status}
                   </Badge>
                   {tournament.tournament_mode && tournament.tournament_mode !== 'solo' && (
-                    <Badge variant="outline" className="capitalize">
+                    <Badge variant="outline" className="capitalize text-[10px]">
                       {tournament.tournament_mode}
                     </Badge>
                   )}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 pt-0">
               {tournament.status === 'upcoming' && (
                 <LocalTournamentCountdown targetDate={new Date(tournament.tournament_date)} />
               )}
 
               {/* Team Mode Info */}
               {tournament.tournament_mode && tournament.tournament_mode !== 'solo' && (
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <UserPlus className="h-4 w-4 text-blue-500" />
-                    <span className="font-semibold text-sm text-blue-600">Team Mode: {tournament.tournament_mode}</span>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <UserPlus className="h-3 w-3 text-blue-500" />
+                    <span className="font-semibold text-xs text-blue-600">Team Mode: {tournament.tournament_mode}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground">
                     {tournament.tournament_mode === 'duo' 
                       ? 'You need 1 teammate from your player team to join.' 
                       : 'You need 3 teammates from your player team to join.'}
@@ -473,52 +473,52 @@ const JoinLocalTournamentPage = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <Gamepad2 className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{tournament.game}</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Gamepad2 className="h-3 w-3 text-primary" />
+                  <span className="text-xs">{tournament.game}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{tournament.tournament_mode}</span>
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3 w-3 text-primary" />
+                  <span className="text-xs">{tournament.tournament_mode}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{format(new Date(tournament.tournament_date), 'dd MMM, hh:mm a')}</span>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3 w-3 text-primary" />
+                  <span className="text-xs">{format(new Date(tournament.tournament_date), 'dd MMM, hh:mm a')}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">₹{tournament.current_prize_pool} Prize</span>
+                <div className="flex items-center gap-1.5">
+                  <Trophy className="h-3 w-3 text-green-600" />
+                  <span className="text-xs">₹{tournament.current_prize_pool} Prize</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
-                <span className="text-sm text-muted-foreground">Entry Fee</span>
-                <span className="font-bold text-lg">₹{tournament.entry_fee}</span>
+              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+                <span className="text-xs text-muted-foreground">Entry Fee</span>
+                <span className="font-bold text-sm">₹{tournament.entry_fee}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Players</span>
-                <span className="font-medium">{tournament.joined_users?.length || 0} / {tournament.max_participants}</span>
+                <span className="text-xs text-muted-foreground">Players</span>
+                <span className="font-medium text-xs">{tournament.joined_users?.length || 0} / {tournament.max_participants}</span>
               </div>
 
               {hasJoined && tournament.status === 'ongoing' && (tournament.room_id || tournament.room_password) && (
                 <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-4 space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <Key className="h-4 w-4 text-primary" />
+                  <CardContent className="p-3 space-y-1.5">
+                    <h4 className="font-semibold text-xs flex items-center gap-1.5">
+                      <Key className="h-3 w-3 text-primary" />
                       Room Details
                     </h4>
                     {tournament.room_id && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Room ID:</span>
-                        <span className="font-mono font-bold">{tournament.room_id}</span>
+                        <span className="text-[10px] text-muted-foreground">Room ID:</span>
+                        <span className="font-mono font-bold text-xs">{tournament.room_id}</span>
                       </div>
                     )}
                     {tournament.room_password && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Password:</span>
-                        <span className="font-mono font-bold">{tournament.room_password}</span>
+                        <span className="text-[10px] text-muted-foreground">Password:</span>
+                        <span className="font-mono font-bold text-xs">{tournament.room_password}</span>
                       </div>
                     )}
                   </CardContent>
@@ -526,32 +526,32 @@ const JoinLocalTournamentPage = () => {
               )}
 
               {hasJoined ? (
-                <div className="flex items-center justify-center gap-2 text-green-600 bg-green-500/10 rounded-lg p-3">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">You've Joined This Tournament</span>
+                <div className="flex items-center justify-center gap-1.5 text-green-600 bg-green-500/10 rounded-lg p-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="font-medium text-xs">You've Joined This Tournament</span>
                 </div>
               ) : tournament.status === 'upcoming' ? (
                 <>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Your Wallet Balance</span>
                     <span className={walletBalance < tournament.entry_fee ? 'text-destructive' : 'text-green-600'}>
                       ₹{walletBalance}
                     </span>
                   </div>
-                  <Button onClick={handleJoinClick} disabled={joining || walletBalance < tournament.entry_fee || !user} className="w-full">
-                    {joining ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Gamepad2 className="h-4 w-4 mr-2" />}
+                  <Button onClick={handleJoinClick} disabled={joining || walletBalance < tournament.entry_fee || !user} className="w-full text-xs h-9">
+                    {joining ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Gamepad2 className="h-3 w-3 mr-1.5" />}
                     {!user ? 'Login to Join' : walletBalance < tournament.entry_fee ? 'Insufficient Balance' : `Join Tournament (₹${tournament.entry_fee}${tournament.tournament_mode !== 'solo' ? ' per player' : ''})`}
                   </Button>
                   {walletBalance < tournament.entry_fee && user && (
-                    <Button variant="outline" className="w-full" onClick={() => navigate('/wallet')}>
+                    <Button variant="outline" className="w-full text-xs h-9" onClick={() => navigate('/wallet')}>
                       Add Money to Wallet
                     </Button>
                   )}
                 </>
               ) : (
-                <div className="flex items-center justify-center gap-2 text-muted-foreground bg-muted rounded-lg p-3">
-                  <Lock className="h-5 w-5" />
-                  <span>Registration Closed</span>
+                <div className="flex items-center justify-center gap-1.5 text-muted-foreground bg-muted rounded-lg p-2">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-xs">Registration Closed</span>
                 </div>
               )}
             </CardContent>
@@ -560,9 +560,9 @@ const JoinLocalTournamentPage = () => {
 
         {!user && (
           <Card>
-            <CardContent className="p-6 text-center">
-              <p className="text-muted-foreground mb-4">Please login to join tournaments</p>
-              <Button onClick={() => navigate('/auth')}>Login</Button>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-3">Please login to join tournaments</p>
+              <Button size="sm" className="text-xs" onClick={() => navigate('/auth')}>Login</Button>
             </CardContent>
           </Card>
         )}
