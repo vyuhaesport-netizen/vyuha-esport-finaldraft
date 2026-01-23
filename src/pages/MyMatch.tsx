@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import CountdownTimer from '@/components/CountdownTimer';
+import SchoolTournamentPlayerCard from '@/components/SchoolTournamentPlayerCard';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1343,9 +1344,14 @@ const MyMatch = () => {
                 <p className="text-muted-foreground text-xs mt-1">Scan a tournament QR code to join</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {schoolTournaments.map((st) => (
-                  <SchoolTournamentCard key={st.team.id} tournament={st.tournament} team={st.team} />
+                  <SchoolTournamentPlayerCard 
+                    key={st.team.id} 
+                    tournament={st.tournament} 
+                    team={st.team} 
+                    userId={user?.id || ''} 
+                  />
                 ))}
                 {localTournaments.map((lt) => (
                   <LocalTournamentCard key={lt.id} tournament={lt} />

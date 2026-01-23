@@ -16,24 +16,40 @@ const BottomNav = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-area-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
-        {navItems.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-              isActive(item.path)
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <item.icon className={`h-5 w-5 ${isActive(item.path) ? 'stroke-[2.5px]' : ''}`} />
-            <span className={`text-[10px] mt-1 ${isActive(item.path) ? 'font-semibold' : ''}`}>
-              {item.label}
-            </span>
-          </button>
-        ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+      <div className="max-w-lg mx-auto">
+        <div className="mx-2 mb-2 rounded-2xl glass-card border border-border/30 shadow-xl">
+          <div className="flex items-center justify-around h-16">
+            {navItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${
+                    active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-primary shadow-glow-primary" />
+                  )}
+                  <item.icon 
+                    className={`h-5 w-5 transition-all duration-300 ${
+                      active ? 'stroke-[2.5px] scale-110' : ''
+                    }`} 
+                  />
+                  <span 
+                    className={`text-[10px] mt-1 transition-all duration-300 ${
+                      active ? 'font-semibold' : ''
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </nav>
   );
