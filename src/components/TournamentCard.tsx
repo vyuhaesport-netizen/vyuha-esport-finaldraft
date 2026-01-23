@@ -178,7 +178,7 @@ const TournamentCard = ({
           transform: `translateX(${swipeX}px)`,
           transition: isSwiping ? 'none' : 'transform 0.3s ease-out'
         }} 
-        className="bg-card border border-border rounded-xl p-3 shadow-lg shadow-black/25 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 transition-all duration-300"
+        className="bg-card border border-border/60 rounded-xl p-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       >
         {/* Swipe indicator */}
         {canSwipeJoin && (

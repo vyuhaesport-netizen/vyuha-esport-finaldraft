@@ -391,17 +391,16 @@ const HomePage = () => {
       <PushNotificationPrompt />
       <AppLayout>
       {/* Header */}
-      <div className="bg-card border-b border-border px-4 py-3">
+      <div className="bg-card border-b border-border/50 px-4 py-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <BrandLogo className="h-12 w-12" alt="Vyuha" />
+            <BrandLogo className="h-10 w-10" alt="Vyuha" />
           </div>
           <div className="flex items-center gap-1">
             <TournamentScanner />
             <NotificationBell />
           </div>
         </div>
-        
       </div>
 
       {/* Guest Login Banner */}
@@ -463,13 +462,13 @@ const HomePage = () => {
       )}
 
       {/* Mode Filter - Solo/Duo/Squad */}
-      <div className="px-4 py-3">
-        <div className="bg-muted rounded-lg p-1 flex">
+      <div className="px-4 py-2.5">
+        <div className="bg-muted/60 rounded-lg p-0.5 flex">
           {(['solo', 'duo', 'squad'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setActiveMode(mode)}
-              className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors capitalize ${
+              className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${
                 activeMode === mode 
                   ? 'bg-primary text-primary-foreground shadow-sm' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -484,9 +483,9 @@ const HomePage = () => {
 
       {/* Tournaments Section */}
       <div className="px-4 pb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Live Tournaments</h2>
-          <span className="text-xs text-muted-foreground">{getFilteredTournaments().length} matches</span>
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="font-medium text-sm">Live Tournaments</h2>
+          <span className="text-[10px] text-muted-foreground">{getFilteredTournaments().length} matches</span>
         </div>
 
         {loading ? (
@@ -494,10 +493,10 @@ const HomePage = () => {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : getFilteredTournaments().length === 0 ? (
-          <div className="bg-card rounded-xl border border-border p-6 text-center">
-            <Trophy className="h-10 w-10 mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground text-sm">No tournaments available</p>
-            <p className="text-xs text-muted-foreground mt-1">
+          <div className="bg-card rounded-xl border border-border/60 p-5 text-center">
+            <Trophy className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-muted-foreground text-xs">No tournaments available</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
               {userProfile?.preferred_game 
                 ? `No ${userProfile.preferred_game} ${activeMode} matches found`
                 : 'Check back soon for exciting matches!'}
