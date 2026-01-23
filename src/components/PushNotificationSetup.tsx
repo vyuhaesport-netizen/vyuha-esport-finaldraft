@@ -27,9 +27,13 @@ export const PushNotificationSetup: React.FC<PushNotificationSetupProps> = ({ va
     const setup = async () => {
       await initOneSignal();
       
-      // Update permission status
-      const status = getPushPermissionStatus();
-      setPermissionStatus(status);
+      // Update permission status from native API
+      if ('Notification' in window) {
+        setPermissionStatus(Notification.permission as 'default' | 'granted' | 'denied');
+      } else {
+        const status = getPushPermissionStatus();
+        setPermissionStatus(status);
+      }
       
       // If user is logged in, link them to OneSignal
       if (user) {
@@ -57,22 +61,45 @@ export const PushNotificationSetup: React.FC<PushNotificationSetupProps> = ({ va
     setIsLoading(true);
     
     try {
+      // First try native browser permission (this shows the actual prompt)
+      if ('Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          // Now also opt-in to OneSignal if available
+          await requestPushPermission();
+          setPermissionStatus('granted');
+          toast.success('🎉 Notifications enabled!', {
+            description: 'You will now receive important updates.',
+          });
+          return;
+        } else if (permission === 'denied') {
+          setPermissionStatus('denied');
+          toast.error('Notifications blocked', {
+            description: 'Please enable in browser settings.',
+          });
+          return;
+        }
+      }
+      
+      // Fallback to OneSignal method
       const granted = await requestPushPermission();
       
       if (granted) {
         setPermissionStatus('granted');
-        toast.success('Push notifications enabled!', {
+        toast.success('🎉 Notifications enabled!', {
           description: 'You will now receive important updates.',
         });
       } else {
         setPermissionStatus(getPushPermissionStatus());
-        toast.info('Push notifications not enabled', {
-          description: 'You can enable them later in your browser settings.',
-        });
+        if (Notification.permission === 'denied') {
+          toast.error('Notifications blocked', {
+            description: 'Please enable in browser settings.',
+          });
+        }
       }
     } catch (error) {
       console.error('Error enabling push:', error);
-      toast.error('Failed to enable push notifications');
+      toast.error('Failed to enable notifications');
     } finally {
       setIsLoading(false);
     }
