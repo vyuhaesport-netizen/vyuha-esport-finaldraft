@@ -373,18 +373,18 @@ const ProfilePage = () => {
   }
   return <AppLayout>
       {/* Profile Header */}
-      <div className="bg-card px-4 pt-6 pb-4">
+      <div className="bg-card px-4 pt-4 pb-3">
         {/* Username above avatar - left aligned */}
-        <h1 className="font-bold text-xl text-foreground mb-3 pl-1">
+        <h1 className="font-bold text-lg text-foreground mb-2 pl-1">
           @{profile?.username || 'username'}
         </h1>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {/* Avatar on left */}
           <div className="shrink-0">
-            <Avatar className="h-20 w-20 border-2 border-primary/20">
+            <Avatar className="h-16 w-16 border-2 border-primary/20">
               <AvatarImage src={profile?.avatar_url || ''} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
+              <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
                 {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -392,82 +392,82 @@ const ProfilePage = () => {
 
           {/* Details on right */}
           <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <p className="font-semibold text-base text-foreground">
+            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+              <p className="font-medium text-sm text-foreground">
                 {profile?.full_name || 'Gamer'}
               </p>
-              {isSuperAdmin && <Badge className="bg-gradient-to-r from-primary to-orange-500 text-primary-foreground text-[10px]">
-                  <Crown className="h-2.5 w-2.5 mr-0.5" /> Owner
+              {isSuperAdmin && <Badge className="bg-gradient-to-r from-primary to-orange-500 text-primary-foreground text-[9px]">
+                  <Crown className="h-2 w-2 mr-0.5" /> Owner
                 </Badge>}
-              {isAdmin && !isSuperAdmin && <Badge className="bg-primary/10 text-primary text-[10px]">
-                  <Shield className="h-2.5 w-2.5 mr-0.5" /> Team
+              {isAdmin && !isSuperAdmin && <Badge className="bg-primary/10 text-primary text-[9px]">
+                  <Shield className="h-2 w-2 mr-0.5" /> Team
                 </Badge>}
-              {isOrganizer && <Badge className="bg-purple-500/10 text-purple-600 text-[10px]">
-                  <UserCheck className="h-2.5 w-2.5 mr-0.5" /> Organizer
+              {isOrganizer && <Badge className="bg-purple-500/10 text-purple-600 text-[9px]">
+                  <UserCheck className="h-2 w-2 mr-0.5" /> Organizer
                 </Badge>}
             </div>
-            {profile?.in_game_name && <p className="text-sm text-foreground">
-                <Gamepad2 className="h-3.5 w-3.5 inline mr-1 text-primary" />
+            {profile?.in_game_name && <p className="text-xs text-foreground">
+                <Gamepad2 className="h-3 w-3 inline mr-1 text-primary" />
                 {profile.in_game_name}
               </p>}
-            {profile?.game_uid && <p className="text-xs text-muted-foreground mt-0.5">
-                <Hash className="h-3 w-3 inline mr-1" />
+            {profile?.game_uid && <p className="text-[10px] text-muted-foreground mt-0.5">
+                <Hash className="h-2.5 w-2.5 inline mr-0.5" />
                 UID: {profile.game_uid}
               </p>}
           </div>
         </div>
 
-        <button onClick={() => setEditDialogOpen(true)} className="w-full mt-4 py-2.5 bg-primary hover:bg-primary/90 text-sm font-semibold rounded-lg border border-primary/50 transition-colors text-primary-foreground shadow-md">
+        <button onClick={() => setEditDialogOpen(true)} className="w-full mt-3 py-2 bg-primary hover:bg-primary/90 text-xs font-medium rounded-lg border border-primary/50 transition-colors text-primary-foreground shadow-sm">
           Edit Profile
         </button>
       </div>
 
-      <div className="h-2 bg-muted/50" />
+      <div className="h-1.5 bg-muted/40" />
 
       {/* Account Section */}
-      <div className="px-4 pt-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Account</h3>
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden divide-y divide-border">
+      <div className="px-4 pt-3">
+        <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Account</h3>
+        <div className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden divide-y divide-border/50">
           
           {/* Admin Panel - Only for Admins */}
-          {isAdmin && <button onClick={() => navigate('/admin')} className="w-full bg-gradient-to-r from-primary/5 to-orange-500/5 hover:from-primary/10 hover:to-orange-500/10 p-4 flex items-center gap-3 transition-colors">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-white" />
+          {isAdmin && <button onClick={() => navigate('/admin')} className="w-full bg-gradient-to-r from-primary/5 to-orange-500/5 hover:from-primary/10 hover:to-orange-500/10 p-3 flex items-center gap-2.5 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-sm">Admin Panel</p>
-                  {isSuperAdmin ? <Badge className="bg-gradient-to-r from-primary to-orange-500 text-white text-[9px] px-1.5 py-0">Super Admin</Badge> : <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Team Member</Badge>}
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium text-xs">Admin Panel</p>
+                  {isSuperAdmin ? <Badge className="bg-gradient-to-r from-primary to-orange-500 text-white text-[8px] px-1 py-0">Super Admin</Badge> : <Badge variant="secondary" className="text-[8px] px-1 py-0">Team Member</Badge>}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                   {isSuperAdmin ? 'Full access to all admin features' : 'Access your assigned admin sections'}
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 text-primary" />
+              <ChevronRight className="h-4 w-4 text-primary" />
             </button>}
 
           {/* Organizer Dashboard - Only for Organizers */}
-          {isOrganizer && <button onClick={() => navigate('/organizer')} className="w-full bg-gradient-to-r from-purple-500/5 to-pink-500/5 hover:from-purple-500/10 hover:to-pink-500/10 p-4 flex items-center gap-3 transition-colors">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-white" />
+          {isOrganizer && <button onClick={() => navigate('/organizer')} className="w-full bg-gradient-to-r from-purple-500/5 to-pink-500/5 hover:from-purple-500/10 hover:to-pink-500/10 p-3 flex items-center gap-2.5 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <Trophy className="h-4 w-4 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <p className="font-semibold text-sm">Organizer Dashboard</p>
-                <p className="text-xs text-muted-foreground">Manage your tournaments & earnings</p>
+                <p className="font-medium text-xs">Organizer Dashboard</p>
+                <p className="text-[10px] text-muted-foreground">Manage your tournaments & earnings</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-purple-500" />
+              <ChevronRight className="h-4 w-4 text-purple-500" />
             </button>}
 
           {/* Creator Dashboard - Only for Creators */}
-          {isCreator && <button onClick={() => navigate('/creator')} className="w-full bg-gradient-to-r from-blue-500/5 to-cyan-500/5 hover:from-blue-500/10 hover:to-cyan-500/10 p-4 flex items-center gap-3 transition-colors">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Gamepad2 className="h-5 w-5 text-white" />
+          {isCreator && <button onClick={() => navigate('/creator')} className="w-full bg-gradient-to-r from-blue-500/5 to-cyan-500/5 hover:from-blue-500/10 hover:to-cyan-500/10 p-3 flex items-center gap-2.5 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Gamepad2 className="h-4 w-4 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <p className="font-semibold text-sm">Creator Dashboard</p>
-                <p className="text-xs text-muted-foreground">Manage your creator tournaments</p>
+                <p className="font-medium text-xs">Creator Dashboard</p>
+                <p className="text-[10px] text-muted-foreground">Manage your creator tournaments</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-blue-500" />
+              <ChevronRight className="h-4 w-4 text-blue-500" />
             </button>}
 
           {/* Local Tournament - Available for all users */}

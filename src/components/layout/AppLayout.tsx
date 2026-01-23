@@ -18,8 +18,8 @@ const AppLayout = ({ children, title, showBack = false, hideBottomNav = false }:
     <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto relative">
       {/* Subtle background pattern */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gaming-cyan/5 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-60 h-60 bg-primary/3 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-60 h-60 bg-gaming-cyan/3 rounded-full blur-3xl" />
       </div>
       
       {(title || showBack) && (

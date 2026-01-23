@@ -252,25 +252,25 @@ const Leaderboard = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="font-semibold text-sm truncate">{team.team_name}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <p className="font-medium text-xs truncate">{team.team_name}</p>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                       <span className="flex items-center gap-0.5">
-                        <Users className="h-3 w-3" />
+                        <Users className="h-2.5 w-2.5" />
                         {team.member_count}
                       </span>
                       {team.game && (
-                        <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-5">
+                        <Badge variant="secondary" className="text-[9px] py-0 px-1 h-4">
                           {team.game}
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <div className="text-right">
-                      <div className="flex items-center gap-1">
-                        <Target className="h-3.5 w-3.5 text-primary" />
-                        <span className="font-bold text-sm text-primary">{team.total_points}</span>
-                        <span className="text-xs text-muted-foreground">pts</span>
+                      <div className="flex items-center gap-0.5">
+                        <Target className="h-3 w-3 text-primary" />
+                        <span className="font-bold text-xs text-primary">{team.total_points}</span>
+                        <span className="text-[9px] text-muted-foreground">pts</span>
                       </div>
                     </div>
                     {expandedTeams.has(team.team_id) ? (
@@ -351,21 +351,21 @@ const Leaderboard = () => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">
+              <p className="font-medium text-xs truncate">
                 {user.full_name || user.username || 'Anonymous'}
               </p>
               {user.preferred_game && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Gamepad2 className="h-3 w-3" />
+                <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                  <Gamepad2 className="h-2.5 w-2.5" />
                   {user.preferred_game}
                 </p>
               )}
             </div>
             <div className="text-right">
-              <div className="flex items-center gap-1">
-                <Target className="h-3.5 w-3.5 text-primary" />
-                <span className="font-bold text-sm text-primary">{user.stats_points}</span>
-                <span className="text-xs text-muted-foreground">pts</span>
+              <div className="flex items-center gap-0.5">
+                <Target className="h-3 w-3 text-primary" />
+                <span className="font-bold text-xs text-primary">{user.stats_points}</span>
+                <span className="text-[9px] text-muted-foreground">pts</span>
               </div>
             </div>
           </div>
@@ -377,10 +377,10 @@ const Leaderboard = () => {
   return (
     <AppLayout title="Leaderboard" showBack>
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-primary/20 to-primary/5 p-6 text-center">
-        <img src={vyuhaLogo} alt="Vyuha" className="w-14 h-14 mx-auto mb-3 rounded-full object-cover" />
-        <h1 className="text-xl font-bold">Leaderboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Top performers on Vyuha Esport</p>
+      <div className="bg-gradient-to-br from-primary/15 to-primary/5 p-4 text-center">
+        <img src={vyuhaLogo} alt="Vyuha" className="w-12 h-12 mx-auto mb-2 rounded-full object-cover" />
+        <h1 className="text-lg font-bold">Leaderboard</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Top performers on Vyuha Esport</p>
       </div>
 
       {/* Tab Selector */}
