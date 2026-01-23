@@ -497,6 +497,199 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "start_next_round": {
+        // Manually trigger next round creation (after all rooms in current round are completed)
+        const { tournamentId, currentRound } = params;
+        
+        // Get tournament details
+        const { data: tournament, error: tournamentError } = await supabase
+          .from("school_tournaments")
+          .select("*")
+          .eq("id", tournamentId)
+          .single();
+        
+        if (tournamentError || !tournament) {
+          throw new Error("Tournament not found");
+        }
+        
+        const teamsPerRoom = tournament.game === "BGMI" ? 25 : 12;
+        const nextRound = (currentRound || tournament.current_round || 1) + 1;
+        
+        // Verify all rooms in current round are completed
+        const { data: incompleteRooms } = await supabase
+          .from("school_tournament_rooms")
+          .select("id")
+          .eq("tournament_id", tournamentId)
+          .eq("round_number", currentRound || tournament.current_round)
+          .neq("status", "completed");
+        
+        if (incompleteRooms && incompleteRooms.length > 0) {
+          throw new Error(`${incompleteRooms.length} rooms are not yet completed in current round`);
+        }
+        
+        // Get all teams that advanced to next round
+        const { data: advancedTeams } = await supabase
+          .from("school_tournament_teams")
+          .select("id")
+          .eq("tournament_id", tournamentId)
+          .eq("is_eliminated", false)
+          .eq("current_round", nextRound);
+        
+        const winnerCount = advancedTeams?.length || 0;
+        
+        if (winnerCount === 0) {
+          throw new Error("No teams advanced to next round");
+        }
+        
+        console.log(`Starting round ${nextRound} with ${winnerCount} teams`);
+        
+        // Delete old round rooms and assignments
+        const { data: oldRooms } = await supabase
+          .from("school_tournament_rooms")
+          .select("id")
+          .eq("tournament_id", tournamentId)
+          .eq("round_number", currentRound || tournament.current_round);
+        
+        if (oldRooms && oldRooms.length > 0) {
+          const oldRoomIds = oldRooms.map(r => r.id);
+          
+          // Delete assignments first (foreign key constraint)
+          await supabase
+            .from("school_tournament_room_assignments")
+            .delete()
+            .in("room_id", oldRoomIds);
+          
+          // Delete old rooms
+          await supabase
+            .from("school_tournament_rooms")
+            .delete()
+            .in("id", oldRoomIds);
+          
+          console.log(`Deleted ${oldRooms.length} rooms from round ${currentRound || tournament.current_round}`);
+        }
+        
+        let newRoomsCreated = 0;
+        let isFinalRound = false;
+        
+        // Check if this is the finale (<=teams_per_room teams remaining)
+        if (winnerCount <= teamsPerRoom) {
+          // This is the finale round
+          isFinalRound = true;
+          console.log("Finale round reached!");
+          
+          // Create single finale room
+          const { data: finaleRoom, error: finaleError } = await supabase
+            .from("school_tournament_rooms")
+            .insert({
+              tournament_id: tournamentId,
+              round_number: nextRound,
+              room_number: 1,
+              room_name: `Finale - Grand Final`,
+              status: "waiting"
+            })
+            .select()
+            .single();
+          
+          if (finaleError) {
+            throw new Error("Failed to create finale room: " + finaleError.message);
+          }
+          
+          // Assign all winners to finale room
+          if (advancedTeams && advancedTeams.length > 0) {
+            const finaleAssignments = advancedTeams.map((team, idx) => ({
+              room_id: finaleRoom.id,
+              team_id: team.id,
+              slot_number: idx + 1
+            }));
+            
+            await supabase
+              .from("school_tournament_room_assignments")
+              .insert(finaleAssignments);
+          }
+          
+          // Update tournament status to finale
+          await supabase
+            .from("school_tournaments")
+            .update({ 
+              status: "finale", 
+              current_round: nextRound,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", tournamentId);
+          
+          newRoomsCreated = 1;
+          
+        } else {
+          // More rounds needed - create next round rooms
+          console.log(`Creating round ${nextRound} with ${winnerCount} teams...`);
+          
+          // Distribute winners into new rooms
+          const winnerIds = advancedTeams?.map(t => t.id) || [];
+          const newRooms = distributeTeamsToRooms(winnerIds, teamsPerRoom);
+          
+          // Create new rooms
+          const roomInserts = newRooms.map(r => ({
+            tournament_id: tournamentId,
+            round_number: nextRound,
+            room_number: r.roomNumber,
+            room_name: `Round ${nextRound} - Room ${r.roomNumber}`,
+            status: "waiting"
+          }));
+          
+          const { data: createdRooms, error: roomsError } = await supabase
+            .from("school_tournament_rooms")
+            .insert(roomInserts)
+            .select();
+          
+          if (roomsError) {
+            throw new Error("Failed to create rooms: " + roomsError.message);
+          }
+          
+          // Create room assignments
+          const assignments: { room_id: string; team_id: string; slot_number: number }[] = [];
+          
+          for (let i = 0; i < newRooms.length; i++) {
+            const roomData = newRooms[i];
+            const createdRoom = createdRooms[i];
+            
+            roomData.teams.forEach((teamId, slotIndex) => {
+              assignments.push({
+                room_id: createdRoom.id,
+                team_id: teamId,
+                slot_number: slotIndex + 1
+              });
+            });
+          }
+          
+          await supabase
+            .from("school_tournament_room_assignments")
+            .insert(assignments);
+          
+          // Update tournament current round
+          await supabase
+            .from("school_tournaments")
+            .update({ 
+              current_round: nextRound,
+              status: `round_${nextRound}`,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", tournamentId);
+          
+          newRoomsCreated = createdRooms.length;
+          console.log(`Created ${newRoomsCreated} rooms for round ${nextRound}`);
+        }
+        
+        return new Response(JSON.stringify({ 
+          success: true,
+          newRoomsCreated,
+          isFinalRound,
+          nextRound,
+          teamsAdvanced: winnerCount
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
       case "declare_final_winners": {
         // Declare top 3 winners for the tournament
         const { tournamentId, firstPlaceTeamId, secondPlaceTeamId, thirdPlaceTeamId } = params;
