@@ -271,7 +271,7 @@ const MyMatch = () => {
 
             {tournament.status === 'upcoming' && (
               <div className="mt-1.5 p-1.5 bg-primary/10 rounded">
-                <CountdownTimer targetDate={new Date(tournament.tournament_date)} label="Starts:" className="text-primary text-[10px]" />
+                <CountdownTimer targetDate={tournament.tournament_date} label="Starts:" className="text-primary text-[10px]" />
               </div>
             )}
 
@@ -525,7 +525,7 @@ const MyMatch = () => {
 
             {registration.tournaments.status === 'upcoming' && (
               <div className="mt-1.5 p-1.5 bg-primary/10 rounded">
-                <CountdownTimer targetDate={new Date(registration.tournaments.start_date)} label="Starts:" className="text-primary text-[10px]" />
+                <CountdownTimer targetDate={registration.tournaments.start_date} label="Starts:" className="text-primary text-[10px]" />
               </div>
             )}
 
