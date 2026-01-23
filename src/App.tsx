@@ -70,6 +70,7 @@ import AvatarSelection from "./pages/AvatarSelection";
 import NotFound from "./pages/NotFound";
 import PlayerStats from "./pages/PlayerStats";
 import ClaimBonus from "./pages/ClaimBonus";
+import Chat from "./pages/Chat";
 import AuthRequiredLock from "./components/AuthRequiredLock";
 import BanCheckWrapper from "./components/BanCheckWrapper";
 import { Loader2 } from "lucide-react";
@@ -239,6 +240,7 @@ const AppRoutes = () => {
       <Route path="/leaderboard" element={<SoftProtectedRoute lockTitle="Leaderboard" lockDescription="Login to view the leaderboard and rankings"><Leaderboard /></SoftProtectedRoute>} />
       <Route path="/player-stats" element={<SoftProtectedRoute lockTitle="Player Stats" lockDescription="Login to view your player stats and rankings"><PlayerStats /></SoftProtectedRoute>} />
       <Route path="/claim-bonus" element={<SoftProtectedRoute lockTitle="Claim Bonus" lockDescription="Login to claim your milestone bonuses"><ClaimBonus /></SoftProtectedRoute>} />
+      <Route path="/chat" element={<SoftProtectedRoute lockTitle="Chat" lockDescription="Login to chat with other players"><Chat /></SoftProtectedRoute>} />
       
       {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
