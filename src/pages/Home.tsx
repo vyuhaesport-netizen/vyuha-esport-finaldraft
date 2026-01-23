@@ -11,6 +11,7 @@ import TournamentCard from '@/components/TournamentCard';
 import TournamentScanner from '@/components/TournamentScanner';
 import TournamentShareDialog from '@/components/TournamentShareDialog';
 import SEOHead from '@/components/SEOHead';
+import PushNotificationPrompt from '@/components/PushNotificationPrompt';
 import { 
   Trophy, 
   Users, 
@@ -387,6 +388,7 @@ const HomePage = () => {
         description="Join Vyuha Esport - India's premier esports tournament platform. Compete in BGMI, Free Fire, COD Mobile tournaments and win real cash prizes!"
         url="https://vyuhaesport.in/home"
       />
+      <PushNotificationPrompt />
       <AppLayout>
       {/* Header */}
       <div className="bg-card border-b border-border px-4 py-3">

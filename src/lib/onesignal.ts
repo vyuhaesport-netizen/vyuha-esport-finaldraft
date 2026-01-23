@@ -39,6 +39,23 @@ interface OneSignalConfig {
   welcomeNotification?: {
     disable: boolean;
   };
+  promptOptions?: {
+    slidedown?: {
+      prompts?: Array<{
+        type: string;
+        autoPrompt: boolean;
+        text?: {
+          actionMessage?: string;
+          acceptButton?: string;
+          cancelButton?: string;
+        };
+        delay?: {
+          pageViews?: number;
+          timeDelay?: number;
+        };
+      }>;
+    };
+  };
 }
 
 interface NotificationEventData {
@@ -84,11 +101,30 @@ export const initOneSignal = async (): Promise<void> => {
         allowLocalhostAsSecureOrigin: true,
         serviceWorkerPath: '/OneSignalSDKWorker.js',
         notifyButton: {
-          enable: false, // We'll use custom UI
+          enable: false,
         },
         welcomeNotification: {
-          disable: true, // We'll handle welcome ourselves
+          disable: false,
         },
+        promptOptions: {
+          slidedown: {
+            prompts: [
+              {
+                type: "push",
+                autoPrompt: false,
+                text: {
+                  actionMessage: "Get instant tournament alerts, match updates & prize notifications!",
+                  acceptButton: "Allow",
+                  cancelButton: "Later"
+                },
+                delay: {
+                  pageViews: 1,
+                  timeDelay: 3
+                }
+              }
+            ]
+          }
+        }
       });
 
       isInitialized = true;
