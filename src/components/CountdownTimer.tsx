@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Clock } from 'lucide-react';
 
 interface CountdownTimerProps {
-  targetDate: Date;
+  targetDate: Date | string;
   label?: string;
   onComplete?: () => void;
   className?: string;
@@ -10,7 +10,7 @@ interface CountdownTimerProps {
   compact?: boolean;
 }
 
-const CountdownTimer = ({ 
+const CountdownTimer = memo(({ 
   targetDate, 
   label, 
   onComplete, 
@@ -18,19 +18,36 @@ const CountdownTimer = ({
   showIcon = true,
   compact = false
 }: CountdownTimerProps) => {
+  // Memoize target timestamp to prevent unnecessary effect triggers
+  const targetTimestamp = useMemo(() => {
+    if (typeof targetDate === 'string') {
+      return new Date(targetDate).getTime();
+    }
+    return targetDate.getTime();
+  }, [typeof targetDate === 'string' ? targetDate : targetDate.getTime()]);
+
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
     hours: number;
     minutes: number;
     seconds: number;
     total: number;
-  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
+  }>(() => {
+    const now = Date.now();
+    const difference = targetTimestamp - now;
+    if (difference <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
+    
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+    return { days, hours, minutes, seconds, total: difference };
+  });
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const now = new Date().getTime();
-      const target = targetDate.getTime();
-      const difference = target - now;
+      const now = Date.now();
+      const difference = targetTimestamp - now;
 
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
@@ -46,11 +63,9 @@ const CountdownTimer = ({
       setTimeLeft({ days, hours, minutes, seconds, total: difference });
     };
 
-    calculateTimeLeft();
     const timer = setInterval(calculateTimeLeft, 1000);
-
     return () => clearInterval(timer);
-  }, [targetDate, onComplete]);
+  }, [targetTimestamp, onComplete]);
 
   if (timeLeft.total <= 0) {
     return null;
@@ -82,6 +97,8 @@ const CountdownTimer = ({
       <span className="font-mono font-medium">{formatTime()}</span>
     </div>
   );
-};
+});
+
+CountdownTimer.displayName = 'CountdownTimer';
 
 export default CountdownTimer;
