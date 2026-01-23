@@ -102,6 +102,7 @@ const SchoolTournamentManage = () => {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomAssignments, setRoomAssignments] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState('overview');
   
   // Dialog states
@@ -128,7 +129,7 @@ const SchoolTournamentManage = () => {
 
   const fetchTournamentData = async () => {
     try {
-      const [tournamentRes, teamsRes, roomsRes] = await Promise.all([
+      const [tournamentRes, teamsRes, roomsRes, assignmentsRes] = await Promise.all([
         supabase.from('school_tournaments').select('*').eq('id', id).single(),
         supabase
           .from('school_tournament_teams')
@@ -140,7 +141,10 @@ const SchoolTournamentManage = () => {
           .select('*')
           .eq('tournament_id', id)
           .order('round_number', { ascending: true })
-          .order('room_number', { ascending: true })
+          .order('room_number', { ascending: true }),
+        supabase
+          .from('school_tournament_room_assignments')
+          .select('room_id, team_id')
       ]);
 
       if (tournamentRes.data) setTournament(tournamentRes.data);
@@ -159,6 +163,16 @@ const SchoolTournamentManage = () => {
           }
         });
         setTournamentStats({ roomsByRound: roomStats });
+      }
+      
+      // Build room -> team_ids mapping
+      if (assignmentsRes.data) {
+        const mapping: Record<string, string[]> = {};
+        assignmentsRes.data.forEach((a: any) => {
+          if (!mapping[a.room_id]) mapping[a.room_id] = [];
+          mapping[a.room_id].push(a.team_id);
+        });
+        setRoomAssignments(mapping);
       }
     } catch (error) {
       console.error('Error fetching tournament:', error);
@@ -228,6 +242,51 @@ const SchoolTournamentManage = () => {
       fetchTournamentData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to start round');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStartNextRound = async () => {
+    if (!tournament) return;
+    
+    setProcessing(true);
+    try {
+      const nextRound = (tournament.current_round || 1) + 1;
+      
+      // Call edge function to generate next round (it will delete old rooms + create new ones)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/school-tournament-engine`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+          },
+          body: JSON.stringify({
+            action: 'start_next_round',
+            tournamentId: id,
+            currentRound: tournament.current_round
+          })
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to start next round');
+      }
+      
+      if (result.isFinalRound) {
+        toast.success('🏆 Finale Room Created! Final battle begins!');
+      } else {
+        toast.success(`Round ${nextRound} started with ${result.newRoomsCreated} rooms!`);
+      }
+      
+      fetchTournamentData();
+    } catch (error: any) {
+      console.error('Start next round error:', error);
+      toast.error(error.message || 'Failed to start next round');
     } finally {
       setProcessing(false);
     }
@@ -498,16 +557,34 @@ const SchoolTournamentManage = () => {
                     <p className="text-xs">Current: {teams.length} teams</p>
                   </div>
                 ) : tournament.status !== 'completed' && tournament.status !== 'finale' ? (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Complete all rooms in current round to advance
-                    </p>
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span>Rooms Completed</span>
+                      <span className="text-sm text-muted-foreground">Rooms Completed</span>
                       <span className="font-bold">
                         {currentRoundRooms.filter(r => r.status === 'completed').length} / {currentRoundRooms.length}
                       </span>
                     </div>
+                    
+                    {/* Show Start Next Round button when all rooms are completed */}
+                    {currentRoundRooms.length > 0 && 
+                     currentRoundRooms.every(r => r.status === 'completed') ? (
+                      <Button 
+                        className="w-full" 
+                        onClick={() => handleStartNextRound()}
+                        disabled={processing}
+                      >
+                        {processing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="h-4 w-4 mr-2" />
+                        )}
+                        Start Round {(tournament.current_round || 1) + 1}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-center text-muted-foreground">
+                        Complete all rooms to start next round
+                      </p>
+                    )}
                   </div>
                 ) : tournament.status === 'finale' ? (
                   <div className="text-center py-4">
@@ -787,31 +864,38 @@ const SchoolTournamentManage = () => {
           <div className="py-4">
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
-                {teams
-                  .filter(t => !t.is_eliminated && t.current_round === selectedRoom?.round_number)
-                  .map((team) => (
-                    <button
-                      key={team.id}
-                      className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                        selectedWinnerTeam === team.id 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-muted hover:bg-muted'
-                      }`}
-                      onClick={() => setSelectedWinnerTeam(team.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {selectedWinnerTeam === team.id && (
-                          <Crown className="h-5 w-5 text-yellow-500" />
-                        )}
-                        <div>
-                          <p className="font-medium">{team.team_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {team.registration_method} registration
-                          </p>
+                {/* Filter teams by room assignments, not by current_round */}
+                {selectedRoom && roomAssignments[selectedRoom.id] ? (
+                  teams
+                    .filter(t => roomAssignments[selectedRoom.id]?.includes(t.id))
+                    .map((team) => (
+                      <button
+                        key={team.id}
+                        className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                          selectedWinnerTeam === team.id 
+                            ? 'border-primary bg-primary/10' 
+                            : 'border-muted hover:bg-muted'
+                        }`}
+                        onClick={() => setSelectedWinnerTeam(team.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          {selectedWinnerTeam === team.id && (
+                            <Crown className="h-5 w-5 text-yellow-500" />
+                          )}
+                          <div>
+                            <p className="font-medium">{team.team_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {team.registration_method} registration
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">
+                    No teams assigned to this room
+                  </p>
+                )}
               </div>
             </ScrollArea>
             <Button 
