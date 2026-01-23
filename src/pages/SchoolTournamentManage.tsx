@@ -686,15 +686,36 @@ const SchoolTournamentManage = () => {
                     )}
                   </div>
                 ) : tournament.status === 'finale' ? (
-                  <div className="text-center py-4">
-                    <Trophy className="h-8 w-8 mx-auto text-warning mb-2" />
-                    <p className="font-semibold">Grand Finale!</p>
-                    <p className="text-sm text-muted-foreground">{activeTeams.length} teams competing</p>
+                  <div className="space-y-3">
+                    <div className="text-center">
+                      <Trophy className="h-8 w-8 mx-auto text-warning mb-2" />
+                      <p className="font-semibold text-sm">Grand Finale!</p>
+                      <p className="text-xs text-muted-foreground">{activeTeams.length} teams competing</p>
+                    </div>
+                    
+                    {/* Finale Room Controls */}
+                    {currentRoundRooms.length === 0 ? (
+                      <Button 
+                        className="w-full" 
+                        onClick={() => handleStartRound(tournament.current_round)}
+                        disabled={processing}
+                      >
+                        {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                        Start Finale Room
+                      </Button>
+                    ) : (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Finale Room</span>
+                        <Badge variant={currentRoundRooms[0]?.status === 'completed' ? 'default' : 'secondary'}>
+                          {currentRoundRooms[0]?.status || 'waiting'}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-4">
                     <CheckCircle className="h-8 w-8 mx-auto text-success mb-2" />
-                    <p className="font-semibold">Tournament Completed!</p>
+                    <p className="font-semibold text-sm">Tournament Completed!</p>
                   </div>
                 )}
               </CardContent>
