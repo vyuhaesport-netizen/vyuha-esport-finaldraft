@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import AppLayout from '@/components/layout/AppLayout';
 import SEOHead from '@/components/SEOHead';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,7 +10,7 @@ import {
   ExternalLink, Mail, Phone, Code, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
+import abhishekImage from '@/assets/abhishek-shukla.jpg';
 const AboutUs = () => {
   const [socialLinks, setSocialLinks] = useState({
     discord: '',
@@ -41,11 +42,80 @@ const AboutUs = () => {
     fetchSocialLinks();
   }, []);
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://vyuhaesport.in/#organization",
+        "name": "Vyuha Esport",
+        "url": "https://vyuhaesport.in",
+        "logo": "https://vyuhaesport.in/favicon.png",
+        "description": "India's premier mobile-first esports tournament platform for BGMI, Free Fire, and COD Mobile.",
+        "foundingDate": "2025",
+        "founder": {
+          "@type": "Person",
+          "name": "Abhishek Shukla",
+          "jobTitle": "Founder & Creator",
+          "description": "18-year-old Engineering Student and Tech Genius who built Vyuha Esport from scratch",
+          "image": "https://vyuhaesport.in/abhishek-shukla.jpg",
+          "sameAs": [
+            "https://www.instagram.com/abhishek.shhh"
+          ]
+        },
+        "sameAs": [
+          "https://www.instagram.com/vyuhaesport"
+        ]
+      },
+      {
+        "@type": "Person",
+        "@id": "https://vyuhaesport.in/#abhishek-shukla",
+        "name": "Abhishek Shukla",
+        "alternateName": "abhishek.shhh",
+        "jobTitle": "Founder & Creator of Vyuha Esport",
+        "description": "18-year-old Engineering Student and Tech Genius who built India's leading esports platform Vyuha Esport from scratch in record time. Visionary entrepreneur revolutionizing Indian esports.",
+        "image": "https://vyuhaesport.in/abhishek-shukla.jpg",
+        "url": "https://vyuhaesport.in/about",
+        "sameAs": [
+          "https://www.instagram.com/abhishek.shhh?igsh=dmozNHE1dzl3dTN4"
+        ],
+        "worksFor": {
+          "@type": "Organization",
+          "name": "Vyuha Esport"
+        },
+        "knowsAbout": ["Esports", "Gaming", "BGMI", "Free Fire", "Technology", "Web Development"]
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://vyuhaesport.in/about",
+        "name": "About Vyuha Esport - India's #1 BGMI & Free Fire Tournament Platform",
+        "description": "Learn about Vyuha Esport founded by Abhishek Shukla. India's mobile-first competitive gaming platform for esports players.",
+        "url": "https://vyuhaesport.in/about",
+        "isPartOf": {
+          "@id": "https://vyuhaesport.in/#website"
+        },
+        "about": {
+          "@id": "https://vyuhaesport.in/#organization"
+        },
+        "mentions": {
+          "@id": "https://vyuhaesport.in/#abhishek-shukla"
+        }
+      }
+    ]
+  };
+
   return (
     <>
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      </Helmet>
       <SEOHead
-        title="About Us"
-        description="Learn about Vyuha Esport - India's mobile-first competitive gaming platform. Discover our mission, values, and commitment to the esports community."
+        title="About Us - Founded by Abhishek Shukla"
+        description="Learn about Vyuha Esport founded by Abhishek Shukla - 18-year-old tech genius & engineering student. India's mobile-first competitive gaming platform for esports players."
+        keywords="Abhishek Shukla, Vyuha Esport founder, Indian esports platform, BGMI tournament, Free Fire tournament, gaming platform India, esports entrepreneur"
         url="https://vyuhaesport.in/about"
       />
       <AppLayout title="About Us" showBack>
@@ -379,13 +449,13 @@ const AboutUs = () => {
           </div>
           <div className="p-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-purple-500/30 shadow-lg">
-                <AvatarImage src="/placeholder.svg" />
+              <Avatar className="h-20 w-20 border-2 border-purple-500/30 shadow-lg">
+                <AvatarImage src={abhishekImage} alt="Abhishek Shukla - Founder of Vyuha Esport" />
                 <AvatarFallback className="bg-gradient-to-br from-purple-500 to-primary text-white text-lg font-bold">AS</AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h3 className="font-bold text-base">Abhishek Shukla</h3>
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Founder & Creator of Vyuha Esport</p>
+                <h3 className="font-bold text-base" itemProp="name">Abhishek Shukla</h3>
+                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium" itemProp="jobTitle">Founder & Creator of Vyuha Esport</p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
                     🎓 Engineering Student
@@ -400,8 +470,8 @@ const AboutUs = () => {
               </div>
             </div>
             <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Built this entire platform <strong className="text-foreground">from scratch in record time</strong> with a vision to revolutionize Indian esports. Created specifically for <strong className="text-foreground">esport players</strong> who deserve a fair, transparent, and professional platform to compete.
+              <p className="text-xs text-muted-foreground leading-relaxed" itemProp="description">
+                Built this entire platform <strong className="text-foreground">from 0 to 100 in record time</strong> with a vision to revolutionize Indian esports. Created specifically for <strong className="text-foreground">esport players</strong> who deserve a fair, transparent, and professional platform to compete.
               </p>
             </div>
             <div className="mt-3 flex items-center justify-center">
@@ -409,6 +479,7 @@ const AboutUs = () => {
                 href="https://www.instagram.com/abhishek.shhh?igsh=dmozNHE1dzl3dTN4"
                 target="_blank"
                 rel="noopener noreferrer"
+                itemProp="sameAs"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 hover:from-pink-500/30 hover:to-purple-500/30 transition-colors"
               >
                 <Instagram className="h-4 w-4 text-pink-500" />
