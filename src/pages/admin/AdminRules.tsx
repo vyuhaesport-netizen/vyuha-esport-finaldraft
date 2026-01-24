@@ -199,22 +199,22 @@ const AdminRules = () => {
                 <Gamepad2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">Filter:</span>
               </div>
-              <Select value={filterGame} onValueChange={setFilterGame}>
+              <Select value={filterGame || "all"} onValueChange={(v) => setFilterGame(v === "all" ? "" : v)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All Games" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Games</SelectItem>
+                  <SelectItem value="all">All Games</SelectItem>
                   <SelectItem value="BGMI">🎮 BGMI</SelectItem>
                   <SelectItem value="Free Fire">🔥 Free Fire</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={filterMode} onValueChange={setFilterMode}>
+              <Select value={filterMode || "all"} onValueChange={(v) => setFilterMode(v === "all" ? "" : v)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All Modes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Modes</SelectItem>
+                  <SelectItem value="all">All Modes</SelectItem>
                   <SelectItem value="solo">Solo</SelectItem>
                   <SelectItem value="duo">Duo</SelectItem>
                   <SelectItem value="squad">Squad</SelectItem>
@@ -318,12 +318,12 @@ const AdminRules = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Game</Label>
-                <Select value={formData.game} onValueChange={(value) => setFormData({ ...formData, game: value })}>
+                <Select value={formData.game || "all"} onValueChange={(v) => setFormData({ ...formData, game: v === "all" ? "" : v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Games" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Games</SelectItem>
+                    <SelectItem value="all">All Games</SelectItem>
                     <SelectItem value="BGMI">🎮 BGMI</SelectItem>
                     <SelectItem value="Free Fire">🔥 Free Fire</SelectItem>
                   </SelectContent>
@@ -334,12 +334,12 @@ const AdminRules = () => {
               </div>
               <div>
                 <Label>Mode</Label>
-                <Select value={formData.mode} onValueChange={(value) => setFormData({ ...formData, mode: value })}>
+                <Select value={formData.mode || "all"} onValueChange={(v) => setFormData({ ...formData, mode: v === "all" ? "" : v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Modes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Modes</SelectItem>
+                    <SelectItem value="all">All Modes</SelectItem>
                     <SelectItem value="solo">Solo</SelectItem>
                     <SelectItem value="duo">Duo</SelectItem>
                     <SelectItem value="squad">Squad</SelectItem>
