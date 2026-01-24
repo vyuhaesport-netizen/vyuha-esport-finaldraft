@@ -40,6 +40,7 @@ import AdminApiPayment from "./pages/admin/AdminApiPayment";
 import AdminSEO from "./pages/admin/AdminSEO";
 import AdminZapupiMonitor from "./pages/admin/AdminZapupiMonitor";
 import AdminRules from "./pages/admin/AdminRules";
+import AdminCreatorInvites from "./pages/admin/AdminCreatorInvites";
 import AdminAI from "./pages/admin/AdminAI";
 import AdminAIBroadcast from "./pages/admin/AdminAIBroadcast";
 import AdminPushNotifications from "./pages/admin/AdminPushNotifications";
@@ -53,6 +54,8 @@ import CreatorHub from "./pages/creator/CreatorHub";
 import CreatorWallet from "./pages/creator/CreatorWallet";
 import CreatorReports from "./pages/creator/CreatorReports";
 import CreatorContact from "./pages/creator/CreatorContact";
+import CreatorRules from "./pages/creator/CreatorRules";
+import OrganizerRules from "./pages/organizer/OrganizerRules";
 import ChangePassword from "./pages/ChangePassword";
 import CompleteProfile from "./pages/CompleteProfile";
 import Terms from "./pages/Terms";
@@ -268,6 +271,7 @@ const AppRoutes = () => {
       <Route path="/admin/ai" element={<ProtectedRoute><AdminAI /></ProtectedRoute>} />
       <Route path="/admin/ai-broadcast" element={<ProtectedRoute><AdminAIBroadcast /></ProtectedRoute>} />
       <Route path="/admin/push-notifications" element={<ProtectedRoute><AdminPushNotifications /></ProtectedRoute>} />
+      <Route path="/admin/creator-invites" element={<ProtectedRoute><AdminCreatorInvites /></ProtectedRoute>} />
       
       {/* Organizer Routes */}
       <Route path="/organizer" element={<ProtectedRoute><OrganizerHub /></ProtectedRoute>} />
@@ -275,6 +279,7 @@ const AppRoutes = () => {
       <Route path="/organizer/wallet" element={<ProtectedRoute><OrganizerWallet /></ProtectedRoute>} />
       <Route path="/organizer/reports" element={<ProtectedRoute><OrganizerReports /></ProtectedRoute>} />
       <Route path="/organizer/contact" element={<ProtectedRoute><OrganizerContact /></ProtectedRoute>} />
+      <Route path="/organizer/rules" element={<ProtectedRoute><OrganizerRules /></ProtectedRoute>} />
       
       {/* Creator Routes */}
       <Route path="/creator" element={<ProtectedRoute><CreatorHub /></ProtectedRoute>} />
@@ -282,6 +287,7 @@ const AppRoutes = () => {
       <Route path="/creator/wallet" element={<ProtectedRoute><CreatorWallet /></ProtectedRoute>} />
       <Route path="/creator/reports" element={<ProtectedRoute><CreatorReports /></ProtectedRoute>} />
       <Route path="/creator/contact" element={<ProtectedRoute><CreatorContact /></ProtectedRoute>} />
+      <Route path="/creator/rules" element={<ProtectedRoute><CreatorRules /></ProtectedRoute>} />
       
       {/* Profile Completion */}
       <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />

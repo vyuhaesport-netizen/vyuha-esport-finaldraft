@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ScrollText, Plus, Trash2, Edit2, Eye } from 'lucide-react';
+import { Loader2, Save, ScrollText, Plus, Trash2, Edit2, Eye, Gamepad2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,15 +16,25 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface RuleItem {
   id: string;
   title: string;
   content: string;
   game: string;
+  mode: string;
 }
 
 const RULES_SETTING_KEY = 'tournament_rules_config';
+const GAMES = ['', 'BGMI', 'Free Fire'];
+const MODES = ['', 'solo', 'duo', 'squad'];
 
 const AdminRules = () => {
   const [rules, setRules] = useState<RuleItem[]>([]);
@@ -31,10 +42,13 @@ const AdminRules = () => {
   const [saving, setSaving] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; rule: RuleItem | null; index: number }>({ open: false, rule: null, index: -1 });
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; rule: RuleItem | null }>({ open: false, rule: null });
+  const [filterGame, setFilterGame] = useState<string>('');
+  const [filterMode, setFilterMode] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     game: '',
+    mode: '',
   });
   const { toast } = useToast();
 
@@ -104,7 +118,7 @@ const AdminRules = () => {
   };
 
   const handleOpenCreate = () => {
-    setFormData({ title: '', content: '', game: '' });
+    setFormData({ title: '', content: '', game: '', mode: '' });
     setEditDialog({ open: true, rule: null, index: -1 });
   };
 
@@ -113,6 +127,7 @@ const AdminRules = () => {
       title: rule.title,
       content: rule.content,
       game: rule.game || '',
+      mode: rule.mode || '',
     });
     setEditDialog({ open: true, rule, index });
   };
@@ -128,6 +143,7 @@ const AdminRules = () => {
       title: formData.title.trim(),
       content: formData.content.trim(),
       game: formData.game.trim(),
+      mode: formData.mode.trim(),
     };
 
     let updatedRules: RuleItem[];
@@ -147,14 +163,26 @@ const AdminRules = () => {
     await saveRules(updatedRules);
   };
 
+  const getFilteredRules = () => {
+    return rules.filter(rule => {
+      if (filterGame && rule.game && !rule.game.toLowerCase().includes(filterGame.toLowerCase())) {
+        return false;
+      }
+      if (filterMode && rule.mode && rule.mode.toLowerCase() !== filterMode.toLowerCase()) {
+        return false;
+      }
+      return true;
+    });
+  };
+
   return (
     <AdminLayout title="Tournament Rules">
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-lg font-semibold">Manage Rules</h2>
             <p className="text-sm text-muted-foreground">
-              Create and manage tournament rules that will be shown to players
+              Create game and mode-specific tournament rules
             </p>
           </div>
           <Button onClick={handleOpenCreate} className="gap-2" disabled={saving}>
@@ -163,15 +191,48 @@ const AdminRules = () => {
           </Button>
         </div>
 
+        {/* Filters */}
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Gamepad2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Filter:</span>
+              </div>
+              <Select value={filterGame} onValueChange={setFilterGame}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Games" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Games</SelectItem>
+                  <SelectItem value="BGMI">🎮 BGMI</SelectItem>
+                  <SelectItem value="Free Fire">🔥 Free Fire</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterMode} onValueChange={setFilterMode}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Modes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Modes</SelectItem>
+                  <SelectItem value="solo">Solo</SelectItem>
+                  <SelectItem value="duo">Duo</SelectItem>
+                  <SelectItem value="squad">Squad</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : rules.length === 0 ? (
+        ) : getFilteredRules().length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <ScrollText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">No rules created yet</p>
+              <p className="text-muted-foreground">No rules found</p>
               <Button onClick={handleOpenCreate} variant="outline" className="mt-4">
                 Create First Rule
               </Button>
@@ -179,18 +240,23 @@ const AdminRules = () => {
           </Card>
         ) : (
           <div className="space-y-3">
-            {rules.map((rule, index) => (
+            {getFilteredRules().map((rule, index) => (
               <Card key={rule.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-base flex items-center gap-2">
+                      <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                         <ScrollText className="h-4 w-4 text-primary" />
                         {rule.title}
                         {rule.game && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                            {rule.game}
-                          </span>
+                          <Badge variant="secondary" className="text-[9px]">
+                            {rule.game === 'BGMI' ? '🎮' : '🔥'} {rule.game}
+                          </Badge>
+                        )}
+                        {rule.mode && (
+                          <Badge variant="outline" className="text-[9px] capitalize">
+                            {rule.mode}
+                          </Badge>
                         )}
                       </CardTitle>
                     </div>
@@ -207,7 +273,7 @@ const AdminRules = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8"
-                        onClick={() => handleOpenEdit(rule, index)}
+                        onClick={() => handleOpenEdit(rule, rules.indexOf(rule))}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -215,7 +281,7 @@ const AdminRules = () => {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-destructive"
-                        onClick={() => handleDelete(index)}
+                        onClick={() => handleDelete(rules.indexOf(rule))}
                         disabled={saving}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -249,16 +315,40 @@ const AdminRules = () => {
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
             </div>
-            <div>
-              <Label>Game (Optional)</Label>
-              <Input
-                placeholder="e.g., Free Fire, BGMI (leave empty for all games)"
-                value={formData.game}
-                onChange={(e) => setFormData({ ...formData, game: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Leave empty to apply to all games
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Game</Label>
+                <Select value={formData.game} onValueChange={(value) => setFormData({ ...formData, game: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Games" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Games</SelectItem>
+                    <SelectItem value="BGMI">🎮 BGMI</SelectItem>
+                    <SelectItem value="Free Fire">🔥 Free Fire</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Leave empty for all games
+                </p>
+              </div>
+              <div>
+                <Label>Mode</Label>
+                <Select value={formData.mode} onValueChange={(value) => setFormData({ ...formData, mode: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Modes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Modes</SelectItem>
+                    <SelectItem value="solo">Solo</SelectItem>
+                    <SelectItem value="duo">Duo</SelectItem>
+                    <SelectItem value="squad">Squad</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Leave empty for all modes
+                </p>
+              </div>
             </div>
             <div>
               <Label>Rules Content *</Label>
@@ -293,9 +383,19 @@ Example:
       <Dialog open={previewDialog.open} onOpenChange={(open) => setPreviewDialog({ open, rule: previewDialog.rule })}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               <ScrollText className="h-5 w-5" />
               {previewDialog.rule?.title}
+              {previewDialog.rule?.game && (
+                <Badge variant="secondary" className="text-[9px]">
+                  {previewDialog.rule.game}
+                </Badge>
+              )}
+              {previewDialog.rule?.mode && (
+                <Badge variant="outline" className="text-[9px] capitalize">
+                  {previewDialog.rule.mode}
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
           <div className="whitespace-pre-wrap text-sm">
