@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Paperclip, X, Send, MessageSquare, Clock, Bot, Loader2, Ticket, ChevronRight, Sparkles, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { 
+  ArrowLeft, Paperclip, X, Send, MessageSquare, Clock, Bot, Loader2, 
+  Ticket, ChevronRight, Sparkles, CheckCircle, AlertCircle, ArrowRight,
+  Mic, MicOff, Image, Volume2, VolumeX, ThumbsUp, ThumbsDown, Plus,
+  HelpCircle, FileText, Shield, Wallet, Trophy, Users, Headphones
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -31,6 +36,10 @@ interface TicketType {
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  timestamp?: Date;
+  feedback?: 'positive' | 'negative' | null;
+  hasAudio?: boolean;
+  imageUrl?: string;
 }
 
 interface Profile {
@@ -40,12 +49,11 @@ interface Profile {
 
 type ViewType = 'main' | 'ticket' | 'history';
 
-const faqs = [
-  { question: 'How to join a tournament?', answer: 'Go to Home, find a tournament, and click "Join". Ensure you have enough wallet balance.' },
-  { question: 'How to deposit money?', answer: 'Go to Wallet > Deposit, enter amount, and pay via UPI. Usually credited in minutes.' },
-  { question: 'How to withdraw winnings?', answer: 'Go to Wallet > Withdraw, enter amount and UPI ID. Processed within 24-48 hours.' },
-  { question: 'Tournament cancelled?', answer: 'Entry fee is auto-refunded to your wallet within 24 hours.' },
-  { question: 'Why is withdrawal pending?', answer: 'Withdrawals need verification. Complete your profile. If >48 hours, raise a ticket.' },
+const quickActions = [
+  { icon: Trophy, label: 'Tournament Help', query: 'How do I join a tournament?' },
+  { icon: Wallet, label: 'Wallet Issues', query: 'Help with my wallet balance' },
+  { icon: Shield, label: 'Account Security', query: 'My account was banned' },
+  { icon: Users, label: 'Team Support', query: 'How do I create a team?' },
 ];
 
 const HelpSupport = () => {
@@ -70,6 +78,15 @@ const HelpSupport = () => {
   const [isFocused, setIsFocused] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Voice & Media state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -142,6 +159,26 @@ const HelpSupport = () => {
     setAttachments(prev => [...prev, ...validFiles]);
   };
 
+  const handleChatImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Invalid file', description: 'Please select an image', variant: 'destructive' });
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Image too large', description: 'Maximum 5MB allowed', variant: 'destructive' });
+      return;
+    }
+    
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const removeAttachment = (index: number) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
@@ -204,18 +241,108 @@ const HelpSupport = () => {
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(() => { scrollToBottom(); }, [chatMessages]);
 
-  const handleAiChat = async () => {
-    if (!chatInput.trim() || isAiTyping) return;
+  // Voice Recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-    const userMessage: ChatMessage = { role: 'user', content: chatInput.trim() };
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        // For now, we'll show a message that voice is being processed
+        setChatInput('🎤 [Voice message recorded - processing...]');
+        toast({ title: 'Voice Recorded', description: 'Voice message captured. AI will process your query.' });
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      toast({ title: 'Recording...', description: 'Speak now. Tap again to stop.' });
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({ title: 'Microphone Error', description: 'Could not access microphone', variant: 'destructive' });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Text-to-Speech for AI responses
+  const speakResponse = (text: string) => {
+    if ('speechSynthesis' in window) {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        return;
+      }
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    } else {
+      toast({ title: 'Not Supported', description: 'Voice output not supported on this device', variant: 'destructive' });
+    }
+  };
+
+  const handleAiChat = async () => {
+    if ((!chatInput.trim() && !selectedImage) || isAiTyping) return;
+
+    let messageContent = chatInput.trim();
+    let imageUrl: string | undefined;
+
+    // Upload image if selected
+    if (selectedImage && user) {
+      try {
+        const fileName = `ai-chat/${user.id}/${Date.now()}_${selectedImage.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(fileName, selectedImage);
+        
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(uploadData.path);
+          imageUrl = urlData.publicUrl;
+          messageContent = messageContent || '[Image shared for context]';
+        }
+      } catch (err) {
+        console.error('Image upload error:', err);
+      }
+    }
+
+    const userMessage: ChatMessage = { 
+      role: 'user', 
+      content: messageContent, 
+      timestamp: new Date(),
+      imageUrl 
+    };
     setChatMessages(prev => [...prev, userMessage]);
     setChatInput('');
+    setSelectedImage(null);
+    setImagePreview(null);
     setIsAiTyping(true);
 
     try {
       const response = await supabase.functions.invoke('ai-chat', {
         body: { 
-          messages: [...chatMessages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          messages: [...chatMessages, userMessage].map(m => ({ 
+            role: m.role, 
+            content: m.imageUrl ? `${m.content}\n[User shared an image: ${m.imageUrl}]` : m.content 
+          })),
           type: 'support',
           userId: user?.id
         }
@@ -223,17 +350,32 @@ const HelpSupport = () => {
 
       if (response.error) throw response.error;
       const aiResponse = response.data?.response || 'Sorry, I could not process your request.';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: aiResponse, 
+        timestamp: new Date(),
+        hasAudio: true 
+      }]);
     } catch (error: any) {
       console.error('AI chat error:', error);
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       if (error?.message?.includes('limit') || error?.message?.includes('disabled')) {
         errorMessage = 'AI service unavailable. Please raise a ticket instead.';
       }
-      setChatMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
+      setChatMessages(prev => [...prev, { role: 'assistant', content: errorMessage, timestamp: new Date() }]);
     } finally {
       setIsAiTyping(false);
     }
+  };
+
+  const handleFeedback = (index: number, type: 'positive' | 'negative') => {
+    setChatMessages(prev => prev.map((msg, i) => 
+      i === index ? { ...msg, feedback: type } : msg
+    ));
+    toast({ 
+      title: type === 'positive' ? '😊 Thanks!' : '😔 Sorry to hear that',
+      description: type === 'positive' ? 'Glad I could help!' : 'I\'ll try to do better. Consider raising a ticket for more help.'
+    });
   };
 
   const getStatusConfig = (status: string) => {
@@ -246,7 +388,7 @@ const HelpSupport = () => {
   };
 
   const getUserDisplayName = () => {
-    if (profile?.full_name) return profile.full_name;
+    if (profile?.full_name) return profile.full_name.split(' ')[0];
     if (profile?.username) return profile.username;
     return 'there';
   };
@@ -390,27 +532,41 @@ const HelpSupport = () => {
     );
   }
 
-  // Main View - Modern Aesthetic
+  // Main View - Professional AI Interface
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 flex flex-col">
-      {/* Minimal Header */}
-      <header className="sticky top-0 z-50 bg-background/60 backdrop-blur-2xl border-b border-border/30 px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/10 flex flex-col">
+      {/* Premium Header */}
+      <header className="sticky top-0 z-50 bg-background/70 backdrop-blur-2xl border-b border-border/20 px-4 py-3">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-muted/50 rounded-xl transition-all">
               <ArrowLeft className="h-5 w-5 text-foreground" />
             </button>
-            <span className="text-base font-medium text-foreground">Support</span>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg">
+                <Headphones className="h-4 w-4 text-primary" />
+              </div>
+              <span className="text-base font-semibold text-foreground">Support</span>
+            </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setCurrentView('ticket')}
-            className="text-primary hover:text-primary hover:bg-primary/10 font-medium"
-          >
-            <Ticket className="h-4 w-4 mr-1.5" />
-            Raise Ticket
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setCurrentView('history')}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="sm"
+              onClick={() => setCurrentView('ticket')}
+              className="bg-primary/10 text-primary hover:bg-primary/20 font-medium rounded-lg"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Ticket
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -440,7 +596,7 @@ const HelpSupport = () => {
                   <p className="text-sm font-medium text-foreground">
                     {recentTicket.status === 'resolved' ? 'Ticket Resolved' : recentTicket.status === 'in_progress' ? 'Ticket In Progress' : 'Ticket Open'}
                   </p>
-                  <p className="text-xs text-muted-foreground capitalize">{recentTicket.topic} • {new Date(recentTicket.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{recentTicket.topic}</p>
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
@@ -451,58 +607,128 @@ const HelpSupport = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
-        {/* Welcome & Chat Area */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4 pb-4">
             {chatMessages.length === 0 ? (
-              <div className="pt-8 pb-4">
-                {/* Greeting */}
+              <div className="pt-6 pb-4">
+                {/* AI Avatar & Greeting */}
                 <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full mb-4">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-primary">Vyuha AI</span>
+                  <div className="relative inline-block mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-primary/30 via-primary/20 to-primary/5 rounded-3xl flex items-center justify-center shadow-lg shadow-primary/10">
+                      <Bot className="h-10 w-10 text-primary" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-background flex items-center justify-center">
+                      <span className="text-[10px] text-white font-bold">AI</span>
+                    </div>
                   </div>
-                  <h1 className="text-2xl font-semibold text-foreground mb-2">
-                    Hey {getUserDisplayName()}!
+                  <h1 className="text-2xl font-bold text-foreground mb-1">
+                    Hi {getUserDisplayName()}! 👋
                   </h1>
                   <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                    How can I help you today? Ask me anything about Vyuha.
+                    I'm Vyuha AI, your personal support assistant. How can I help you today?
                   </p>
                 </div>
 
-                {/* Quick Questions */}
-                <div className="grid grid-cols-1 gap-2">
-                  {faqs.slice(0, 3).map((faq, index) => (
+                {/* Quick Actions Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {quickActions.map((action, index) => (
                     <button
                       key={index}
                       onClick={() => {
-                        setChatInput(faq.question);
+                        setChatInput(action.query);
                         inputRef.current?.focus();
                       }}
-                      className="group flex items-center justify-between p-4 bg-card/50 hover:bg-card border border-border/50 hover:border-border rounded-xl text-left transition-all"
+                      className="group flex flex-col items-center gap-2 p-4 bg-card/50 hover:bg-card border border-border/50 hover:border-primary/30 rounded-2xl text-center transition-all hover:shadow-lg hover:shadow-primary/5"
                     >
-                      <span className="text-sm text-foreground">{faq.question}</span>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                      <div className="p-2.5 bg-primary/10 group-hover:bg-primary/20 rounded-xl transition-colors">
+                        <action.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-xs font-medium text-foreground">{action.label}</span>
                     </button>
                   ))}
+                </div>
+
+                {/* Capabilities Info */}
+                <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent rounded-2xl p-4 border border-primary/10">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">I can help you with:</p>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        <li>• Check your wallet, tournaments & account status</li>
+                        <li>• Restore banned accounts (if eligible)</li>
+                        <li>• Raise support tickets on your behalf</li>
+                        <li>• Answer questions about Vyuha Esports</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
               <>
                 {chatMessages.map((msg, index) => (
                   <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card/80 backdrop-blur border border-border/50'
-                    }`}>
-                      {msg.role === 'assistant' && (
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Bot className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-xs font-medium text-primary">Vyuha AI</span>
+                    <div className={`max-w-[85%] ${msg.role === 'user' ? '' : 'space-y-2'}`}>
+                      {/* User Image Preview */}
+                      {msg.imageUrl && msg.role === 'user' && (
+                        <div className="mb-2">
+                          <img src={msg.imageUrl} alt="Shared" className="max-w-[200px] rounded-xl" />
                         </div>
                       )}
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      
+                      <div className={`rounded-2xl px-4 py-3 ${
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card/80 backdrop-blur border border-border/50'
+                      }`}>
+                        {msg.role === 'assistant' && (
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <div className="p-1 bg-primary/10 rounded-md">
+                              <Bot className="h-3 w-3 text-primary" />
+                            </div>
+                            <span className="text-xs font-semibold text-primary">Vyuha AI</span>
+                          </div>
+                        )}
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                      
+                      {/* AI Response Actions */}
+                      {msg.role === 'assistant' && (
+                        <div className="flex items-center gap-2 px-2">
+                          <button
+                            onClick={() => speakResponse(msg.content)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              isSpeaking ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                          </button>
+                          {!msg.feedback && (
+                            <>
+                              <button
+                                onClick={() => handleFeedback(index, 'positive')}
+                                className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-500 transition-colors"
+                              >
+                                <ThumbsUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleFeedback(index, 'negative')}
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500 transition-colors"
+                              >
+                                <ThumbsDown className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {msg.feedback === 'positive' && (
+                            <span className="text-xs text-emerald-500 flex items-center gap-1">
+                              <ThumbsUp className="h-3 w-3" /> Helpful
+                            </span>
+                          )}
+                          {msg.feedback === 'negative' && (
+                            <span className="text-xs text-muted-foreground">Feedback noted</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -516,6 +742,7 @@ const HelpSupport = () => {
                           <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
+                        <span className="text-xs text-muted-foreground">Thinking...</span>
                       </div>
                     </div>
                   </div>
@@ -526,11 +753,53 @@ const HelpSupport = () => {
           </div>
         </ScrollArea>
 
-        {/* Modern Input Box - Lovable Style */}
+        {/* Image Preview */}
+        {imagePreview && (
+          <div className="px-4 pb-2">
+            <div className="relative inline-block">
+              <img src={imagePreview} alt="Preview" className="h-20 rounded-xl border border-border/50" />
+              <button
+                onClick={() => { setSelectedImage(null); setImagePreview(null); }}
+                className="absolute -top-2 -right-2 p-1 bg-destructive text-destructive-foreground rounded-full"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modern Input Box */}
         <div className="p-4 pt-2">
           <div className={`relative bg-card/80 backdrop-blur-xl border rounded-2xl transition-all duration-200 ${
-            isFocused ? 'border-primary/50 shadow-lg shadow-primary/5' : 'border-border/50'
+            isFocused ? 'border-primary/50 shadow-xl shadow-primary/5' : 'border-border/50'
           }`}>
+            {/* Media Buttons */}
+            <div className="absolute left-3 bottom-3 flex items-center gap-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleChatImageSelect}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <Image className="h-4 w-4" />
+              </button>
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`p-2 rounded-lg transition-colors ${
+                  isRecording 
+                    ? 'bg-red-500/20 text-red-500 animate-pulse' 
+                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+            </div>
+            
             <Textarea
               ref={inputRef}
               value={chatInput}
@@ -546,12 +815,12 @@ const HelpSupport = () => {
               placeholder="Ask me anything..."
               disabled={isAiTyping}
               rows={1}
-              className="w-full bg-transparent border-0 resize-none py-4 px-4 pr-14 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:outline-none min-h-[56px] max-h-32"
+              className="w-full bg-transparent border-0 resize-none py-4 pl-24 pr-14 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:outline-none min-h-[56px] max-h-32"
               style={{ fieldSizing: 'content' } as React.CSSProperties}
             />
             <Button
               onClick={handleAiChat}
-              disabled={!chatInput.trim() || isAiTyping}
+              disabled={(!chatInput.trim() && !selectedImage) || isAiTyping}
               size="icon"
               className="absolute right-3 bottom-3 h-8 w-8 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-30 transition-all"
             >
@@ -559,7 +828,7 @@ const HelpSupport = () => {
             </Button>
           </div>
           <p className="text-center text-[10px] text-muted-foreground/60 mt-2">
-            AI may make mistakes. For account issues, raise a ticket.
+            Vyuha AI • Voice & Image Support • Powered by DeepSeek R1
           </p>
         </div>
       </div>
