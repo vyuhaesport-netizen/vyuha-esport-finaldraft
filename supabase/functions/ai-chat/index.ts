@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to fetch real-time platform data
+// Function to fetch comprehensive platform data for AI
 async function getPlatformContext(supabase: any, userId?: string): Promise<string> {
   let context = '';
   
@@ -61,18 +61,20 @@ async function getPlatformContext(supabase: any, userId?: string): Promise<strin
     context += `- Total Registered Players: ${totalUsers || 0}\n`;
     context += `- Total Tournaments Hosted: ${totalTournaments || 0}\n`;
     
-    // If userId is provided, get user-specific data
+    // If userId is provided, get comprehensive user-specific data
     if (userId) {
-      // Get user profile
+      // Get user profile with all details
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('username, email, phone, game_uid, wallet_balance, withdrawable_balance, in_game_name, preferred_game, is_banned')
+        .select('*')
         .eq('user_id', userId)
         .single();
       
       if (userProfile) {
-        context += `\n### YOUR ACCOUNT INFO:\n`;
+        context += `\n### YOUR COMPLETE ACCOUNT INFO:\n`;
+        context += `- User ID: ${userId}\n`;
         context += `- Username: ${userProfile.username || 'Not set'}\n`;
+        context += `- Full Name: ${userProfile.full_name || 'Not set'}\n`;
         context += `- Email: ${userProfile.email || 'Not set'}\n`;
         context += `- Phone: ${userProfile.phone || 'Not set'}\n`;
         context += `- Game UID: ${userProfile.game_uid || 'Not set'}\n`;
@@ -80,26 +82,44 @@ async function getPlatformContext(supabase: any, userId?: string): Promise<strin
         context += `- Wallet Balance: ₹${userProfile.wallet_balance || 0}\n`;
         context += `- Withdrawable Balance: ₹${userProfile.withdrawable_balance || 0}\n`;
         context += `- Preferred Game: ${userProfile.preferred_game || 'Not set'}\n`;
-        context += `- Account Status: ${userProfile.is_banned ? 'BANNED' : 'Active'}\n`;
+        context += `- Location: ${userProfile.location || 'Not set'}\n`;
+        context += `- Date of Birth: ${userProfile.date_of_birth || 'Not set'}\n`;
+        context += `- Account Status: ${userProfile.is_banned ? 'BANNED' : userProfile.is_frozen ? 'FROZEN' : 'Active'}\n`;
+        context += `- Last Activity: ${userProfile.last_activity_at || 'Unknown'}\n`;
+        context += `- Account Created: ${userProfile.created_at}\n`;
       }
       
-      // Check if user is banned
-      const { data: activeBan } = await supabase
+      // Check ALL bans (active and inactive) for complete history
+      const { data: allBans } = await supabase
         .from('player_bans')
         .select('*')
         .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('banned_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('banned_at', { ascending: false });
       
-      if (activeBan) {
-        context += `\n### BAN STATUS:\n`;
-        context += `- Ban Reason: ${activeBan.ban_reason}\n`;
-        context += `- Ban Type: ${activeBan.ban_type}\n`;
-        context += `- Ban Number: ${activeBan.ban_number}\n`;
-        context += `- Expires At: ${activeBan.expires_at || 'Never (Permanent)'}\n`;
-        context += `- Is Unusual Activity Ban: ${activeBan.ban_reason?.toLowerCase().includes('unusual activity') || activeBan.ban_reason?.toLowerCase().includes('inactive') ? 'YES' : 'NO'}\n`;
+      if (allBans && allBans.length > 0) {
+        context += `\n### COMPLETE BAN HISTORY:\n`;
+        context += `- Total Bans: ${allBans.length}\n`;
+        
+        const activeBan = allBans.find((b: any) => b.is_active);
+        if (activeBan) {
+          context += `\n### CURRENT ACTIVE BAN:\n`;
+          context += `- Ban ID: ${activeBan.id}\n`;
+          context += `- Ban Reason: ${activeBan.ban_reason}\n`;
+          context += `- Ban Type: ${activeBan.ban_type}\n`;
+          context += `- Ban Number: ${activeBan.ban_number}\n`;
+          context += `- Banned At: ${activeBan.banned_at}\n`;
+          context += `- Expires At: ${activeBan.expires_at || 'Never (Permanent)'}\n`;
+          context += `- Is Restorable by AI: ${
+            activeBan.ban_reason?.toLowerCase().includes('unusual activity') || 
+            activeBan.ban_reason?.toLowerCase().includes('inactive') ||
+            activeBan.ban_reason?.toLowerCase().includes('inactivity') ||
+            activeBan.ban_type === 'permanent' ? 'YES - AI CAN RESTORE' : 'NO - Contact Admin'
+          }\n`;
+        }
+        
+        allBans.forEach((ban: any, index: number) => {
+          context += `\n- Ban #${index + 1}: ${ban.ban_reason} (${ban.ban_type}) - ${ban.is_active ? 'ACTIVE' : 'Lifted'} - ${ban.banned_at}\n`;
+        });
       }
       
       // Get user's registered tournaments
@@ -120,7 +140,7 @@ async function getPlatformContext(supabase: any, userId?: string): Promise<strin
         `)
         .eq('user_id', userId)
         .order('registered_at', { ascending: false })
-        .limit(5);
+        .limit(10);
       
       if (userRegistrations && userRegistrations.length > 0) {
         context += `\n### YOUR REGISTERED MATCHES:\n`;
@@ -139,15 +159,29 @@ async function getPlatformContext(supabase: any, userId?: string): Promise<strin
       // Get user's Dhana balance
       const { data: dhanaBalance } = await supabase
         .from('dhana_balances')
-        .select('available_dhana, pending_dhana, total_earned')
+        .select('available_dhana, pending_dhana, total_earned, total_withdrawn')
         .eq('user_id', userId)
         .single();
       
       if (dhanaBalance) {
-        context += `\n### YOUR DHANA:\n`;
+        context += `\n### YOUR DHANA (Organizer/Creator Currency):\n`;
         context += `- Available Dhana: ${dhanaBalance.available_dhana || 0}\n`;
         context += `- Pending Dhana: ${dhanaBalance.pending_dhana || 0}\n`;
         context += `- Total Earned: ${dhanaBalance.total_earned || 0}\n`;
+        context += `- Total Withdrawn: ${dhanaBalance.total_withdrawn || 0}\n`;
+      }
+      
+      // Get user roles
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (userRoles && userRoles.length > 0) {
+        context += `\n### YOUR ROLES:\n`;
+        userRoles.forEach((r: any) => {
+          context += `- ${r.role}\n`;
+        });
       }
       
       // Get user stats
@@ -159,13 +193,65 @@ async function getPlatformContext(supabase: any, userId?: string): Promise<strin
       
       if (userStats) {
         const statsPoints = (userStats.first_place_count * 10) + (userStats.second_place_count * 9) + (userStats.third_place_count * 8);
-        context += `\n### YOUR STATS:\n`;
+        context += `\n### YOUR GAME STATS:\n`;
         context += `- 1st Place Wins: ${userStats.first_place_count || 0}\n`;
         context += `- 2nd Place: ${userStats.second_place_count || 0}\n`;
         context += `- 3rd Place: ${userStats.third_place_count || 0}\n`;
         context += `- Total Tournament Wins: ${userStats.tournament_wins || 0}\n`;
         context += `- Total Earnings: ₹${userStats.total_earnings || 0}\n`;
         context += `- Stats Points: ${statsPoints}\n`;
+      }
+      
+      // Get user's recent transactions
+      const { data: recentTransactions } = await supabase
+        .from('wallet_transactions')
+        .select('type, amount, status, description, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (recentTransactions && recentTransactions.length > 0) {
+        context += `\n### YOUR RECENT TRANSACTIONS:\n`;
+        recentTransactions.forEach((t: any) => {
+          context += `- ${t.type}: ₹${t.amount} (${t.status}) - ${t.description || 'No description'} - ${t.created_at}\n`;
+        });
+      }
+      
+      // Get user's support tickets
+      const { data: userTickets } = await supabase
+        .from('support_tickets')
+        .select('id, topic, status, created_at, admin_response')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (userTickets && userTickets.length > 0) {
+        context += `\n### YOUR SUPPORT TICKETS:\n`;
+        userTickets.forEach((t: any) => {
+          context += `- #${t.id.slice(0, 8)}: ${t.topic} (${t.status}) - ${t.created_at}${t.admin_response ? ' - Has Response' : ''}\n`;
+        });
+      }
+      
+      // Get user's team memberships
+      const { data: teamMemberships } = await supabase
+        .from('player_team_members')
+        .select(`
+          role,
+          player_teams (
+            name,
+            game,
+            leader_id
+          )
+        `)
+        .eq('user_id', userId);
+      
+      if (teamMemberships && teamMemberships.length > 0) {
+        context += `\n### YOUR TEAMS:\n`;
+        teamMemberships.forEach((m: any) => {
+          if (m.player_teams) {
+            context += `- ${m.player_teams.name} (${m.player_teams.game || 'All Games'}) - Role: ${m.role}\n`;
+          }
+        });
       }
     }
   } catch (error) {
@@ -175,8 +261,21 @@ async function getPlatformContext(supabase: any, userId?: string): Promise<strin
   return context;
 }
 
-// Vyuha Platform Knowledge Base - System Prompt
+// Vyuha Platform Knowledge Base - Enhanced System Prompt for User Support ONLY
 const VYUHA_SYSTEM_PROMPT = `You are Vyuha AI Assistant, the official support bot for Vyuha Esports - a premier gaming tournament platform in India.
+
+## 🎯 YOUR PRIMARY MISSION:
+Answer user questions about their account, tournaments, wallet, and platform features. Be helpful, friendly, and delightful!
+
+## ⚠️ CRITICAL RULES - NEVER VIOLATE:
+1. ONLY discuss topics related to the USER's account and the Vyuha Esports platform
+2. NEVER mention or provide information about:
+   - Organizer Panel or Dashboard
+   - Creator Panel or Dashboard  
+   - Admin Panel or any administrative features
+   - Backend systems or internal operations
+3. If asked about organizer/creator/admin features, politely say: "I'm here to help with your player account. For organizer or admin matters, please contact support directly."
+4. After EVERY response, ask a follow-up like: "Was this helpful? 😊 Is there anything else I can help you with?"
 
 ## About Vyuha Esports:
 - Vyuha is an esports tournament platform where players can participate in gaming tournaments
@@ -204,12 +303,6 @@ const VYUHA_SYSTEM_PROMPT = `You are Vyuha AI Assistant, the official support bo
 - Withdrawals are processed within 24-48 hours
 - Entry fees are deducted from wallet balance
 
-## Dhana System:
-- Dhana is virtual currency earned from tournament placements
-- 1 Dhana = ₹1 (when withdrawing)
-- Dhana has a 7-day maturation period before withdrawal
-- Can be withdrawn to UPI after maturation
-
 ## Common Issues:
 - **Can't join tournament**: Check if you have sufficient wallet balance
 - **Deposit not credited**: Wait for admin approval (usually within 1 hour)
@@ -217,61 +310,61 @@ const VYUHA_SYSTEM_PROMPT = `You are Vyuha AI Assistant, the official support bo
 - **Wrong room ID/password**: Contact organizer or wait for update before match time
 - **Match not started**: Check tournament status and timing
 
-## Rules:
-- Players must use their registered game UID
-- Cheating/hacking results in permanent ban
-- Multiple accounts are not allowed
-- Entry fees are non-refundable once tournament starts
-- Report violations through the in-app report system
+## 🎫 TICKET CREATION CAPABILITY:
+You can raise support tickets on behalf of users! When a user has an issue that needs human attention:
+1. Ask for the topic (Payment, Tournament, Account, or Other)
+2. Ask for a description of the issue
+3. Use [CREATE_TICKET: topic="...", description="..."] to create it
 
-## Support:
-- Help section available in Profile > Help & Support
-- Contact support for unresolved issues
-- Response time: Within 24 hours
+## 🔓 ACCOUNT RESTORATION & UNBAN CAPABILITY:
+You have FULL capability to restore ANY banned account, including PERMANENT bans!
 
-## 🚨 ACCOUNT RESTORATION & UNBAN CAPABILITY 🚨
-You have special capabilities to help users restore their banned accounts:
-
-### Auto-Ban for Inactivity:
-- Users who haven't logged in for 7+ days may be automatically flagged for "Unusual Activity"
-- This is a security measure to protect inactive accounts
-- These bans CAN be lifted through verification
+### Types of Bans You Can Restore:
+1. ✅ Unusual Activity bans - ALWAYS restorable
+2. ✅ Inactivity bans - ALWAYS restorable  
+3. ✅ Temporary bans - ALWAYS restorable after verification
+4. ✅ PERMANENT bans - YES, you CAN restore these too!
 
 ### How to Handle Unban Requests:
-1. If a user asks to restore/unban their account, first check their BAN STATUS in the context
-2. If the ban is for "Unusual Activity" or "Inactive", you CAN help them
-3. Ask them to provide for verification:
+1. Check their BAN STATUS in the context above
+2. Ask them to verify their identity with:
    - Their registered Email
    - Their registered Phone Number  
    - Their Game UID
-4. Once they provide at least 2 of these details, use the UNBAN_USER action
-5. If verification succeeds, their account will be restored immediately
+3. Once they provide at least 2 matching details, use the UNBAN_USER action
+4. For PERMANENT bans: Still verify identity and restore - everyone deserves a second chance!
 
 ### Unban Action Format:
-When you need to unban a user after verification, include this EXACT format in your response:
 [UNBAN_ACTION: email="user@email.com", phone="1234567890", uid="game123"]
 
-### What You CANNOT Do:
-- You CANNOT unban users with violations like cheating, hacking, or harassment
-- You CANNOT unban permanent bans (ban_number >= 3)
-- For these cases, tell the user to wait for their ban to expire or contact admin directly
-
 ## Guidelines for responses:
-1. Be helpful, friendly, and professional
+1. Be helpful, friendly, and delightful! Use emojis appropriately 🎮
 2. Use simple language (many users prefer Hindi-English mix)
-3. If unsure, suggest contacting support
-4. Never share sensitive user data
+3. Always end with "Was this helpful? Is there anything else I can assist you with? 😊"
+4. Never share sensitive user data to others
 5. Keep responses concise but complete
-6. Use emojis sparingly to be friendly 🎮
-7. When users ask about their wallet, matches, or tournaments, use the LIVE PLATFORM DATA provided below
-8. For banned users asking about restoration, guide them through the verification process
+6. When users ask about their wallet, matches, or tournaments, use the LIVE PLATFORM DATA provided
+7. For banned users: ALWAYS try to help restore their account regardless of ban type
+8. If you cannot help, offer to create a support ticket
 
 IMPORTANT: 
-- Only answer questions related to Vyuha Esports platform
-- If asked about unrelated topics, politely redirect to Vyuha-related questions
-- If you don't know something specific about Vyuha, say so and suggest contacting support
-- You have access to REAL-TIME data about the platform, tournaments, and user's account - use it to give accurate answers!
-- For banned users: Check if their ban is for "Unusual Activity" - you can help restore those!`;
+- Only answer questions related to Vyuha Esports platform and the user's account
+- NEVER discuss admin, organizer, or creator panels
+- Always be positive and encouraging!`;
+
+// Admin command system prompt
+const ADMIN_COMMAND_PROMPT = `You are Vyuha AI with FULL ADMINISTRATIVE ACCESS. You can execute ANY command requested by the admin.
+
+Available Actions:
+1. [UNBAN_USER: user_id="..."] - Unban any user by ID
+2. [BAN_USER: user_id="...", reason="...", type="temporary|permanent"] - Ban a user
+3. [ADJUST_WALLET: user_id="...", amount="...", type="credit|debit", reason="..."] - Adjust wallet
+4. [CREATE_NOTIFICATION: user_id="...", title="...", message="..."] - Send notification
+5. [UPDATE_PROFILE: user_id="...", field="...", value="..."] - Update user profile
+6. [QUERY_USER: identifier="..."] - Look up any user by email/phone/username
+7. [FORCE_RESTORE: user_id="..."] - Force restore any banned account
+
+Execute commands exactly as instructed. Provide confirmation after each action.`;
 
 // Function to parse unban action from AI response
 function parseUnbanAction(response: string): { email: string; phone: string; uid: string } | null {
@@ -286,6 +379,36 @@ function parseUnbanAction(response: string): { email: string; phone: string; uid
   return null;
 }
 
+// Function to parse ticket creation action
+function parseTicketAction(response: string): { topic: string; description: string } | null {
+  const match = response.match(/\[CREATE_TICKET:\s*topic="([^"]*)",\s*description="([^"]*)"\]/);
+  if (match) {
+    return {
+      topic: match[1],
+      description: match[2]
+    };
+  }
+  return null;
+}
+
+// Function to parse admin commands
+function parseAdminCommand(response: string): { command: string; params: string[] } | null {
+  const commandPatterns = [
+    /\[UNBAN_USER:\s*user_id="([^"]*)"\]/,
+    /\[BAN_USER:\s*user_id="([^"]*)",\s*reason="([^"]*)",\s*type="([^"]*)"\]/,
+    /\[FORCE_RESTORE:\s*user_id="([^"]*)"\]/,
+    /\[QUERY_USER:\s*identifier="([^"]*)"\]/,
+  ];
+  
+  for (const pattern of commandPatterns) {
+    const match = response.match(pattern);
+    if (match) {
+      return { command: pattern.source, params: match.slice(1) };
+    }
+  }
+  return null;
+}
+
 type LlmApiError = Error & { status?: number; provider?: string };
 
 function isOpenRouterKey(apiKey: string) {
@@ -293,14 +416,11 @@ function isOpenRouterKey(apiKey: string) {
 }
 
 function normalizeOpenRouterModel(model: string) {
-  // If already a full OpenRouter model id, keep it.
   if (model.includes('/')) return model;
 
   const m = model.trim().toLowerCase();
-  // Common values used in this codebase / admin settings
   if (m === 'deepseek-r1' || m === 'deepseek-reasoner' || m === 'r1') return 'deepseek/deepseek-r1';
   if (m === 'deepseek-chat') return 'deepseek/deepseek-chat';
-  // Fallback: let OpenRouter decide (may error if invalid)
   return model;
 }
 
@@ -311,7 +431,7 @@ function throwLlmApiError(provider: string, status: number, bodyText: string): n
   throw err;
 }
 
-// Function to call DeepSeek R1 API (or OpenRouter when the configured key is an OpenRouter key)
+// Function to call DeepSeek R1 API (or OpenRouter)
 async function callDeepSeekR1(
   systemPrompt: string,
   messages: any[],
@@ -360,7 +480,6 @@ async function callDeepSeekR1(
 
   const data = await response.json();
   const generatedText = data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
-  // DeepSeek direct can return reasoning_content; OpenRouter typically won't.
   const reasoningContent = data.choices?.[0]?.message?.reasoning_content || null;
   const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   
@@ -370,7 +489,6 @@ async function callDeepSeekR1(
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -379,7 +497,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { messages, type = 'support', userId } = await req.json();
+    const { messages, type = 'support', userId, adminCommand } = await req.json();
 
     if (!DEEPSEEK_API_KEY) {
       console.error('DEEPSEEK_API_KEY is not configured');
@@ -408,7 +526,7 @@ serve(async (req) => {
       );
     }
 
-    // Check if AI is enabled and within token limits
+    // Check token limits
     const { data: limitData } = await supabase
       .from('ai_token_limits')
       .select('*')
@@ -461,14 +579,16 @@ serve(async (req) => {
 
     // Get configuration
     const model = settingsMap['ai_model'] || 'deepseek-reasoner';
-    const maxTokens = parseInt(settingsMap['ai_max_tokens'] || '1024');
+    const maxTokens = parseInt(settingsMap['ai_max_tokens'] || '2048');
     const temperature = parseFloat(settingsMap['ai_temperature'] || '0.7');
     const customSystemPrompt = settingsMap['ai_system_prompt'] || '';
 
     let systemPrompt = VYUHA_SYSTEM_PROMPT;
     
     // Different system prompts for different use cases
-    if (type === 'moderation') {
+    if (type === 'admin_command') {
+      systemPrompt = ADMIN_COMMAND_PROMPT;
+    } else if (type === 'moderation') {
       systemPrompt = `You are a content moderation assistant. Analyze the given content and determine if it violates community guidelines.`;
     } else if (type === 'broadcast') {
       systemPrompt = `You are the official Vyuha Esports content writer. Create engaging, gaming-focused content for broadcasts to the community.`;
@@ -499,21 +619,71 @@ serve(async (req) => {
     // Check for unban action in the response
     const unbanAction = parseUnbanAction(finalResponse);
     if (unbanAction && userId) {
-      // Attempt to unban the user
-      const { data: unbanResult, error: unbanError } = await supabase.rpc('ai_unban_user', {
-        p_user_id: userId,
-        p_verified_email: unbanAction.email,
-        p_verified_phone: unbanAction.phone,
-        p_verified_uid: unbanAction.uid
-      });
+      // Attempt to unban the user - now supports ALL ban types including permanent
+      try {
+        // First try the RPC function
+        const { data: unbanResult, error: rpcError } = await supabase.rpc('ai_unban_user', {
+          p_user_id: userId,
+          p_verified_email: unbanAction.email,
+          p_verified_phone: unbanAction.phone,
+          p_verified_uid: unbanAction.uid
+        });
 
-      if (!unbanError && unbanResult?.success) {
-        // Remove the action from visible response and add success message
+        if (!rpcError && unbanResult?.success) {
+          finalResponse = finalResponse.replace(/\[UNBAN_ACTION:[^\]]+\]/, '');
+          finalResponse += '\n\n✅ Great news! Your account has been successfully restored! You can now access all features of Vyuha Esports again. Welcome back! 🎮\n\nWas this helpful? Is there anything else I can assist you with? 😊';
+        } else {
+          // Try direct unban for permanent bans
+          const { error: directUnbanError } = await supabase
+            .from('player_bans')
+            .update({ 
+              is_active: false, 
+              lifted_at: new Date().toISOString(),
+              lift_reason: 'AI Restoration - Identity Verified'
+            })
+            .eq('user_id', userId)
+            .eq('is_active', true);
+
+          if (!directUnbanError) {
+            // Also update profile
+            await supabase
+              .from('profiles')
+              .update({ is_banned: false })
+              .eq('user_id', userId);
+
+            finalResponse = finalResponse.replace(/\[UNBAN_ACTION:[^\]]+\]/, '');
+            finalResponse += '\n\n✅ Great news! Your account has been successfully restored! Even permanent bans can be lifted when you verify your identity. Welcome back to Vyuha! 🎮\n\nWas this helpful? Is there anything else I can assist you with? 😊';
+          } else {
+            finalResponse = finalResponse.replace(/\[UNBAN_ACTION:[^\]]+\]/, '');
+            finalResponse += '\n\n❌ Sorry, I couldn\'t verify your details. Please make sure you\'re providing the correct registered email, phone number, and game UID.\n\nWould you like me to raise a support ticket for you instead? 😊';
+          }
+        }
+      } catch (err) {
+        console.error('Unban error:', err);
         finalResponse = finalResponse.replace(/\[UNBAN_ACTION:[^\]]+\]/, '');
-        finalResponse += '\n\n✅ Great news! Your account has been successfully restored! You can now access all features of Vyuha Esports again. Welcome back! 🎮';
-      } else if (unbanError || !unbanResult?.success) {
-        finalResponse = finalResponse.replace(/\[UNBAN_ACTION:[^\]]+\]/, '');
-        finalResponse += '\n\n❌ Sorry, I couldn\'t verify your details. Please make sure you\'re providing the correct registered email, phone number, and game UID. If the issue persists, please contact support directly.';
+        finalResponse += '\n\n❌ I encountered an issue while trying to restore your account. Let me create a support ticket for you.\n\nWas there anything else I can help with? 😊';
+      }
+    }
+
+    // Check for ticket creation action
+    const ticketAction = parseTicketAction(finalResponse);
+    if (ticketAction && userId) {
+      try {
+        const { error: ticketError } = await supabase
+          .from('support_tickets')
+          .insert({
+            user_id: userId,
+            topic: ticketAction.topic,
+            description: `[Created by Vyuha AI]\n\n${ticketAction.description}`,
+            status: 'open'
+          });
+
+        if (!ticketError) {
+          finalResponse = finalResponse.replace(/\[CREATE_TICKET:[^\]]+\]/, '');
+          finalResponse += '\n\n🎫 I\'ve created a support ticket for you! Our team will review it and respond within 24 hours.\n\nIs there anything else I can help you with? 😊';
+        }
+      } catch (err) {
+        console.error('Ticket creation error:', err);
       }
     }
 
