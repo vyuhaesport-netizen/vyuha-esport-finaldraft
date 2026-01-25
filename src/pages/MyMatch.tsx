@@ -210,11 +210,62 @@ const MyMatch = () => {
   const liveMatches = registrations.filter(r => r.tournaments.status === 'ongoing');
   const completedMatches = registrations.filter(r => r.tournaments.status === 'completed' || r.tournaments.status === 'cancelled');
 
-  // Compact Local Tournament Card
+  // Enhanced Local Tournament Card with Player Details
   const LocalTournamentCard = ({ tournament }: { tournament: LocalTournament }) => {
     const [roomOpen, setRoomOpen] = useState(false);
+    const [playersOpen, setPlayersOpen] = useState(false);
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [exiting, setExiting] = useState(false);
+    const [players, setPlayers] = useState<PlayerInfo[]>([]);
+    const [loadingPlayers, setLoadingPlayers] = useState(false);
+    const [organizerInfo, setOrganizerInfo] = useState<{ full_name: string; phone: string } | null>(null);
+
+    useEffect(() => {
+      // Fetch organizer info
+      const fetchOrganizer = async () => {
+        const { data } = await supabase
+          .from('local_tournament_applications')
+          .select('primary_phone')
+          .eq('id', tournament.id.replace(/-/g, '').slice(0, 36))
+          .maybeSingle();
+        
+        // Also get organizer profile
+        if (tournament.id) {
+          const { data: ltData } = await supabase
+            .from('local_tournaments')
+            .select('organizer_id')
+            .eq('id', tournament.id)
+            .maybeSingle();
+          
+          if (ltData?.organizer_id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name, phone')
+              .eq('user_id', ltData.organizer_id)
+              .maybeSingle();
+            
+            if (profile) {
+              setOrganizerInfo({
+                full_name: profile.full_name || 'Organizer',
+                phone: profile.phone || data?.primary_phone || ''
+              });
+            }
+          }
+        }
+      };
+      fetchOrganizer();
+    }, [tournament.id]);
+
+    const fetchPlayers = async () => {
+      if (!tournament.joined_users?.length) return;
+      setLoadingPlayers(true);
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, in_game_name, game_uid')
+        .in('user_id', tournament.joined_users);
+      setPlayers(data || []);
+      setLoadingPlayers(false);
+    };
 
     const copyToClipboard = async (text: string, field: string) => {
       await navigator.clipboard.writeText(text);
@@ -250,7 +301,8 @@ const MyMatch = () => {
 
     return (
       <div className="bg-card rounded-lg border border-border p-3">
-        <div className="flex items-start gap-2">
+        {/* Header */}
+        <div className="flex items-start gap-2 mb-2">
           <div className="w-8 h-8 rounded-md bg-orange-500/10 flex items-center justify-center flex-shrink-0">
             <MapPin className="h-4 w-4 text-orange-500" />
           </div>
@@ -264,73 +316,141 @@ const MyMatch = () => {
                 {tournament.status}
               </Badge>
             </div>
-            <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
-              <Calendar className="h-2.5 w-2.5" />
-              {format(new Date(tournament.tournament_date), 'MMM dd, hh:mm a')}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">📍 {tournament.institution_name}</p>
-
-            {tournament.status === 'upcoming' && (
-              <div className="mt-1.5 p-1.5 bg-primary/10 rounded">
-                <CountdownTimer targetDate={tournament.tournament_date} label="Starts:" className="text-primary text-[10px]" />
-              </div>
-            )}
-
-            {tournament.current_prize_pool && tournament.current_prize_pool > 0 && (
-              <div className="flex items-center gap-1 mt-1 text-[10px]">
-                <Trophy className="h-2.5 w-2.5 text-yellow-500" />
-                <span className="text-yellow-500 font-medium">₹{Math.round(tournament.current_prize_pool)}</span>
-              </div>
-            )}
-
-            {hasRoomDetails && isOngoingOrCompleted && (
-              <Collapsible open={roomOpen} onOpenChange={setRoomOpen} className="mt-2">
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full text-[10px] h-6">
-                    <Eye className="h-2.5 w-2.5 mr-1" />
-                    {roomOpen ? 'Hide' : 'View'} Room
-                    <ChevronDown className={`h-2.5 w-2.5 ml-auto transition-transform ${roomOpen ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-1.5 space-y-1.5 p-2 bg-muted/50 rounded text-[10px]">
-                  {tournament.room_id && (
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-muted-foreground">Room ID</p>
-                        <p className="font-mono font-medium truncate">{tournament.room_id}</p>
-                      </div>
-                      <button onClick={() => copyToClipboard(tournament.room_id!, 'Room ID')} className="p-1 hover:bg-muted rounded">
-                        {copiedField === 'Room ID' ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                      </button>
-                    </div>
-                  )}
-                  {tournament.room_password && (
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-muted-foreground">Password</p>
-                        <p className="font-mono font-medium truncate">{tournament.room_password}</p>
-                      </div>
-                      <button onClick={() => copyToClipboard(tournament.room_password!, 'Password')} className="p-1 hover:bg-muted rounded">
-                        {copiedField === 'Password' ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                      </button>
-                    </div>
-                  )}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <Users className="h-2.5 w-2.5" />
-                <span>{tournament.joined_users?.length || 0} joined</span>
-              </div>
-              {canExit && (
-                <Button variant="destructive" size="sm" className="text-[10px] h-5 px-2" onClick={handleExitLocalTournament} disabled={exiting}>
-                  {exiting ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <><LogOut className="h-2.5 w-2.5 mr-0.5" />Exit</>}
-                </Button>
-              )}
-            </div>
           </div>
+        </div>
+
+        {/* Organizer Info */}
+        {organizerInfo && (
+          <div className="bg-muted/30 rounded p-2 mb-2 text-[10px]">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <User className="h-2.5 w-2.5" />
+              <span>Organizer: <span className="text-foreground font-medium">{organizerInfo.full_name}</span></span>
+            </div>
+            {organizerInfo.phone && (
+              <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
+                <span>📞 {organizerInfo.phone}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Date & Location */}
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <Calendar className="h-2.5 w-2.5" />
+          {format(new Date(tournament.tournament_date), 'MMM dd, hh:mm a')}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-0.5">📍 {tournament.institution_name}</p>
+
+        {/* Status Times */}
+        {tournament.started_at && (
+          <div className="text-[9px] text-green-600 mt-1">
+            ▶️ Started: {format(new Date(tournament.started_at), 'MMM dd, hh:mm a')}
+          </div>
+        )}
+        {tournament.ended_at && (
+          <div className="text-[9px] text-muted-foreground mt-0.5">
+            ⏹️ Ended: {format(new Date(tournament.ended_at), 'MMM dd, hh:mm a')}
+          </div>
+        )}
+
+        {/* Countdown for upcoming */}
+        {tournament.status === 'upcoming' && (
+          <div className="mt-1.5 p-1.5 bg-primary/10 rounded">
+            <CountdownTimer targetDate={tournament.tournament_date} label="Starts:" className="text-primary text-[10px]" />
+          </div>
+        )}
+
+        {/* Prize Pool */}
+        {tournament.current_prize_pool && tournament.current_prize_pool > 0 && (
+          <div className="flex items-center gap-1 mt-1.5 text-[10px]">
+            <Trophy className="h-2.5 w-2.5 text-yellow-500" />
+            <span className="text-yellow-500 font-medium">₹{Math.round(tournament.current_prize_pool)} Prize Pool</span>
+          </div>
+        )}
+
+        {/* Room Details Collapsible */}
+        {hasRoomDetails && isOngoingOrCompleted && (
+          <Collapsible open={roomOpen} onOpenChange={setRoomOpen} className="mt-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full text-[10px] h-6">
+                <Eye className="h-2.5 w-2.5 mr-1" />
+                {roomOpen ? 'Hide' : 'View'} Room Credentials
+                <ChevronDown className={`h-2.5 w-2.5 ml-auto transition-transform ${roomOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-1.5 space-y-1.5 p-2 bg-success/10 border border-success/20 rounded text-[10px]">
+              {tournament.room_id && (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-muted-foreground">Room ID</p>
+                    <p className="font-mono font-bold text-foreground">{tournament.room_id}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(tournament.room_id!, 'Room ID')} className="p-1 hover:bg-muted rounded">
+                    {copiedField === 'Room ID' ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                  </button>
+                </div>
+              )}
+              {tournament.room_password && (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-muted-foreground">Password</p>
+                    <p className="font-mono font-bold text-foreground">{tournament.room_password}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(tournament.room_password!, 'Password')} className="p-1 hover:bg-muted rounded">
+                    {copiedField === 'Password' ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                  </button>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Players List Collapsible */}
+        <Collapsible open={playersOpen} onOpenChange={(open) => {
+          setPlayersOpen(open);
+          if (open && players.length === 0) fetchPlayers();
+        }} className="mt-2">
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full text-[10px] h-6">
+              <Users className="h-2.5 w-2.5 mr-1" />
+              {playersOpen ? 'Hide' : 'View'} Players ({tournament.joined_users?.length || 0})
+              <ChevronDown className={`h-2.5 w-2.5 ml-auto transition-transform ${playersOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-1.5 p-2 bg-muted/50 rounded text-[10px] max-h-40 overflow-y-auto">
+            {loadingPlayers ? (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : players.length > 0 ? (
+              <div className="space-y-1">
+                {players.map((p, i) => (
+                  <div key={p.user_id} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+                    <span className="text-muted-foreground">#{i + 1}</span>
+                    <span className="font-medium">{p.in_game_name || 'Player'}</span>
+                    <span className="font-mono text-[9px] text-muted-foreground">{p.game_uid || '-'}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">No players yet</p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Users className="h-2.5 w-2.5" />
+            <span>{tournament.joined_users?.length || 0} joined</span>
+          </div>
+          {canExit ? (
+            <Button variant="destructive" size="sm" className="text-[10px] h-5 px-2" onClick={handleExitLocalTournament} disabled={exiting}>
+              {exiting ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <><LogOut className="h-2.5 w-2.5 mr-0.5" />Exit</>}
+            </Button>
+          ) : tournament.tournament_mode !== 'solo' && tournament.status === 'upcoming' ? (
+            <span className="text-[9px] text-warning">No exit for teams</span>
+          ) : null}
         </div>
       </div>
     );
