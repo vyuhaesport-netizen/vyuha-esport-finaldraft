@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OrganizerProfilePreview from '@/components/OrganizerProfilePreview';
-import { Trophy, Users, Wallet, Share2, Calendar, Eye, ChevronLeft, Clock, Youtube, Instagram, Gift, ScrollText, Gamepad2, Radio } from 'lucide-react';
+import { Trophy, Users, Wallet, Share2, Calendar, Eye, ChevronLeft, Clock, Youtube, Instagram, Gift, ScrollText } from 'lucide-react';
 
 interface Tournament {
   id: string;
@@ -146,22 +146,6 @@ const TournamentCard = ({
     setIsSwiping(false);
   };
 
-  const getModeColor = () => {
-    if (variant === 'creator') return 'from-purple-500 to-pink-500';
-    return 'from-primary to-gaming-blue';
-  };
-
-  const getStatusBadge = () => {
-    switch (tournament.status) {
-      case 'upcoming':
-        return <span className="badge-upcoming"><span className="w-1.5 h-1.5 bg-white rounded-full" />Live</span>;
-      case 'ongoing':
-        return <span className="badge-live"><span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />In Progress</span>;
-      default:
-        return <span className="badge-completed">{tournament.status}</span>;
-    }
-  };
-
   return (
     <div className="relative">
       <div 
@@ -182,30 +166,12 @@ const TournamentCard = ({
           </div>
         )}
         
-        {/* Header - More Compact */}
-        <div className="flex items-start justify-between gap-1.5 mb-1.5">
+        {/* Header - Bigger Title, Giveaway on Right */}
+        <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 mb-0.5">
-              <h3 className="font-semibold text-xs text-foreground truncate">
-                {tournament.title}
-              </h3>
-              {tournament.is_giveaway && (
-                <Badge className="text-[8px] px-1 py-0 bg-gradient-to-r from-success to-gaming-cyan text-white border-0 font-bold">
-                  <Gift className="h-2 w-2 mr-0.5" />
-                  Giveaway
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-1 flex-wrap">
-              <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
-                <Gamepad2 className="h-2.5 w-2.5" />
-                {tournament.game}
-              </span>
-              <Badge className={`text-[8px] px-1 py-0 capitalize bg-gradient-to-r ${getModeColor()} text-white border-0`}>
-                {tournament.tournament_mode || 'Solo'}
-              </Badge>
-              {getStatusBadge()}
-            </div>
+            <h3 className="font-bold text-sm text-foreground line-clamp-2 leading-tight">
+              {tournament.title}
+            </h3>
             {organizerName && tournament.created_by && (
               <button 
                 onClick={() => setProfilePreviewOpen(true)} 
@@ -215,6 +181,12 @@ const TournamentCard = ({
               </button>
             )}
           </div>
+          {tournament.is_giveaway && (
+            <Badge className="text-[8px] px-1.5 py-0.5 bg-gradient-to-r from-success to-gaming-cyan text-white border-0 font-bold flex-shrink-0">
+              <Gift className="h-2.5 w-2.5 mr-0.5" />
+              Giveaway
+            </Badge>
+          )}
         </div>
 
         {tournament.created_by && (

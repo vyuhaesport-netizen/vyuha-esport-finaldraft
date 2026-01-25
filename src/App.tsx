@@ -9,6 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
 import SEOProvider from "./components/SEOProvider";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import Creator from "./pages/Creator";
@@ -229,7 +230,8 @@ const SoftProtectedRoute = ({ children, lockTitle, lockDescription }: {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<AuthRoute><Auth /></AuthRoute>} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
       {/* Public Routes - accessible without login */}
       <Route path="/home" element={<Home />} />
       <Route path="/creator-tournaments" element={<Creator />} />
