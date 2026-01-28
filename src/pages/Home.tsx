@@ -374,13 +374,17 @@ const HomePage = () => {
       />
       <PushNotificationPrompt />
       <AppLayout>
-      {/* Header */}
-      <div className="bg-card border-b border-border/50 px-4 py-2.5">
+      {/* Header - Enhanced */}
+      <div className="bg-gradient-to-r from-card via-card to-primary/5 border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <BrandLogo className="h-10 w-10" alt="Vyuha" />
+            <BrandLogo className="h-11 w-11" alt="Vyuha" />
+            <div>
+              <h1 className="text-base font-bold text-foreground">Vyuha</h1>
+              <p className="text-[10px] text-muted-foreground">The Stage for Underdogs</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <TournamentScanner />
             <NotificationBell />
           </div>
@@ -389,55 +393,55 @@ const HomePage = () => {
 
       {/* Guest Login Banner */}
       {!user && showGuestBanner && (
-        <div className="mx-4 mt-3 relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 border border-primary/30">
+        <div className="mx-4 mt-4 relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 border border-primary/40 shadow-lg">
           <button 
             onClick={() => setShowGuestBanner(false)}
-            className="absolute top-2 right-2 p-1 rounded-full hover:bg-background/50 transition-colors z-10"
+            className="absolute top-2.5 right-2.5 p-1.5 rounded-full hover:bg-background/50 transition-colors z-10"
           >
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-full bg-primary/20 shrink-0">
-                <Sparkles className="h-5 w-5 text-primary" />
+          <div className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-full bg-gradient-to-br from-primary to-purple-600 shrink-0 shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm mb-1">Join the Battle!</h3>
-                <p className="text-xs text-muted-foreground mb-3">
+                <h3 className="font-bold text-lg mb-1 text-foreground">Join the Battle!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
                   Sign up now to compete in tournaments, win real prizes, and become a champion!
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   <Button 
-                    size="sm" 
+                    size="default" 
                     onClick={() => navigate('/')}
-                    className="gap-1.5 text-xs h-8"
+                    className="gap-2 text-sm h-10 shadow-md"
                   >
-                    <LogIn className="h-3.5 w-3.5" />
+                    <LogIn className="h-4 w-4" />
                     Login
                   </Button>
                   <Button 
-                    size="sm" 
+                    size="default" 
                     variant="outline"
                     onClick={() => navigate('/')}
-                    className="gap-1.5 text-xs h-8"
+                    className="gap-2 text-sm h-10"
                   >
-                    <Gift className="h-3.5 w-3.5" />
+                    <Gift className="h-4 w-4" />
                     Sign Up Free
                   </Button>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Trophy className="h-4 w-4 text-yellow-500" />
                 <span>Win Prizes</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Users className="h-3.5 w-3.5 text-blue-500" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-4 w-4 text-blue-500" />
                 <span>Join Teams</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Sparkles className="h-4 w-4 text-purple-500" />
                 <span>Free Entry</span>
               </div>
             </div>
@@ -445,16 +449,16 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Mode Filter - Solo/Duo/Squad */}
-      <div className="px-4 py-2.5">
-        <div className="bg-muted/60 rounded-lg p-0.5 flex">
+      {/* Mode Filter - Enhanced */}
+      <div className="px-4 py-3">
+        <div className="bg-muted/70 rounded-xl p-1 flex shadow-sm">
           {(['solo', 'duo', 'squad'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setActiveMode(mode)}
-              className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors capitalize ${
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
                 activeMode === mode 
-                  ? 'bg-primary text-primary-foreground shadow-sm' 
+                  ? 'bg-gradient-to-r from-primary to-purple-600 text-primary-foreground shadow-md' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -467,20 +471,22 @@ const HomePage = () => {
 
       {/* Tournaments Section */}
       <div className="px-4 pb-6">
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="font-medium text-sm">Live Tournaments</h2>
-          <span className="text-[10px] text-muted-foreground">{getFilteredTournaments().length} matches</span>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-lg text-foreground">Live Tournaments</h2>
+          <span className="text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">{getFilteredTournaments().length} matches</span>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : getFilteredTournaments().length === 0 ? (
-          <div className="bg-card rounded-xl border border-border/60 p-5 text-center">
-            <Trophy className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-muted-foreground text-xs">No tournaments available</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/60 flex items-center justify-center">
+              <Trophy className="h-8 w-8 text-muted-foreground/50" />
+            </div>
+            <p className="text-muted-foreground text-sm font-medium">No tournaments available</p>
+            <p className="text-xs text-muted-foreground mt-1">
               {userProfile?.preferred_game 
                 ? `No ${userProfile.preferred_game} ${activeMode} matches found`
                 : 'Check back soon for exciting matches!'}
