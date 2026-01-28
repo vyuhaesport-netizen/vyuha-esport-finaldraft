@@ -21,7 +21,6 @@ import {
   Users,
   ArrowRight,
   ArrowLeft,
-  Upload,
   CheckCircle,
   Clock,
   XCircle,
@@ -96,8 +95,6 @@ const SchoolTournament = () => {
     schoolCity: '',
     schoolState: '',
     schoolDistrict: '',
-    schoolImage: null as File | null,
-    schoolImageUrl: '',
     
     // Organizer Info (Step 2)
     organizerName: '',
@@ -176,33 +173,6 @@ const SchoolTournament = () => {
     };
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB');
-      return;
-    }
-    
-    setFormData(prev => ({ ...prev, schoolImage: file }));
-    
-    // Upload to storage
-    const fileName = `school-images/${user!.id}/${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, file);
-    
-    if (error) {
-      toast.error('Failed to upload image');
-      return;
-    }
-    
-    const { data: publicUrl } = supabase.storage.from('avatars').getPublicUrl(fileName);
-    setFormData(prev => ({ ...prev, schoolImageUrl: publicUrl.publicUrl }));
-    toast.success('Image uploaded!');
-  };
-
   const validateStep = (stepNum: number): boolean => {
     switch (stepNum) {
       case 1:
@@ -250,7 +220,7 @@ const SchoolTournament = () => {
         school_city: formData.schoolCity,
         school_state: formData.schoolState,
         school_district: formData.schoolDistrict,
-        school_image_url: formData.schoolImageUrl || null,
+        school_image_url: null,
         organizer_name: formData.organizerName,
         primary_phone: formData.primaryPhone,
         alternate_phone: formData.alternatePhone || null,
@@ -273,8 +243,6 @@ const SchoolTournament = () => {
         schoolCity: '',
         schoolState: '',
         schoolDistrict: '',
-        schoolImage: null,
-        schoolImageUrl: '',
         organizerName: '',
         primaryPhone: '',
         alternatePhone: '',
@@ -400,36 +368,7 @@ const SchoolTournament = () => {
                     </Select>
                   </div>
                   
-                  <div>
-                    <Label>School Photo (Optional)</Label>
-                    <div className="mt-2">
-                      {formData.schoolImageUrl ? (
-                        <div className="relative">
-                          <img 
-                            src={formData.schoolImageUrl} 
-                            alt="School" 
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="absolute top-2 right-2"
-                            onClick={() => setFormData(prev => ({ ...prev, schoolImage: null, schoolImageUrl: '' }))}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ) : (
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/50">
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground mt-2">Upload Image</span>
-                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                        </label>
-                      )}
-                    </div>
-                  </div>
-
-                  <Button 
+                  <Button
                     className="w-full" 
                     onClick={() => validateStep(1) && setStep(2)}
                   >

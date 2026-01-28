@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   ArrowLeft,
@@ -26,7 +27,6 @@ import {
   QrCode,
   Share2,
   Download,
-  Plus,
   Eye,
   CheckCircle,
   Crown,
@@ -35,8 +35,8 @@ import {
   IndianRupee,
   RefreshCw,
   Lock,
-  UserPlus,
-  Timer
+  Timer,
+  FileText
 } from 'lucide-react';
 import RoundProgressionChart from '@/components/RoundProgressionChart';
 
@@ -114,15 +114,16 @@ const SchoolTournamentManage = () => {
   
   // Dialog states
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
-  const [addTeamDialogOpen, setAddTeamDialogOpen] = useState(false);
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [declareWinnerDialogOpen, setDeclareWinnerDialogOpen] = useState(false);
   const [viewTeamsDialogOpen, setViewTeamsDialogOpen] = useState(false);
   const [playerProfiles, setPlayerProfiles] = useState<Record<string, PlayerProfile>>({});
   
+  // Multi-select room states
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
+  
   // Form states
-  const [manualTeam, setManualTeam] = useState({ teamName: '', leaderName: '' });
   const [roomCredentials, setRoomCredentials] = useState({ roomId: '', password: '', scheduledTime: '' });
   const [selectedWinnerTeam, setSelectedWinnerTeam] = useState<string>('');
   const [processing, setProcessing] = useState(false);
@@ -157,7 +158,6 @@ const SchoolTournamentManage = () => {
       if (teamsRes.data) setTeams(teamsRes.data);
       if (roomsRes.data) {
         setRooms(roomsRes.data);
-        // Calculate rooms by round stats
         const roomStats: Record<number, { total: number; completed: number }> = {};
         roomsRes.data.forEach((room: any) => {
           if (!roomStats[room.round_number]) {
@@ -171,7 +171,7 @@ const SchoolTournamentManage = () => {
         setTournamentStats({ roomsByRound: roomStats });
       }
       
-      // Build room -> team_ids mapping (IMPORTANT: filter to this tournament rooms + fetch >1000 safely)
+      // Build room -> team_ids mapping
       const roomIds = (roomsRes.data || []).map((r: any) => r.id);
       if (roomIds.length > 0) {
         const { data: assignments, error: assignmentsError } = await supabase
@@ -193,6 +193,29 @@ const SchoolTournamentManage = () => {
       } else {
         setRoomAssignments({});
       }
+
+      // Fetch all player profiles for teams
+      if (teamsRes.data && teamsRes.data.length > 0) {
+        const allPlayerIds: string[] = [];
+        teamsRes.data.forEach((team: any) => {
+          if (team.leader_id) allPlayerIds.push(team.leader_id);
+          if (team.member_1_id) allPlayerIds.push(team.member_1_id);
+          if (team.member_2_id) allPlayerIds.push(team.member_2_id);
+          if (team.member_3_id) allPlayerIds.push(team.member_3_id);
+        });
+        const uniqueIds = [...new Set(allPlayerIds)];
+        if (uniqueIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, username, full_name, in_game_name, game_uid')
+            .in('user_id', uniqueIds);
+          if (profiles) {
+            const profileMap: Record<string, PlayerProfile> = {};
+            profiles.forEach(p => { profileMap[p.user_id] = p; });
+            setPlayerProfiles(profileMap);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching tournament:', error);
       toast.error('Failed to load tournament');
@@ -201,86 +224,15 @@ const SchoolTournamentManage = () => {
     }
   };
 
-  // Fetch player profiles for a room when viewing teams
-  const fetchRoomPlayerProfiles = async (room: Room) => {
-    if (!room) return;
-    
-    const teamIds = roomAssignments[room.id] || [];
-    const roomTeams = teams.filter(t => teamIds.includes(t.id));
-    
-    // Collect all player IDs
-    const playerIds: string[] = [];
-    roomTeams.forEach(team => {
-      if (team.leader_id) playerIds.push(team.leader_id);
-      if (team.member_1_id) playerIds.push(team.member_1_id);
-      if (team.member_2_id) playerIds.push(team.member_2_id);
-      if (team.member_3_id) playerIds.push(team.member_3_id);
-    });
-
-    if (playerIds.length === 0) return;
-
-    // Fetch profiles (only unique IDs)
-    const uniqueIds = [...new Set(playerIds)];
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('user_id, username, full_name, in_game_name, game_uid')
-      .in('user_id', uniqueIds);
-
-    if (profiles) {
-      const profileMap: Record<string, PlayerProfile> = {};
-      profiles.forEach(p => {
-        profileMap[p.user_id] = p;
-      });
-      setPlayerProfiles(prev => ({ ...prev, ...profileMap }));
-    }
-  };
-
   const handleViewRoomTeams = (room: Room) => {
     setSelectedRoom(room);
     setViewTeamsDialogOpen(true);
-    fetchRoomPlayerProfiles(room);
-  };
-
-  const handleAddManualTeam = async () => {
-    if (!manualTeam.teamName) {
-      toast.error('Please enter team name');
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      // Create a placeholder team with manual registration
-      const { error } = await supabase.from('school_tournament_teams').insert({
-        tournament_id: id,
-        team_name: manualTeam.teamName,
-        leader_id: user!.id, // Organizer as placeholder
-        registration_method: 'manual'
-      });
-
-      if (error) throw error;
-
-      // Update player count
-      await supabase
-        .from('school_tournaments')
-        .update({ current_players: (tournament?.current_players || 0) + 4 })
-        .eq('id', id);
-
-      toast.success('Team added successfully!');
-      setManualTeam({ teamName: '', leaderName: '' });
-      setAddTeamDialogOpen(false);
-      fetchTournamentData();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to add team');
-    } finally {
-      setProcessing(false);
-    }
   };
 
   const handleStartRound = async (roundNumber: number) => {
     if (!id) return;
     setProcessing(true);
     try {
-      // Prevent duplicate start: if rooms already exist for this round, don't call the RPC again
       const { data: existingRooms, error: existingRoomsError } = await supabase
         .from('school_tournament_rooms')
         .select('id')
@@ -304,7 +256,6 @@ const SchoolTournamentManage = () => {
         return;
       }
 
-      // Generate rooms for this round
       const { data, error } = await supabase.rpc('generate_tournament_round_rooms', {
         p_tournament_id: id,
         p_round_number: roundNumber
@@ -314,7 +265,6 @@ const SchoolTournamentManage = () => {
 
       toast.success(`Round ${roundNumber} started with ${data} rooms!`);
       
-      // Update tournament status
       await supabase
         .from('school_tournaments')
         .update({ 
@@ -334,7 +284,6 @@ const SchoolTournamentManage = () => {
   const handleStartNextRound = async () => {
     if (!tournament) return;
     
-    // CRITICAL: Prevent creating rounds beyond total_rounds
     if (tournament.current_round >= tournament.total_rounds) {
       toast.error('Tournament has reached finale. No more rounds can be created.');
       return;
@@ -342,18 +291,15 @@ const SchoolTournamentManage = () => {
     
     setProcessing(true);
     try {
-      // Determine which round to process based on room state
       const currentRoundRoomsCheck = rooms.filter(r => r.round_number === tournament.current_round);
       const previousRoundRoomsCheck = rooms.filter(r => r.round_number === (tournament.current_round - 1));
       
-      // If current round has no rooms but previous round rooms exist, we need to create current round rooms
       const needsCurrentRoundRooms = currentRoundRoomsCheck.length === 0 && previousRoundRoomsCheck.length > 0;
       
       const roundToProcess = needsCurrentRoundRooms 
-        ? tournament.current_round - 1 // Process from previous round
-        : tournament.current_round;      // Normal - process from current round
+        ? tournament.current_round - 1
+        : tournament.current_round;
       
-      // Call backend function to generate next round (it will delete old rooms + create new ones)
       const { data: result, error } = await supabase.functions.invoke('school-tournament-engine', {
         body: {
           action: 'start_next_round',
@@ -380,6 +326,23 @@ const SchoolTournamentManage = () => {
     }
   };
 
+  const handleEndTournament = async () => {
+    if (!tournament) return;
+    setProcessing(true);
+    try {
+      await supabase
+        .from('school_tournaments')
+        .update({ status: 'completed' })
+        .eq('id', id);
+      toast.success('Tournament ended successfully!');
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to end tournament');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleSetRoomCredentials = async () => {
     if (!selectedRoom || !roomCredentials.roomId || !roomCredentials.password) {
       toast.error('Please fill room ID and password');
@@ -394,7 +357,6 @@ const SchoolTournamentManage = () => {
         status: 'credentials_set'
       };
       
-      // Add scheduled time if provided
       if (roomCredentials.scheduledTime) {
         updateData.scheduled_time = new Date(roomCredentials.scheduledTime).toISOString();
       }
@@ -412,6 +374,80 @@ const SchoolTournamentManage = () => {
       fetchTournamentData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to save credentials');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStartRoom = async (roomId: string) => {
+    setProcessing(true);
+    try {
+      await supabase
+        .from('school_tournament_rooms')
+        .update({ status: 'in_progress' })
+        .eq('id', roomId);
+      toast.success('Room started!');
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to start room');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleEndRoom = async (roomId: string) => {
+    setProcessing(true);
+    try {
+      await supabase
+        .from('school_tournament_rooms')
+        .update({ status: 'completed' })
+        .eq('id', roomId);
+      toast.success('Room ended!');
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to end room');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleBulkStartRooms = async () => {
+    if (selectedRoomIds.length === 0) {
+      toast.error('Select at least one room');
+      return;
+    }
+    setProcessing(true);
+    try {
+      await supabase
+        .from('school_tournament_rooms')
+        .update({ status: 'in_progress' })
+        .in('id', selectedRoomIds);
+      toast.success(`${selectedRoomIds.length} rooms started!`);
+      setSelectedRoomIds([]);
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to start rooms');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleBulkEndRooms = async () => {
+    if (selectedRoomIds.length === 0) {
+      toast.error('Select at least one room');
+      return;
+    }
+    setProcessing(true);
+    try {
+      await supabase
+        .from('school_tournament_rooms')
+        .update({ status: 'completed' })
+        .in('id', selectedRoomIds);
+      toast.success(`${selectedRoomIds.length} rooms ended!`);
+      setSelectedRoomIds([]);
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to end rooms');
     } finally {
       setProcessing(false);
     }
@@ -449,6 +485,268 @@ const SchoolTournamentManage = () => {
     toast.success('Link copied!');
   };
 
+  const toggleRoomSelection = (roomId: string) => {
+    setSelectedRoomIds(prev => 
+      prev.includes(roomId) ? prev.filter(id => id !== roomId) : [...prev, roomId]
+    );
+  };
+
+  // PDF Generation Functions
+  const generateTeamsPDF = () => {
+    if (!tournament || teams.length === 0) return;
+    
+    const sortedTeams = [...teams].sort((a, b) => {
+      if (a.is_eliminated !== b.is_eliminated) return a.is_eliminated ? 1 : -1;
+      return 0;
+    });
+
+    const content = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${tournament.tournament_name} - Teams List</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    .header { text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { color: #1a1a1a; margin: 0 0 5px 0; font-size: 18px; }
+    .header p { color: #666; margin: 0; font-size: 12px; }
+    .brand { color: #f97316; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f97316; color: white; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .eliminated { background: #fee2e2 !important; text-decoration: line-through; opacity: 0.7; }
+    .team-number { font-weight: bold; background: #f97316; color: white; text-align: center; width: 30px; }
+    .footer { margin-top: 20px; text-align: center; color: #666; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${tournament.tournament_name}</h1>
+    <p>${tournament.school_name} | ${new Date(tournament.tournament_date).toLocaleDateString()}</p>
+    <p class="brand">VYUHA ESPORT</p>
+  </div>
+  
+  <h3>All Teams (${teams.length})</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Team Name</th>
+        <th>Leader</th>
+        <th>Member 2</th>
+        <th>Member 3</th>
+        <th>Member 4</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sortedTeams.map((team, index) => {
+        const leader = playerProfiles[team.leader_id];
+        const m1 = team.member_1_id ? playerProfiles[team.member_1_id] : null;
+        const m2 = team.member_2_id ? playerProfiles[team.member_2_id] : null;
+        const m3 = team.member_3_id ? playerProfiles[team.member_3_id] : null;
+        return `
+          <tr class="${team.is_eliminated ? 'eliminated' : ''}">
+            <td class="team-number">${index + 1}</td>
+            <td>${team.team_name}</td>
+            <td>${leader?.in_game_name || leader?.username || 'N/A'}</td>
+            <td>${m1?.in_game_name || m1?.username || '-'}</td>
+            <td>${m2?.in_game_name || m2?.username || '-'}</td>
+            <td>${m3?.in_game_name || m3?.username || '-'}</td>
+            <td>${team.is_eliminated ? 'Eliminated' : 'Active'}</td>
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+  </table>
+  <div class="footer">
+    <p>Generated on ${new Date().toLocaleString()} | © VYUHA ESPORT</p>
+  </div>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) printWindow.onload = () => printWindow.print();
+  };
+
+  const generateRoomPDF = (room: Room) => {
+    if (!tournament) return;
+    
+    const teamIds = roomAssignments[room.id] || [];
+    const roomTeams = teams.filter(t => teamIds.includes(t.id));
+
+    const content = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${room.room_name} - Teams</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    .header { text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { color: #1a1a1a; margin: 0 0 5px 0; font-size: 18px; }
+    .header p { color: #666; margin: 0; font-size: 12px; }
+    .brand { color: #f97316; font-weight: bold; }
+    .room-info { background: #fff3e0; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+    .room-info p { margin: 3px 0; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f97316; color: white; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .slot { font-weight: bold; background: #f97316; color: white; text-align: center; width: 30px; }
+    .footer { margin-top: 20px; text-align: center; color: #666; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${tournament.tournament_name}</h1>
+    <p>${tournament.school_name}</p>
+    <p class="brand">VYUHA ESPORT</p>
+  </div>
+  
+  <div class="room-info">
+    <p><strong>${room.room_name}</strong> | Round ${room.round_number}</p>
+    ${room.room_id ? `<p>Room ID: ${room.room_id} | Password: ${room.room_password}</p>` : ''}
+    ${room.scheduled_time ? `<p>Time: ${new Date(room.scheduled_time).toLocaleString()}</p>` : ''}
+  </div>
+  
+  <h3>Teams (${roomTeams.length})</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Slot</th>
+        <th>Team Name</th>
+        <th>Leader (IGN)</th>
+        <th>Leader UID</th>
+        <th>M2 IGN</th>
+        <th>M3 IGN</th>
+        <th>M4 IGN</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${roomTeams.map((team, index) => {
+        const leader = playerProfiles[team.leader_id];
+        const m1 = team.member_1_id ? playerProfiles[team.member_1_id] : null;
+        const m2 = team.member_2_id ? playerProfiles[team.member_2_id] : null;
+        const m3 = team.member_3_id ? playerProfiles[team.member_3_id] : null;
+        return `
+          <tr>
+            <td class="slot">${index + 1}</td>
+            <td>${team.team_name}</td>
+            <td>${leader?.in_game_name || leader?.username || 'N/A'}</td>
+            <td>${leader?.game_uid || '-'}</td>
+            <td>${m1?.in_game_name || m1?.username || '-'}</td>
+            <td>${m2?.in_game_name || m2?.username || '-'}</td>
+            <td>${m3?.in_game_name || m3?.username || '-'}</td>
+          </tr>
+        `;
+      }).join('')}
+    </tbody>
+  </table>
+  <div class="footer">
+    <p>Generated on ${new Date().toLocaleString()} | © VYUHA ESPORT</p>
+  </div>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) printWindow.onload = () => printWindow.print();
+  };
+
+  const generateAllRoomsPDF = () => {
+    if (!tournament || rooms.length === 0) return;
+    
+    const currentRound = tournament.current_round;
+    const roundRooms = rooms.filter(r => r.round_number === currentRound);
+    
+    let roomsContent = '';
+    roundRooms.forEach((room, roomIdx) => {
+      const teamIds = roomAssignments[room.id] || [];
+      const roomTeams = teams.filter(t => teamIds.includes(t.id));
+      
+      roomsContent += `
+        <div class="room-section ${roomIdx > 0 ? 'page-break' : ''}">
+          <div class="room-header">
+            <h3>${room.room_name}</h3>
+            ${room.room_id ? `<p>ID: ${room.room_id} | Pass: ${room.room_password}</p>` : ''}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Slot</th>
+                <th>Team</th>
+                <th>Leader</th>
+                <th>UID</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${roomTeams.map((team, idx) => {
+                const leader = playerProfiles[team.leader_id];
+                return `
+                  <tr>
+                    <td class="slot">${idx + 1}</td>
+                    <td>${team.team_name}</td>
+                    <td>${leader?.in_game_name || leader?.username || 'N/A'}</td>
+                    <td>${leader?.game_uid || '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+
+    const content = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Round ${currentRound} - All Rooms</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    .header { text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { color: #1a1a1a; margin: 0 0 5px 0; font-size: 18px; }
+    .brand { color: #f97316; font-weight: bold; }
+    .room-section { margin-bottom: 30px; }
+    .room-header { background: #f97316; color: white; padding: 8px 12px; border-radius: 4px 4px 0 0; }
+    .room-header h3 { margin: 0; font-size: 14px; }
+    .room-header p { margin: 3px 0 0 0; font-size: 11px; opacity: 0.9; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { padding: 6px; text-align: left; border: 1px solid #ddd; }
+    th { background: #333; color: white; }
+    .slot { font-weight: bold; text-align: center; width: 40px; }
+    .page-break { page-break-before: always; }
+    .footer { margin-top: 20px; text-align: center; color: #666; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${tournament.tournament_name} - Round ${currentRound}</h1>
+    <p class="brand">VYUHA ESPORT</p>
+  </div>
+  ${roomsContent}
+  <div class="footer">
+    <p>Generated on ${new Date().toLocaleString()}</p>
+  </div>
+</body>
+</html>
+    `;
+
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) printWindow.onload = () => printWindow.print();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'registration': return 'secondary';
@@ -460,22 +758,20 @@ const SchoolTournamentManage = () => {
   };
 
   const teamsPerRoom = tournament?.game === 'BGMI' ? 25 : 12;
+  
+  // Sort teams: active first, then eliminated
+  const sortedTeams = [...teams].sort((a, b) => {
+    if (a.is_eliminated !== b.is_eliminated) return a.is_eliminated ? 1 : -1;
+    return 0;
+  });
+  
   const activeTeams = teams.filter(t => !t.is_eliminated);
   const currentRoundRooms = rooms.filter(r => r.round_number === tournament?.current_round);
-  
-  // Check if previous round rooms need to be cleaned up and new round rooms created
   const previousRoundRooms = rooms.filter(r => r.round_number === (tournament?.current_round || 1) - 1);
   const hasPreviousRoundRoomsOnly = currentRoundRooms.length === 0 && previousRoundRooms.length > 0;
   const allPreviousRoomsCompleted = previousRoundRooms.every(r => r.status === 'completed');
   const allCurrentRoomsCompleted = currentRoundRooms.length > 0 && currentRoundRooms.every(r => r.status === 'completed');
-  
-  // CRITICAL: Don't allow next round if we're already at total_rounds (finale)
   const isAtFinale = (tournament?.current_round || 0) >= (tournament?.total_rounds || 999);
-  
-  // Show "Start Round X" button when:
-  // 1. NOT at finale already
-  // 2. Current round has no rooms but previous round rooms are all completed (need to create new round rooms)
-  // 3. OR Current round rooms exist and are all completed (ready for next round)
   const shouldShowStartNextRound = !isAtFinale && ((hasPreviousRoundRoomsOnly && allPreviousRoomsCompleted) || allCurrentRoomsCompleted);
   const nextRoundNumber = (tournament?.current_round || 1) + (hasPreviousRoundRoomsOnly ? 0 : 1);
 
@@ -483,7 +779,7 @@ const SchoolTournamentManage = () => {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       </AppLayout>
     );
@@ -493,8 +789,8 @@ const SchoolTournamentManage = () => {
     return (
       <AppLayout>
         <div className="text-center py-20">
-          <p className="text-muted-foreground">Tournament not found</p>
-          <Button className="mt-4" onClick={() => navigate('/school-tournament')}>
+          <p className="text-muted-foreground text-sm">Tournament not found</p>
+          <Button className="mt-4" size="sm" onClick={() => navigate('/school-tournament')}>
             Go Back
           </Button>
         </div>
@@ -505,75 +801,72 @@ const SchoolTournamentManage = () => {
   return (
     <AppLayout>
       <div className="pb-20">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-primary/20 to-primary/5 p-4">
+        {/* Header - Compact */}
+        <div className="bg-background/95 backdrop-blur-xl border-b p-3">
           <div className="flex items-center gap-2 mb-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/school-tournament')}>
-              <ArrowLeft className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/school-tournament')}>
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="flex-1">
-              <h1 className="text-lg font-bold">{tournament.tournament_name}</h1>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-sm font-bold truncate">{tournament.tournament_name}</h1>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <MapPin className="h-3 w-3" /> {tournament.school_name}
               </p>
             </div>
-            <Badge variant={getStatusColor(tournament.status)}>
+            <Badge variant={getStatusColor(tournament.status)} className="text-[10px]">
               {tournament.status}
             </Badge>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-4 gap-2 mt-4">
-            <div className="text-center p-2 bg-card rounded-lg">
-              <p className="text-lg font-bold">{tournament.current_players}</p>
-              <p className="text-xs text-muted-foreground">Players</p>
+          {/* Quick Stats - Compact Grid */}
+          <div className="grid grid-cols-4 gap-1.5">
+            <div className="text-center p-1.5 bg-card rounded-lg">
+              <p className="text-sm font-bold">{tournament.current_players}</p>
+              <p className="text-[10px] text-muted-foreground">Players</p>
             </div>
-            <div className="text-center p-2 bg-card rounded-lg">
-              <p className="text-lg font-bold">{teams.length}</p>
-              <p className="text-xs text-muted-foreground">Teams</p>
+            <div className="text-center p-1.5 bg-card rounded-lg">
+              <p className="text-sm font-bold">{teams.length}</p>
+              <p className="text-[10px] text-muted-foreground">Teams</p>
             </div>
-            <div className="text-center p-2 bg-card rounded-lg">
-              <p className="text-lg font-bold">{tournament.current_round}/{tournament.total_rounds}</p>
-              <p className="text-xs text-muted-foreground">Round</p>
+            <div className="text-center p-1.5 bg-card rounded-lg">
+              <p className="text-sm font-bold">{tournament.current_round}/{tournament.total_rounds}</p>
+              <p className="text-[10px] text-muted-foreground">Round</p>
             </div>
-            <div className="text-center p-2 bg-card rounded-lg">
-              <p className="text-lg font-bold">{activeTeams.length}</p>
-              <p className="text-xs text-muted-foreground">Active</p>
+            <div className="text-center p-1.5 bg-card rounded-lg">
+              <p className="text-sm font-bold">{activeTeams.length}</p>
+              <p className="text-[10px] text-muted-foreground">Active</p>
             </div>
           </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="flex gap-2 p-4 overflow-x-auto">
-          <Button size="sm" variant="outline" onClick={() => setQrDialogOpen(true)}>
-            <QrCode className="h-4 w-4 mr-1" /> QR Code
+        {/* Action Bar - Compact */}
+        <div className="flex gap-1.5 p-2 overflow-x-auto">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setQrDialogOpen(true)}>
+            <QrCode className="h-3 w-3 mr-1" /> QR
           </Button>
-          <Button size="sm" variant="outline" onClick={copyShareLink}>
-            <Share2 className="h-4 w-4 mr-1" /> Share
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={copyShareLink}>
+            <Share2 className="h-3 w-3 mr-1" /> Share
           </Button>
-          <Button size="sm" variant="outline" onClick={() => setAddTeamDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-1" /> Add Team
-          </Button>
-          <Button size="sm" variant="outline" onClick={fetchTournamentData}>
-            <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={fetchTournamentData}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Refresh
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="teams">Teams ({teams.length})</TabsTrigger>
-            <TabsTrigger value="rooms">Rooms ({rooms.length})</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="px-2">
+          <TabsList className="grid w-full grid-cols-3 h-9">
+            <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+            <TabsTrigger value="teams" className="text-xs">Teams ({teams.length})</TabsTrigger>
+            <TabsTrigger value="rooms" className="text-xs">Rooms ({rooms.length})</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="mt-4 space-y-4">
+          <TabsContent value="overview" className="mt-3 space-y-3">
             {/* Tournament Info */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Tournament Details</CardTitle>
+              <CardHeader className="pb-2 p-3">
+                <CardTitle className="text-xs">Tournament Details</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-1.5 text-xs p-3 pt-0">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Game</span>
                   <span className="font-medium">{tournament.game}</span>
@@ -583,43 +876,29 @@ const SchoolTournamentManage = () => {
                   <span className="font-medium">Squad (4 players)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Max Players</span>
-                  <span className="font-medium">{tournament.max_players}</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-muted-foreground">Teams/Room</span>
                   <span className="font-medium">{teamsPerRoom}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Entry Type</span>
-                  <span className="font-medium capitalize">{tournament.entry_type}</span>
-                </div>
                 {tournament.entry_type === 'paid' && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Entry Fee</span>
-                      <span className="font-medium">₹{tournament.entry_fee}/team</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Collected</span>
-                      <span className="font-medium text-green-500">₹{tournament.total_collected}</span>
-                    </div>
-                  </>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Collected</span>
+                    <span className="font-medium text-green-500">₹{tournament.total_collected}</span>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Private Code */}
             <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Join Code</p>
-                    <p className="text-2xl font-mono font-bold tracking-widest">
+                    <p className="text-xs text-muted-foreground">Join Code</p>
+                    <p className="text-xl font-mono font-bold tracking-widest">
                       {tournament.private_code}
                     </p>
                   </div>
-                  <Button size="sm" onClick={() => setQrDialogOpen(true)}>
+                  <Button size="sm" className="h-8" onClick={() => setQrDialogOpen(true)}>
                     <QrCode className="h-4 w-4" />
                   </Button>
                 </div>
@@ -637,33 +916,33 @@ const SchoolTournamentManage = () => {
 
             {/* Round Control */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Round Management</CardTitle>
-                <CardDescription>
+              <CardHeader className="pb-2 p-3">
+                <CardTitle className="text-xs">Round Management</CardTitle>
+                <CardDescription className="text-[10px]">
                   {tournament.status === 'registration' 
                     ? 'Start Round 1 when ready' 
                     : `Currently in ${tournament.status}`}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 pt-0">
                 {tournament.status === 'registration' && teams.length >= teamsPerRoom ? (
                   <Button 
-                    className="w-full" 
+                    className="w-full h-9 text-xs" 
                     onClick={() => handleStartRound(1)}
                     disabled={processing}
                   >
-                    {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                    {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
                     Start Round 1
                   </Button>
                 ) : tournament.status === 'registration' ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <p>Need at least {teamsPerRoom} teams to start</p>
-                    <p className="text-xs">Current: {teams.length} teams</p>
+                  <div className="text-center py-3 text-muted-foreground">
+                    <p className="text-xs">Need at least {teamsPerRoom} teams</p>
+                    <p className="text-[10px]">Current: {teams.length} teams</p>
                   </div>
                 ) : tournament.status !== 'completed' && tournament.status !== 'finale' ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Rooms Completed</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Rooms Completed</span>
                       <span className="font-bold">
                         {currentRoundRooms.length > 0 
                           ? `${currentRoundRooms.filter(r => r.status === 'completed').length} / ${currentRoundRooms.length}`
@@ -672,60 +951,64 @@ const SchoolTournamentManage = () => {
                       </span>
                     </div>
                     
-                    {/* Show Start Next Round button when ready */}
                     {shouldShowStartNextRound ? (
                       <Button 
-                        className="w-full" 
+                        className="w-full h-9 text-xs" 
                         onClick={() => handleStartNextRound()}
                         disabled={processing}
                       >
-                        {processing ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Play className="h-4 w-4 mr-2" />
-                        )}
+                        {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
                         {hasPreviousRoundRoomsOnly 
                           ? `Create Round ${tournament.current_round} Rooms`
                           : `Start Round ${nextRoundNumber}`
                         }
                       </Button>
                     ) : (
-                      <p className="text-xs text-center text-muted-foreground">
+                      <p className="text-[10px] text-center text-muted-foreground">
                         Complete all rooms to start next round
                       </p>
                     )}
                   </div>
                 ) : tournament.status === 'finale' ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="text-center">
-                      <Trophy className="h-8 w-8 mx-auto text-warning mb-2" />
-                      <p className="font-semibold text-sm">Grand Finale!</p>
-                      <p className="text-xs text-muted-foreground">{activeTeams.length} teams competing</p>
+                      <Trophy className="h-6 w-6 mx-auto text-yellow-500 mb-1" />
+                      <p className="font-semibold text-xs">Grand Finale!</p>
+                      <p className="text-[10px] text-muted-foreground">{activeTeams.length} teams competing</p>
                     </div>
                     
-                    {/* Finale Room Controls */}
                     {currentRoundRooms.length === 0 ? (
                       <Button 
-                        className="w-full" 
+                        className="w-full h-9 text-xs" 
                         onClick={() => handleStartRound(tournament.current_round)}
                         disabled={processing}
                       >
-                        {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                        {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Play className="h-3 w-3 mr-1" />}
                         Start Finale Room
+                      </Button>
+                    ) : allCurrentRoomsCompleted ? (
+                      <Button 
+                        className="w-full h-9 text-xs" 
+                        variant="destructive"
+                        onClick={handleEndTournament}
+                        disabled={processing}
+                      >
+                        {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <StopCircle className="h-3 w-3 mr-1" />}
+                        End Tournament
                       </Button>
                     ) : (
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Finale Room</span>
-                        <Badge variant={currentRoundRooms[0]?.status === 'completed' ? 'default' : 'secondary'}>
+                        <Badge variant={currentRoundRooms[0]?.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">
                           {currentRoundRooms[0]?.status || 'waiting'}
                         </Badge>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <CheckCircle className="h-8 w-8 mx-auto text-success mb-2" />
-                    <p className="font-semibold text-sm">Tournament Completed!</p>
+                  <div className="text-center py-3">
+                    <CheckCircle className="h-6 w-6 mx-auto text-green-500 mb-1" />
+                    <p className="font-semibold text-xs">Tournament Completed!</p>
                   </div>
                 )}
               </CardContent>
@@ -733,135 +1016,230 @@ const SchoolTournamentManage = () => {
           </TabsContent>
 
           {/* Teams Tab */}
-          <TabsContent value="teams" className="mt-4">
+          <TabsContent value="teams" className="mt-3">
+            <div className="flex justify-end mb-2">
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={generateTeamsPDF}>
+                <Download className="h-3 w-3 mr-1" /> Download PDF
+              </Button>
+            </div>
             <ScrollArea className="h-[60vh]">
-              <div className="space-y-2">
-                {teams.map((team, index) => (
-                  <Card key={team.id} className={team.is_eliminated ? 'opacity-50' : ''}>
-                    <CardContent className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold">
-                          {index + 1}
+              <div className="space-y-1.5">
+                {sortedTeams.map((team, index) => {
+                  // Find team's permanent number (1-indexed based on registration order)
+                  const permanentNumber = teams.findIndex(t => t.id === team.id) + 1;
+                  const leader = playerProfiles[team.leader_id];
+                  const m1 = team.member_1_id ? playerProfiles[team.member_1_id] : null;
+                  const m2 = team.member_2_id ? playerProfiles[team.member_2_id] : null;
+                  const m3 = team.member_3_id ? playerProfiles[team.member_3_id] : null;
+                  
+                  return (
+                    <Card key={team.id} className={team.is_eliminated ? 'opacity-50 border-destructive/30' : ''}>
+                      <CardContent className="p-2.5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
+                              {permanentNumber}
+                            </div>
+                            <div>
+                              <p className="font-medium text-xs">{team.team_name}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Round {team.current_round} • {team.registration_method}
+                              </p>
+                            </div>
+                          </div>
+                          {team.is_eliminated ? (
+                            <Badge variant="destructive" className="text-[10px]">Eliminated</Badge>
+                          ) : team.final_rank ? (
+                            <Badge className="text-[10px]">
+                              {team.final_rank === 1 && <Crown className="h-3 w-3 mr-1" />}
+                              #{team.final_rank}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px]">Active</Badge>
+                          )}
                         </div>
-                        <div>
-                          <p className="font-medium">{team.team_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Round {team.current_round} • {team.registration_method}
-                          </p>
+                        
+                        {/* Player Cards */}
+                        <div className="grid grid-cols-2 gap-1">
+                          {[
+                            { label: 'Leader', profile: leader },
+                            { label: 'M2', profile: m1 },
+                            { label: 'M3', profile: m2 },
+                            { label: 'M4', profile: m3 },
+                          ].map((player, pIdx) => (
+                            <div key={pIdx} className="bg-muted/50 rounded p-1.5 text-[10px]">
+                              <p className="text-muted-foreground">{player.label}</p>
+                              <p className="font-medium truncate">
+                                {player.profile?.in_game_name || player.profile?.username || '-'}
+                              </p>
+                              {player.profile?.game_uid && (
+                                <p className="text-muted-foreground truncate">UID: {player.profile.game_uid}</p>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      {team.is_eliminated ? (
-                        <Badge variant="destructive" className="text-xs">Eliminated</Badge>
-                      ) : team.final_rank ? (
-                        <Badge className="text-xs">
-                          {team.final_rank === 1 && <Crown className="h-3 w-3 mr-1" />}
-                          #{team.final_rank}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">Active</Badge>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </ScrollArea>
           </TabsContent>
 
           {/* Rooms Tab */}
-          <TabsContent value="rooms" className="mt-4">
+          <TabsContent value="rooms" className="mt-3">
             {rooms.length === 0 ? (
-              <Card className="text-center py-8">
+              <Card className="text-center py-6">
                 <CardContent>
-                  <Gamepad2 className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No rooms created yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Start a round to generate rooms
-                  </p>
+                  <Gamepad2 className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-xs text-muted-foreground">No rooms created yet</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Start a round to generate rooms</p>
                 </CardContent>
               </Card>
             ) : (
-              <ScrollArea className="h-[60vh]">
-                <div className="space-y-2">
-                  {rooms.map((room) => (
-                    <Card key={room.id}>
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-medium">{room.room_name}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>Round {room.round_number} • Room {room.room_number}</span>
-                              {room.scheduled_time && (
-                                <span className="flex items-center gap-1 text-primary">
-                                  <Timer className="h-3 w-3" />
-                                  {new Date(room.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <Badge variant={
-                            room.status === 'completed' ? 'default' :
-                            room.status === 'credentials_set' ? 'secondary' : 'outline'
-                          }>
-                            {room.status}
-                          </Badge>
-                        </div>
-
-                        {room.room_id && (
-                          <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded mb-2">
-                            <Lock className="h-3 w-3" />
-                            <span>ID: {room.room_id}</span>
-                            <span>•</span>
-                            <span>Pass: {room.room_password}</span>
-                          </div>
-                        )}
-
-                        <div className="flex gap-2 flex-wrap">
-                          {/* View Teams Button - always visible */}
-                          <Button 
-                            size="sm" 
-                            variant="secondary" 
-                            onClick={() => handleViewRoomTeams(room)}
-                          >
-                            <Eye className="h-3 w-3 mr-1" /> View Teams ({(roomAssignments[room.id] || []).length})
-                          </Button>
-                          
-                          {room.status === 'waiting' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="flex-1"
-                              onClick={() => {
-                                setSelectedRoom(room);
-                                setRoomDialogOpen(true);
-                              }}
-                            >
-                              <Lock className="h-3 w-3 mr-1" /> Set Credentials
-                            </Button>
-                          )}
-                          {room.status === 'credentials_set' && !room.winner_team_id && (
-                            <Button 
-                              size="sm" 
-                              className="flex-1"
-                              onClick={() => {
-                                setSelectedRoom(room);
-                                setDeclareWinnerDialogOpen(true);
-                              }}
-                            >
-                              <Trophy className="h-3 w-3 mr-1" /> Declare Winner
-                            </Button>
-                          )}
-                          {room.winner_team_id && (
-                            <div className="flex-1 text-center text-sm text-green-500">
-                              <CheckCircle className="h-4 w-4 inline mr-1" />
-                              Winner Declared
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+              <>
+                {/* Bulk Actions */}
+                <div className="flex gap-1.5 mb-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-8 text-xs flex-1"
+                    onClick={handleBulkStartRooms}
+                    disabled={selectedRoomIds.length === 0 || processing}
+                  >
+                    <Play className="h-3 w-3 mr-1" /> Start ({selectedRoomIds.length})
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-8 text-xs flex-1"
+                    onClick={handleBulkEndRooms}
+                    disabled={selectedRoomIds.length === 0 || processing}
+                  >
+                    <StopCircle className="h-3 w-3 mr-1" /> End ({selectedRoomIds.length})
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-8 text-xs"
+                    onClick={generateAllRoomsPDF}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
                 </div>
-              </ScrollArea>
+
+                <ScrollArea className="h-[55vh]">
+                  <div className="space-y-1.5">
+                    {rooms.map((room) => (
+                      <Card key={room.id}>
+                        <CardContent className="p-2.5">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Checkbox 
+                              checked={selectedRoomIds.includes(room.id)}
+                              onCheckedChange={() => toggleRoomSelection(room.id)}
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-xs">{room.room_name}</p>
+                                <Badge variant={
+                                  room.status === 'completed' ? 'default' :
+                                  room.status === 'in_progress' ? 'secondary' :
+                                  room.status === 'credentials_set' ? 'secondary' : 'outline'
+                                } className="text-[10px]">
+                                  {room.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                <span>R{room.round_number} • Room {room.room_number}</span>
+                                {room.scheduled_time && (
+                                  <span className="flex items-center gap-0.5 text-primary">
+                                    <Timer className="h-2.5 w-2.5" />
+                                    {new Date(room.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {room.room_id && (
+                            <div className="flex items-center gap-1.5 text-[10px] bg-muted p-1.5 rounded mb-2">
+                              <Lock className="h-2.5 w-2.5" />
+                              <span>ID: {room.room_id}</span>
+                              <span>•</span>
+                              <span>Pass: {room.room_password}</span>
+                            </div>
+                          )}
+
+                          <div className="flex gap-1 flex-wrap">
+                            <Button size="sm" variant="secondary" className="h-7 text-[10px]" onClick={() => handleViewRoomTeams(room)}>
+                              <Eye className="h-2.5 w-2.5 mr-0.5" /> Teams ({(roomAssignments[room.id] || []).length})
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => generateRoomPDF(room)}>
+                              <FileText className="h-2.5 w-2.5 mr-0.5" /> PDF
+                            </Button>
+                            
+                            {room.status === 'waiting' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 text-[10px]"
+                                onClick={() => {
+                                  setSelectedRoom(room);
+                                  setRoomDialogOpen(true);
+                                }}
+                              >
+                                <Lock className="h-2.5 w-2.5 mr-0.5" /> Credentials
+                              </Button>
+                            )}
+                            
+                            {(room.status === 'waiting' || room.status === 'credentials_set') && (
+                              <Button 
+                                size="sm" 
+                                variant="default" 
+                                className="h-7 text-[10px]"
+                                onClick={() => handleStartRoom(room.id)}
+                                disabled={processing}
+                              >
+                                <Play className="h-2.5 w-2.5 mr-0.5" /> Start
+                              </Button>
+                            )}
+                            
+                            {room.status === 'in_progress' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive" 
+                                  className="h-7 text-[10px]"
+                                  onClick={() => handleEndRoom(room.id)}
+                                  disabled={processing}
+                                >
+                                  <StopCircle className="h-2.5 w-2.5 mr-0.5" /> End
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  className="h-7 text-[10px]"
+                                  onClick={() => {
+                                    setSelectedRoom(room);
+                                    setDeclareWinnerDialogOpen(true);
+                                  }}
+                                >
+                                  <Trophy className="h-2.5 w-2.5 mr-0.5" /> Winner
+                                </Button>
+                              </>
+                            )}
+                            
+                            {room.winner_team_id && (
+                              <div className="flex items-center gap-1 text-[10px] text-green-500">
+                                <CheckCircle className="h-3 w-3" /> Done
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </>
             )}
           </TabsContent>
         </Tabs>
@@ -869,73 +1247,24 @@ const SchoolTournamentManage = () => {
 
       {/* QR Code Dialog */}
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle>Tournament QR Code</DialogTitle>
-            <DialogDescription>Scan to join the tournament</DialogDescription>
+            <DialogTitle className="text-sm">Tournament QR Code</DialogTitle>
+            <DialogDescription className="text-xs">Scan to join</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center py-4">
-            <div className="bg-white p-4 rounded-lg relative">
+          <div className="flex flex-col items-center py-3">
+            <div className="bg-white p-3 rounded-lg">
               <QRCodeCanvas
                 value={`${window.location.origin}/join-school-tournament/${tournament?.private_code}`}
-                size={200}
+                size={160}
                 level="H"
               />
-              {/* School Image in Center */}
-              {tournament?.school_image_url && (
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-white rounded-lg scale-125" />
-                    <img 
-                      src={tournament.school_image_url} 
-                      alt={tournament.school_name}
-                      className="relative w-12 h-12 object-cover rounded-lg ring-2 ring-primary"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
-            <p className="text-2xl font-mono font-bold mt-4 tracking-widest">
+            <p className="text-xl font-mono font-bold mt-3 tracking-widest">
               {tournament?.private_code}
             </p>
-            <Button className="mt-4 w-full" onClick={copyShareLink}>
-              <Share2 className="h-4 w-4 mr-2" /> Copy Join Link
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Team Dialog */}
-      <Dialog open={addTeamDialogOpen} onOpenChange={setAddTeamDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Team Manually</DialogTitle>
-            <DialogDescription>Register a team offline</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Team Name *</Label>
-              <Input
-                placeholder="Team Alpha"
-                value={manualTeam.teamName}
-                onChange={(e) => setManualTeam(prev => ({ ...prev, teamName: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label>Leader Name (Optional)</Label>
-              <Input
-                placeholder="Player Name"
-                value={manualTeam.leaderName}
-                onChange={(e) => setManualTeam(prev => ({ ...prev, leaderName: e.target.value }))}
-              />
-            </div>
-            <Button 
-              className="w-full" 
-              onClick={handleAddManualTeam}
-              disabled={processing}
-            >
-              {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Add Team
+            <Button className="mt-3 w-full h-9 text-xs" onClick={copyShareLink}>
+              <Share2 className="h-3 w-3 mr-1" /> Copy Join Link
             </Button>
           </div>
         </DialogContent>
@@ -943,48 +1272,47 @@ const SchoolTournamentManage = () => {
 
       {/* Room Credentials Dialog */}
       <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Set Room Credentials</DialogTitle>
-            <DialogDescription>{selectedRoom?.room_name}</DialogDescription>
+            <DialogTitle className="text-sm">Set Room Credentials</DialogTitle>
+            <DialogDescription className="text-xs">{selectedRoom?.room_name}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-2">
             <div>
-              <Label>Room ID *</Label>
+              <Label className="text-xs">Room ID *</Label>
               <Input
                 placeholder="Enter Room ID"
+                className="h-9 text-xs"
                 value={roomCredentials.roomId}
                 onChange={(e) => setRoomCredentials(prev => ({ ...prev, roomId: e.target.value }))}
               />
             </div>
             <div>
-              <Label>Password *</Label>
+              <Label className="text-xs">Password *</Label>
               <Input
                 placeholder="Enter Password"
+                className="h-9 text-xs"
                 value={roomCredentials.password}
                 onChange={(e) => setRoomCredentials(prev => ({ ...prev, password: e.target.value }))}
               />
             </div>
             <div>
-              <Label className="flex items-center gap-2">
-                <Timer className="h-4 w-4" />
-                Start Time (Optional)
+              <Label className="text-xs flex items-center gap-1">
+                <Timer className="h-3 w-3" /> Start Time (Optional)
               </Label>
               <Input
                 type="datetime-local"
+                className="h-9 text-xs"
                 value={roomCredentials.scheduledTime}
                 onChange={(e) => setRoomCredentials(prev => ({ ...prev, scheduledTime: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Each room can have its own start time
-              </p>
             </div>
             <Button 
-              className="w-full" 
+              className="w-full h-9 text-xs" 
               onClick={handleSetRoomCredentials}
               disabled={processing}
             >
-              {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+              {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
               Save Credentials
             </Button>
           </div>
@@ -993,37 +1321,36 @@ const SchoolTournamentManage = () => {
 
       {/* Declare Winner Dialog */}
       <Dialog open={declareWinnerDialogOpen} onOpenChange={setDeclareWinnerDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Declare Room Winner</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-sm">Declare Room Winner</DialogTitle>
+            <DialogDescription className="text-xs">
               {selectedRoom?.room_name} - Select the winning team
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-2">
-                {/* Filter teams by room assignments, not by current_round */}
+          <div className="py-2">
+            <ScrollArea className="h-[250px]">
+              <div className="space-y-1.5">
                 {selectedRoom && roomAssignments[selectedRoom.id] ? (
                   teams
                     .filter(t => roomAssignments[selectedRoom.id]?.includes(t.id))
                     .map((team) => (
                       <button
                         key={team.id}
-                        className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                        className={`w-full p-2.5 rounded-lg border text-left transition-colors text-xs ${
                           selectedWinnerTeam === team.id 
                             ? 'border-primary bg-primary/10' 
                             : 'border-muted hover:bg-muted'
                         }`}
                         onClick={() => setSelectedWinnerTeam(team.id)}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           {selectedWinnerTeam === team.id && (
-                            <Crown className="h-5 w-5 text-yellow-500" />
+                            <Crown className="h-4 w-4 text-yellow-500" />
                           )}
                           <div>
                             <p className="font-medium">{team.team_name}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] text-muted-foreground">
                               {team.registration_method} registration
                             </p>
                           </div>
@@ -1031,47 +1358,43 @@ const SchoolTournamentManage = () => {
                       </button>
                     ))
                 ) : (
-                  <p className="text-center text-muted-foreground py-4">
+                  <p className="text-center text-muted-foreground py-4 text-xs">
                     No teams assigned to this room
                   </p>
                 )}
               </div>
             </ScrollArea>
             <Button 
-              className="w-full mt-4" 
+              className="w-full mt-3 h-9 text-xs" 
               onClick={handleDeclareRoomWinner}
               disabled={!selectedWinnerTeam || processing}
             >
-              {processing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Trophy className="h-4 w-4 mr-2" />
-              )}
+              {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trophy className="h-3 w-3 mr-1" />}
               Confirm Winner
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* View Teams Dialog - Shows teams in a room with player details */}
+      {/* View Teams Dialog */}
       <Dialog open={viewTeamsDialogOpen} onOpenChange={setViewTeamsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <Users className="h-4 w-4" />
               {selectedRoom?.room_name}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs">
               {(roomAssignments[selectedRoom?.id || ''] || []).length} teams assigned
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[400px] mt-4">
-            <div className="space-y-3">
+          <ScrollArea className="flex-1 mt-2">
+            <div className="space-y-2">
               {selectedRoom && roomAssignments[selectedRoom.id] ? (
                 teams
                   .filter(t => roomAssignments[selectedRoom.id]?.includes(t.id))
                   .map((team, idx) => {
-                    // Get player IDs for this team
+                    const permanentNumber = teams.findIndex(t => t.id === team.id) + 1;
                     const playerIds = [
                       team.leader_id,
                       team.member_1_id,
@@ -1081,25 +1404,22 @@ const SchoolTournamentManage = () => {
 
                     return (
                       <Card key={team.id}>
-                        <CardContent className="p-3">
+                        <CardContent className="p-2.5">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
-                                {idx + 1}
+                              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+                                {permanentNumber}
                               </div>
-                              <span className="font-medium">{team.team_name}</span>
+                              <span className="font-medium text-xs">{team.team_name}</span>
                             </div>
-                            {team.is_eliminated && (
-                              <Badge variant="destructive" className="text-xs">Eliminated</Badge>
-                            )}
+                            <Badge variant="outline" className="text-[10px]">Slot {idx + 1}</Badge>
                           </div>
-                          {/* Player Details */}
-                          <div className="space-y-1 text-xs">
+                          <div className="space-y-1">
                             {playerIds.map((pid, pIdx) => {
                               const profile = playerProfiles[pid as string];
                               return (
-                                <div key={pid} className="flex items-center gap-2 p-1.5 bg-muted/50 rounded">
-                                  <span className="text-muted-foreground w-6">P{pIdx + 1}</span>
+                                <div key={pid} className="flex items-center gap-2 p-1.5 bg-muted/50 rounded text-[10px]">
+                                  <span className="text-muted-foreground w-5">P{pIdx + 1}</span>
                                   <div className="flex-1">
                                     <span className="font-medium">
                                       {profile?.in_game_name || profile?.username || 'Player ' + (pIdx + 1)}
@@ -1111,21 +1431,18 @@ const SchoolTournamentManage = () => {
                                     )}
                                   </div>
                                   {pIdx === 0 && (
-                                    <Badge variant="secondary" className="text-xs py-0">Leader</Badge>
+                                    <Badge variant="secondary" className="text-[8px] py-0">Leader</Badge>
                                   )}
                                 </div>
                               );
                             })}
-                            {playerIds.length === 0 && (
-                              <p className="text-muted-foreground italic">No players registered yet</p>
-                            )}
                           </div>
                         </CardContent>
                       </Card>
                     );
                   })
               ) : (
-                <p className="text-center text-muted-foreground py-8">
+                <p className="text-center text-muted-foreground py-6 text-xs">
                   No teams in this room
                 </p>
               )}
