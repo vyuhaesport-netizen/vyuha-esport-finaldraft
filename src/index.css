@@ -422,6 +422,11 @@
     display: none;
   }
 
+  /* Gaming Gradient for Buttons */
+  .gaming-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--gaming-purple)) 100%);
+  }
+
   /* Gradient Backgrounds */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--gaming-purple)) 100%);
