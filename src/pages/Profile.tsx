@@ -373,106 +373,109 @@ const ProfilePage = () => {
       </AppLayout>;
   }
   return <AppLayout>
-      {/* Profile Header */}
-      <div className="bg-card px-4 pt-4 pb-3">
+      {/* Profile Header - Enhanced */}
+      <div className="bg-gradient-to-br from-card via-card to-primary/5 px-4 pt-5 pb-4 border-b border-border/50">
         {/* Username above avatar - left aligned */}
-        <h1 className="font-bold text-lg text-foreground mb-2 pl-1">
+        <h1 className="font-bold text-xl text-foreground mb-3">
           @{profile?.username || 'username'}
         </h1>
 
         <div className="flex items-center gap-4">
           {/* Avatar on left */}
-          <div className="shrink-0">
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
+          <div className="shrink-0 relative">
+            <Avatar className="h-20 w-20 border-3 border-primary/30 shadow-xl">
               <AvatarImage src={profile?.avatar_url || ''} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white text-2xl font-bold">
                 {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-success border-2 border-background flex items-center justify-center">
+              <User className="h-3 w-3 text-white" />
+            </div>
           </div>
 
           {/* Details on right */}
           <div className="flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-              <p className="font-medium text-sm text-foreground">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <p className="font-semibold text-base text-foreground">
                 {profile?.full_name || 'Gamer'}
               </p>
-              {isSuperAdmin && <Badge className="bg-gradient-to-r from-primary to-orange-500 text-primary-foreground text-[9px]">
-                  <Crown className="h-2 w-2 mr-0.5" /> Owner
+              {isSuperAdmin && <Badge className="bg-gradient-to-r from-primary to-orange-500 text-white text-[10px] shadow-sm">
+                  <Crown className="h-2.5 w-2.5 mr-1" /> Owner
                 </Badge>}
-              {isAdmin && !isSuperAdmin && <Badge className="bg-primary/10 text-primary text-[9px]">
-                  <Shield className="h-2 w-2 mr-0.5" /> Team
+              {isAdmin && !isSuperAdmin && <Badge className="bg-primary/15 text-primary text-[10px]">
+                  <Shield className="h-2.5 w-2.5 mr-1" /> Team
                 </Badge>}
-              {isOrganizer && <Badge className="bg-purple-500/10 text-purple-600 text-[9px]">
-                  <UserCheck className="h-2 w-2 mr-0.5" /> Organizer
+              {isOrganizer && <Badge className="bg-purple-500/15 text-purple-600 text-[10px]">
+                  <UserCheck className="h-2.5 w-2.5 mr-1" /> Organizer
                 </Badge>}
             </div>
-            {profile?.in_game_name && <p className="text-xs text-foreground">
-                <Gamepad2 className="h-3 w-3 inline mr-1 text-primary" />
+            {profile?.in_game_name && <p className="text-sm text-foreground">
+                <Gamepad2 className="h-3.5 w-3.5 inline mr-1.5 text-primary" />
                 {profile.in_game_name}
               </p>}
-            {profile?.game_uid && <p className="text-[10px] text-muted-foreground mt-0.5">
-                <Hash className="h-2.5 w-2.5 inline mr-0.5" />
+            {profile?.game_uid && <p className="text-xs text-muted-foreground mt-0.5">
+                <Hash className="h-3 w-3 inline mr-1" />
                 UID: {profile.game_uid}
               </p>}
           </div>
         </div>
 
-        <button onClick={() => setEditDialogOpen(true)} className="w-full mt-3 py-2 bg-primary hover:bg-primary/90 text-xs font-medium rounded-lg border border-primary/50 transition-colors text-primary-foreground shadow-sm">
+        <button onClick={() => setEditDialogOpen(true)} className="w-full mt-4 py-2.5 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 text-sm font-semibold rounded-xl border border-primary/50 transition-all text-white shadow-lg">
           Edit Profile
         </button>
       </div>
 
-      <div className="h-1.5 bg-muted/40" />
+      <div className="h-2 bg-muted/40" />
 
       {/* Account Section */}
-      <div className="px-4 pt-3">
-        <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Account</h3>
-        <div className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden divide-y divide-border/50">
+      <div className="px-4 pt-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Account</h3>
+        <div className="glass-card rounded-2xl overflow-hidden divide-y divide-border/50">
           
           {/* Admin Panel - Only for Admins */}
-          {isAdmin && <button onClick={() => navigate('/admin')} className="w-full bg-gradient-to-r from-primary/5 to-orange-500/5 hover:from-primary/10 hover:to-orange-500/10 p-3 flex items-center gap-2.5 transition-colors">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-white" />
+          {isAdmin && <button onClick={() => navigate('/admin')} className="w-full bg-gradient-to-r from-primary/10 to-orange-500/10 hover:from-primary/15 hover:to-orange-500/15 p-4 flex items-center gap-3 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center shadow-lg">
+                <Shield className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-medium text-xs">Admin Panel</p>
-                  {isSuperAdmin ? <Badge className="bg-gradient-to-r from-primary to-orange-500 text-white text-[8px] px-1 py-0">Super Admin</Badge> : <Badge variant="secondary" className="text-[8px] px-1 py-0">Team Member</Badge>}
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm text-foreground">Admin Panel</p>
+                  {isSuperAdmin ? <Badge className="bg-gradient-to-r from-primary to-orange-500 text-white text-[9px] px-1.5 py-0">Super Admin</Badge> : <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Team Member</Badge>}
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {isSuperAdmin ? 'Full access to all admin features' : 'Access your assigned admin sections'}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 text-primary" />
+              <ChevronRight className="h-5 w-5 text-primary" />
             </button>}
 
           {/* Organizer Dashboard - Only for Organizers */}
-          {isOrganizer && <button onClick={() => navigate('/organizer')} className="w-full bg-gradient-to-r from-purple-500/5 to-pink-500/5 hover:from-purple-500/10 hover:to-pink-500/10 p-3 flex items-center gap-2.5 transition-colors">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <Trophy className="h-4 w-4 text-white" />
+          {isOrganizer && <button onClick={() => navigate('/organizer')} className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/15 hover:to-pink-500/15 p-4 flex items-center gap-3 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                <Trophy className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <p className="font-medium text-xs">Organizer Dashboard</p>
-                <p className="text-[10px] text-muted-foreground">Manage your tournaments & earnings</p>
+                <p className="font-semibold text-sm text-foreground">Organizer Dashboard</p>
+                <p className="text-xs text-muted-foreground">Manage your tournaments & earnings</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-purple-500" />
+              <ChevronRight className="h-5 w-5 text-purple-500" />
             </button>}
 
           {/* Creator Dashboard - Only for Creators */}
-          {isCreator && <button onClick={() => navigate('/creator')} className="w-full bg-gradient-to-r from-blue-500/5 to-cyan-500/5 hover:from-blue-500/10 hover:to-cyan-500/10 p-3 flex items-center gap-2.5 transition-colors">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Gamepad2 className="h-4 w-4 text-white" />
+          {isCreator && <button onClick={() => navigate('/creator')} className="w-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 hover:from-blue-500/15 hover:to-cyan-500/15 p-4 flex items-center gap-3 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                <Gamepad2 className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <p className="font-medium text-xs">Creator Dashboard</p>
-                <p className="text-[10px] text-muted-foreground">Manage your creator tournaments</p>
+                <p className="font-semibold text-sm text-foreground">Creator Dashboard</p>
+                <p className="text-xs text-muted-foreground">Manage your creator tournaments</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-blue-500" />
+              <ChevronRight className="h-5 w-5 text-blue-500" />
             </button>}
 
           {/* Local Tournament - Available for all users */}
-          <button onClick={() => navigate('/local-tournament')} className="w-full bg-gradient-to-r from-green-500/5 to-emerald-500/5 hover:from-green-500/10 hover:to-emerald-500/10 p-4 flex items-center gap-3 transition-colors">
+          <button onClick={() => navigate('/local-tournament')} className="w-full bg-gradient-to-r from-green-500/10 to-emerald-500/10 hover:from-green-500/15 hover:to-emerald-500/15 p-4 flex items-center gap-3 transition-colors">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
               <Building2 className="h-5 w-5 text-white" />
             </div>
@@ -489,10 +492,12 @@ const ProfilePage = () => {
       {/* Menu Items */}
       <div className="px-4 pt-4">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Menu</h3>
-        <div className="bg-card rounded-xl border border-border shadow-sm divide-y divide-border">
-          {menuItems.map(item => <button key={item.label} onClick={item.onClick} className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors first:rounded-t-xl last:rounded-b-xl">
-              <item.icon className="h-5 w-5 text-muted-foreground" />
-              <span className="flex-1 text-left text-sm font-medium text-foreground">{item.label}</span>
+        <div className="glass-card rounded-2xl divide-y divide-border/50 overflow-hidden">
+          {menuItems.map(item => <button key={item.label} onClick={item.onClick} className="w-full flex items-center gap-3.5 p-4 hover:bg-muted/50 transition-colors">
+              <div className="w-9 h-9 rounded-xl bg-muted/70 flex items-center justify-center">
+                <item.icon className="h-4.5 w-4.5 text-foreground" />
+              </div>
+              <span className="flex-1 text-left text-sm font-semibold text-foreground">{item.label}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>)}
         </div>
@@ -506,7 +511,7 @@ const ProfilePage = () => {
       {/* Settings Section */}
       <div className="px-4 pt-4">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Settings</h3>
-        <div className="bg-card rounded-xl border border-border shadow-sm divide-y divide-border overflow-hidden">
+        <div className="glass-card rounded-2xl divide-y divide-border/50 overflow-hidden">
           <ThemeToggle variant="full" />
         </div>
       </div>
@@ -514,30 +519,30 @@ const ProfilePage = () => {
       {/* More Section */}
       <div className="px-4 pt-4">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">More</h3>
-        <div className="bg-card rounded-xl border border-border shadow-sm divide-y divide-border">
-          {moreItems.map(item => <button key={item.label} onClick={item.onClick} className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors first:rounded-t-xl last:rounded-b-xl">
-              <item.icon className="h-5 w-5 text-muted-foreground" />
-              <span className="flex-1 text-left text-sm font-medium text-foreground">{item.label}</span>
+        <div className="glass-card rounded-2xl divide-y divide-border/50 overflow-hidden">
+          {moreItems.map(item => <button key={item.label} onClick={item.onClick} className="w-full flex items-center gap-3.5 p-4 hover:bg-muted/50 transition-colors">
+              <div className="w-9 h-9 rounded-xl bg-muted/70 flex items-center justify-center">
+                <item.icon className="h-4.5 w-4.5 text-muted-foreground" />
+              </div>
+              <span className="flex-1 text-left text-sm font-semibold text-foreground">{item.label}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>)}
         </div>
       </div>
 
       {/* Logout */}
-      <div className="px-4 pt-4">
-        <Button variant="outline" className="w-full text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleSignOut}>
+      <div className="px-4 pt-5">
+        <Button variant="outline" className="w-full h-12 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive font-semibold rounded-xl" onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           Logout
         </Button>
       </div>
 
-      {/* Social Links moved to About Us page */}
-
       {/* Footer with Logo */}
-      <div className="px-4 pt-6 pb-8">
+      <div className="px-4 pt-8 pb-10">
         <div className="flex flex-col items-center">
-          <img src={vyuhaLogo} alt="Vyuha Esport" className="h-12 w-12 rounded-full mb-4 opacity-80" />
-          <p className="text-[10px] text-muted-foreground/60">
+          <img src={vyuhaLogo} alt="Vyuha Esport" className="h-14 w-14 rounded-full mb-4 opacity-80 shadow-lg" />
+          <p className="text-xs text-muted-foreground/60">
             © 2024 Vyuha Esport. All rights reserved.
           </p>
         </div>
