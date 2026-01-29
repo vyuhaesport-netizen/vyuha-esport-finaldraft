@@ -82,7 +82,7 @@
     --input: 0 0% 83%;
     --ring: 161 93% 30%;
 
-    --radius: 1rem;
+    --radius: 1.125rem;
 
     /* Sidebar - Light */
     --sidebar-background: 220 20% 98%;
@@ -218,7 +218,7 @@
     --glass-tab-text: hsl(0 0% 70%);
     --glass-tab-active-text: hsl(0 0% 100%);
     --sidebar: 0 0% 14%;
-    --radius: 1rem;
+    --radius: 1.125rem;
   }
 }
 
