@@ -24,10 +24,10 @@ gsap.registerPlugin(ScrollTrigger);
 const emailSchema = z.string().email('Invalid email');
 const passwordSchema = z.string().min(6, 'Min 6 characters');
 
-// Glitch Text Component
-const GlitchText = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
+// Simple Text Component (removed glitch to fix flickering)
+const AccentText = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
   return (
-    <span className={`glitch-text relative inline-block ${className}`} data-text={children}>
+    <span className={`${className}`}>
       {children}
     </span>
   );
@@ -296,136 +296,65 @@ const Landing = () => {
         url="https://vyuhaesport.in"
       />
       
-      {/* Glitch CSS */}
+      {/* Tactical Terminal CSS */}
       <style>{`
-        @keyframes glitch {
-          0% { transform: translate(0); }
-          20% { transform: translate(-2px, 2px); }
-          40% { transform: translate(-2px, -2px); }
-          60% { transform: translate(2px, 2px); }
-          80% { transform: translate(2px, -2px); }
-          100% { transform: translate(0); }
-        }
-        
-        @keyframes glitch-skew {
-          0% { transform: skew(0deg); }
-          20% { transform: skew(-1deg); }
-          40% { transform: skew(1deg); }
-          60% { transform: skew(-0.5deg); }
-          80% { transform: skew(0.5deg); }
-          100% { transform: skew(0deg); }
-        }
-        
-        .glitch-text {
-          animation: glitch-skew 4s infinite linear alternate-reverse;
-        }
-        
-        .glitch-text::before,
-        .glitch-text::after {
-          content: attr(data-text);
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-        }
-        
-        .glitch-text::before {
-          left: 2px;
-          text-shadow: -2px 0 #ff00ff;
-          clip: rect(24px, 550px, 90px, 0);
-          animation: glitch 3s infinite linear alternate-reverse;
-        }
-        
-        .glitch-text::after {
-          left: -2px;
-          text-shadow: -2px 0 #00ffff;
-          clip: rect(85px, 550px, 140px, 0);
-          animation: glitch 2s infinite linear alternate-reverse;
-        }
-        
-        .glitch-underline {
+        .tactical-underline {
           position: relative;
         }
         
-        .glitch-underline::after {
+        .tactical-underline::after {
           content: '';
           position: absolute;
           bottom: -4px;
           left: 0;
           right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #6366f1, #a855f7, #06b6d4);
-          animation: glitch 2s infinite linear alternate-reverse;
+          height: 2px;
+          background: #00ff00;
         }
       `}</style>
       
-      <div ref={containerRef} className="min-h-screen bg-[#0a0a0f] overflow-hidden text-white">
+      <div ref={containerRef} className="min-h-screen bg-[#0a0a0a] overflow-hidden text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
         
-        {/* Cyberpunk Background - Static (No Mouse Effects) */}
+        {/* Tactical Terminal Background */}
         <div ref={particleContainerRef} className="fixed inset-0 pointer-events-none overflow-hidden">
-          {/* Animated particles */}
-          {[...Array(25)].map((_, i) => (
-            <div
-              key={i}
-              className="cyber-particle absolute rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${Math.random() * 3 + 1}px`,
-                height: `${Math.random() * 3 + 1}px`,
-                background: i % 3 === 0 
-                  ? 'rgba(99, 102, 241, 0.5)' 
-                  : i % 3 === 1 
-                    ? 'rgba(139, 92, 246, 0.5)' 
-                    : 'rgba(6, 182, 212, 0.4)',
-                boxShadow: i % 3 === 0 
-                  ? '0 0 10px rgba(99, 102, 241, 0.6)' 
-                  : i % 3 === 1 
-                    ? '0 0 10px rgba(139, 92, 246, 0.6)' 
-                    : '0 0 10px rgba(6, 182, 212, 0.5)',
-              }}
-            />
-          ))}
+          {/* Static gradient orbs - Green themed */}
+          <div className="absolute -top-20 -left-20 w-[400px] h-[400px] rounded-full blur-[100px] bg-[#00ff00]/10" />
+          <div className="absolute top-1/2 -right-32 w-[350px] h-[350px] rounded-full blur-[100px] bg-[#00ff00]/5" />
+          <div className="absolute -bottom-20 left-1/3 w-[300px] h-[300px] rounded-full blur-[100px] bg-[#00ff00]/8" />
           
-          {/* Static gradient orbs */}
-          <div className="absolute -top-20 -left-20 w-[400px] h-[400px] rounded-full blur-[80px] bg-indigo-600/20" />
-          <div className="absolute top-1/2 -right-32 w-[350px] h-[350px] rounded-full blur-[80px] bg-purple-600/15" />
-          <div className="absolute -bottom-20 left-1/3 w-[300px] h-[300px] rounded-full blur-[80px] bg-cyan-600/15" />
-          
-          {/* Cyberpunk grid */}
+          {/* Grid pattern */}
           <div 
-            className="absolute inset-0 opacity-[0.02]"
+            className="absolute inset-0 opacity-[0.03]"
             style={{
               backgroundImage: `
-                linear-gradient(to right, rgba(99, 102, 241, 0.4) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(99, 102, 241, 0.4) 1px, transparent 1px)
+                linear-gradient(to right, rgba(0, 255, 0, 0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 255, 0, 0.3) 1px, transparent 1px)
               `,
               backgroundSize: '50px 50px',
             }}
           />
         </div>
 
-        {/* Glassmorphic Navbar - Compact */}
+        {/* Tactical Navbar */}
         <header className="fixed top-0 left-0 right-0 z-50 px-3 py-2">
-          <nav className="max-w-5xl mx-auto flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10">
+          <nav className="max-w-5xl mx-auto flex items-center justify-between px-4 py-2.5 rounded-lg bg-[#0d0d0d]/90 backdrop-blur-xl border border-[#1a1a1a]">
             <div className="flex items-center gap-2">
-              <img src={vyuhaLogo} alt="Vyuha" className="h-7 w-7 rounded-full object-cover ring-1 ring-indigo-500/50" />
-              <span className="font-bold text-sm bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">VYUHA</span>
+              <img src={vyuhaLogo} alt="Vyuha" className="h-7 w-7 rounded-full object-cover ring-1 ring-[#00ff00]/50" />
+              <span className="font-bold text-sm text-[#00ff00] tracking-wider">VYUHA</span>
             </div>
             <div className="flex gap-2">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setAuthDialog('login')} 
-                className="text-[10px] h-7 px-2 text-white/80 hover:text-white hover:bg-white/10"
+                className="text-sm h-8 px-4 text-white/80 hover:text-[#00ff00] hover:bg-[#00ff00]/10 font-semibold tracking-wide"
               >
                 Login
               </Button>
               <Button 
                 size="sm" 
                 onClick={() => setAuthDialog('signup')} 
-                className="text-[10px] h-7 px-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border border-indigo-400/30"
+                className="text-sm h-8 px-4 bg-[#00ff00] hover:bg-[#00dd00] text-black font-bold tracking-wide"
               >
                 Sign Up
               </Button>
@@ -433,30 +362,30 @@ const Landing = () => {
           </nav>
         </header>
 
-        {/* Hero Section - Compact with Glitch Effect */}
+        {/* Hero Section - Tactical Terminal Theme */}
         <section ref={heroRef} className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 pt-16 pb-12">
-          {/* Logo with glow effect - Smaller */}
+          {/* Logo with green glow effect */}
           <div className="relative mb-5">
-            <div className="absolute inset-0 bg-indigo-500/25 rounded-full blur-2xl scale-150" />
+            <div className="absolute inset-0 bg-[#00ff00]/20 rounded-full blur-2xl scale-150" />
             <img 
               ref={logoRef}
               src={vyuhaLogo} 
               alt="Vyuha Esport" 
-              className="relative h-20 w-20 md:h-24 md:w-24 rounded-full object-cover ring-2 ring-indigo-500/50 shadow-xl shadow-indigo-500/30"
+              className="relative h-20 w-20 md:h-24 md:w-24 rounded-full object-cover ring-2 ring-[#00ff00]/50 shadow-xl shadow-[#00ff00]/20"
             />
           </div>
           
-          {/* Headline with Glitch Effect */}
+          {/* Headline */}
           <h1 
             ref={titleRef}
-            className="text-2xl md:text-4xl lg:text-5xl font-black text-center mb-4 leading-tight"
+            className="text-2xl md:text-4xl lg:text-5xl font-black text-center mb-4 leading-tight tracking-tight"
           >
-            <GlitchText className="bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+            <AccentText className="text-[#00ff00]">
               VYUHA ESPORTS
-            </GlitchText>
+            </AccentText>
             <br />
             <span className="text-base md:text-xl lg:text-2xl font-bold text-white/90 block mt-2">
-              The Stage for <span className="glitch-underline text-cyan-400">Underdogs</span>
+              The Stage for <span className="tactical-underline text-[#00ff00]">Underdogs</span>
             </span>
           </h1>
           
@@ -471,41 +400,41 @@ const Landing = () => {
             <Button 
               size="default" 
               onClick={() => setAuthDialog('signup')}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/30 gap-1.5 group px-5 py-2 text-xs font-semibold"
+              className="bg-[#00ff00] hover:bg-[#00dd00] text-black shadow-lg shadow-[#00ff00]/25 gap-1.5 group px-5 py-2.5 text-sm font-bold tracking-wide"
             >
-              <Gamepad2 className="h-3.5 w-3.5" />
+              <Gamepad2 className="h-4 w-4" />
               Start Playing
-              <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Button>
             <Button 
               size="default" 
               variant="ghost"
-              className="bg-transparent border border-white/20 text-white/80 hover:bg-white/10 hover:text-white gap-1.5 px-5 py-2 text-xs"
+              className="bg-transparent border border-[#00ff00]/30 text-[#00ff00] hover:bg-[#00ff00]/10 hover:text-[#00ff00] gap-1.5 px-5 py-2.5 text-sm font-semibold"
               onClick={() => window.open('https://www.instagram.com/vyuha_freefire?igsh=M3N6bnVncDJ4azVs', '_blank')}
             >
-              <Instagram className="h-3.5 w-3.5" />
+              <Instagram className="h-4 w-4" />
               Join Community
             </Button>
           </div>
 
           {/* Scroll indicator */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-bounce">
-            <div className="w-5 h-8 rounded-full border border-white/30 flex items-start justify-center p-1.5">
-              <div className="w-0.5 h-1.5 bg-white/50 rounded-full" />
+            <div className="w-5 h-8 rounded-full border border-[#00ff00]/30 flex items-start justify-center p-1.5">
+              <div className="w-0.5 h-1.5 bg-[#00ff00]/50 rounded-full" />
             </div>
           </div>
         </section>
 
-        {/* Tournament Lobby Section - Compact */}
+        {/* Tournament Lobby Section - Tactical Theme */}
         <section ref={tournamentRef} className="relative z-10 px-3 py-10">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30">
-                <Trophy className="h-4 w-4 text-indigo-400" />
+              <div className="p-2 rounded-lg bg-[#00ff00]/10 border border-[#00ff00]/30">
+                <Trophy className="h-4 w-4 text-[#00ff00]" />
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-bold text-white">Tournament Lobby</h2>
-                <p className="text-white/50 text-[10px]">Live matches happening now</p>
+                <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">Tournament Lobby</h2>
+                <p className="text-white/50 text-[10px] tracking-wider uppercase">Live matches happening now</p>
               </div>
             </div>
             
@@ -513,28 +442,28 @@ const Landing = () => {
               {liveTournaments.map((tournament) => (
                 <div
                   key={tournament.id}
-                  className="tournament-card group relative p-3 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 transition-all duration-300 cursor-pointer overflow-hidden"
+                  className="tournament-card group relative p-3 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a] hover:border-[#00ff00]/50 transition-all duration-300 cursor-pointer overflow-hidden"
                   onMouseMove={handleCardTilt}
                   onMouseLeave={handleCardTiltReset}
                   style={{ transformStyle: 'preserve-3d' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/0 via-purple-600/0 to-cyan-600/0 group-hover:from-indigo-600/5 group-hover:via-purple-600/5 group-hover:to-cyan-600/5 transition-all duration-300" />
+                  <div className="absolute inset-0 bg-[#00ff00]/0 group-hover:bg-[#00ff00]/5 transition-all duration-300" />
                   
                   <div className="relative flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-600/30 to-purple-600/30 flex items-center justify-center border border-indigo-500/30">
-                        <Gamepad2 className="h-4 w-4 text-indigo-400" />
+                      <div className="h-9 w-9 rounded-lg bg-[#00ff00]/10 flex items-center justify-center border border-[#00ff00]/30">
+                        <Gamepad2 className="h-4 w-4 text-[#00ff00]" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-xs text-white group-hover:text-indigo-300 transition-colors">{tournament.name}</h3>
+                        <h3 className="font-semibold text-xs text-white group-hover:text-[#00ff00] transition-colors">{tournament.name}</h3>
                         <p className="text-[10px] text-white/50">{tournament.players} players</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold text-cyan-400">{tournament.prize}</div>
-                      <div className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full inline-block ${
+                      <div className="text-sm font-bold text-[#00ff00]">{tournament.prize}</div>
+                      <div className={`text-[9px] font-semibold px-1.5 py-0.5 rounded inline-block ${
                         tournament.status === 'LIVE' 
-                          ? 'bg-green-500/20 text-green-400' 
+                          ? 'bg-[#00ff00]/20 text-[#00ff00]' 
                           : 'bg-yellow-500/20 text-yellow-400'
                       }`}>
                         ● {tournament.status}
@@ -547,76 +476,76 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* Dashboard Preview Section - Compact */}
+        {/* Dashboard Preview Section - Tactical Theme */}
         <section ref={dashboardRef} className="relative z-10 px-3 py-10">
           <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-2 mb-5">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border border-cyan-500/30">
-                <User className="h-4 w-4 text-cyan-400" />
+              <div className="p-2 rounded-lg bg-[#00ff00]/10 border border-[#00ff00]/30">
+                <User className="h-4 w-4 text-[#00ff00]" />
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-bold text-white">Player Dashboard</h2>
-                <p className="text-white/50 text-[10px]">Your gaming command center</p>
+                <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">Player Dashboard</h2>
+                <p className="text-white/50 text-[10px] tracking-wider uppercase">Your gaming command center</p>
               </div>
             </div>
             
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10">
+            <div className="p-4 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a]">
               {/* Dashboard Header */}
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <User className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#1a1a1a]">
+                <div className="h-10 w-10 rounded-lg bg-[#00ff00]/20 flex items-center justify-center border border-[#00ff00]/30">
+                  <User className="h-5 w-5 text-[#00ff00]" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-sm">Pro_Underdog_42</h3>
-                  <p className="text-[10px] text-cyan-400">⭐ Elite Player</p>
+                  <p className="text-[10px] text-[#00ff00]">⭐ Elite Player</p>
                 </div>
               </div>
               
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-2">
                 {dashboardFeatures.map((feature, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
-                    <feature.icon className={`h-4 w-4 ${feature.color} mb-1.5`} />
-                    <div className={`text-base font-bold ${feature.color}`}>{feature.value}</div>
+                  <div key={i} className="p-3 rounded-lg bg-[#0a0a0a] border border-[#1a1a1a]">
+                    <feature.icon className="h-4 w-4 text-[#00ff00] mb-1.5" />
+                    <div className="text-base font-bold text-[#00ff00]">{feature.value}</div>
                     <div className="text-[9px] text-white/50">{feature.label}</div>
                   </div>
                 ))}
               </div>
               
               {/* Quick Stats */}
-              <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20">
+              <div className="mt-4 p-3 rounded-lg bg-[#00ff00]/5 border border-[#00ff00]/20">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-white/60">Tournaments</span>
                   <span className="text-white font-semibold">47</span>
                 </div>
                 <div className="flex items-center justify-between text-xs mt-1.5">
                   <span className="text-white/60">Total Winnings</span>
-                  <span className="text-green-400 font-semibold">₹12,450</span>
+                  <span className="text-[#00ff00] font-semibold">₹12,450</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Features Grid - Compact */}
+        {/* Features Grid - Tactical Theme */}
         <section ref={featuresRef} className="relative z-10 px-3 py-10">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-lg md:text-xl font-bold text-center mb-2 text-white">
-              <GlitchText>Why Vyuha?</GlitchText>
+            <h2 className="text-lg md:text-xl font-bold text-center mb-2 text-white tracking-wide">
+              <AccentText>Why <span className="text-[#00ff00]">Vyuha</span>?</AccentText>
             </h2>
-            <p className="text-white/50 text-[10px] text-center mb-6">Built by gamers, for gamers</p>
+            <p className="text-white/50 text-[10px] text-center mb-6 tracking-wider uppercase">Built by gamers, for gamers</p>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {features.map((feature, i) => (
                 <div 
                   key={i} 
-                  className="feature-card p-3 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10 hover:border-indigo-500/40 transition-all duration-300 group cursor-pointer"
+                  className="feature-card p-3 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a] hover:border-[#00ff00]/40 transition-all duration-300 group cursor-pointer"
                   onMouseMove={handleCardTilt}
                   onMouseLeave={handleCardTiltReset}
                   style={{ transformStyle: 'preserve-3d' }}
                 >
-                  <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-2.5 shadow-lg group-hover:scale-105 transition-transform`}>
-                    <feature.icon className="h-4 w-4 text-white" />
+                  <div className="h-9 w-9 rounded-lg bg-[#00ff00]/10 border border-[#00ff00]/30 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                    <feature.icon className="h-4 w-4 text-[#00ff00]" />
                   </div>
                   <h3 className="font-bold text-white text-[11px] mb-0.5">{feature.title}</h3>
                   <p className="text-[9px] text-white/50">{feature.desc}</p>
@@ -626,43 +555,43 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* Groq AI Integration Section - Compact */}
+        {/* AI Integration Section - Tactical Theme */}
         <section ref={aiRef} className="relative z-10 px-3 py-10">
           <div className="max-w-3xl mx-auto">
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-900/30 via-indigo-900/30 to-cyan-900/30 backdrop-blur-xl border border-purple-500/20 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-transparent to-cyan-600/5" />
+            <div className="p-5 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a] relative overflow-hidden">
+              <div className="absolute inset-0 bg-[#00ff00]/[0.02]" />
               
               <div className="relative">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-600/30 to-cyan-600/30 border border-purple-500/30">
-                    <Brain className="h-4 w-4 text-purple-400" />
+                  <div className="p-2 rounded-lg bg-[#00ff00]/10 border border-[#00ff00]/30">
+                    <Brain className="h-4 w-4 text-[#00ff00]" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">
-                      <GlitchText>Powered by AI</GlitchText>
+                    <h2 className="text-lg font-bold text-white tracking-wide">
+                      <AccentText>Powered by <span className="text-[#00ff00]">AI</span></AccentText>
                     </h2>
-                    <p className="text-white/50 text-[10px]">Smart gaming insights</p>
+                    <p className="text-white/50 text-[10px] tracking-wider uppercase">Smart gaming insights</p>
                   </div>
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <div className="flex items-start gap-2">
-                      <Cpu className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                      <Cpu className="h-4 w-4 text-[#00ff00] mt-0.5 flex-shrink-0" />
                       <div>
                         <h4 className="font-semibold text-white text-xs">Match Analysis</h4>
                         <p className="text-[10px] text-white/50">AI-powered gameplay breakdown</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Star className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                      <Star className="h-4 w-4 text-[#00ff00] mt-0.5 flex-shrink-0" />
                       <div>
                         <h4 className="font-semibold text-white text-xs">Performance Tips</h4>
                         <p className="text-[10px] text-white/50">Personalized recommendations</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Target className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                      <Target className="h-4 w-4 text-[#00ff00] mt-0.5 flex-shrink-0" />
                       <div>
                         <h4 className="font-semibold text-white text-xs">Opponent Insights</h4>
                         <p className="text-[10px] text-white/50">Know your competition</p>
@@ -671,10 +600,10 @@ const Landing = () => {
                   </div>
                   <div className="flex items-center justify-center">
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-xl blur-lg opacity-20" />
-                      <div className="relative px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-purple-500/30">
-                        <Brain className="h-10 w-10 text-purple-400 mx-auto mb-1" />
-                        <p className="text-[9px] text-white/60 text-center">Groq AI</p>
+                      <div className="absolute inset-0 bg-[#00ff00]/20 rounded-lg blur-lg" />
+                      <div className="relative px-4 py-3 rounded-lg bg-[#00ff00]/10 border border-[#00ff00]/30">
+                        <Brain className="h-10 w-10 text-[#00ff00] mx-auto mb-1" />
+                        <p className="text-[9px] text-white/60 text-center">AI Engine</p>
                       </div>
                     </div>
                   </div>
@@ -684,32 +613,32 @@ const Landing = () => {
           </div>
         </section>
 
-        {/* About Creator - Compact */}
+        {/* About Creator - Tactical Theme */}
         <section className="relative z-10 px-3 py-10 pb-28">
           <div 
             ref={aboutRef}
-            className="max-w-3xl mx-auto p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl border border-white/10"
+            className="max-w-3xl mx-auto p-4 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a]"
           >
             <div className="flex items-center gap-3 mb-3">
               <img 
                 src="/abhishek-shukla.jpg" 
                 alt="Abhishek Shukla" 
-                className="h-12 w-12 rounded-full object-cover ring-2 ring-indigo-500/50"
+                className="h-12 w-12 rounded-full object-cover ring-2 ring-[#00ff00]/50"
               />
               <div>
                 <h3 className="font-bold text-white text-sm">Abhishek Shukla</h3>
-                <p className="text-[10px] text-indigo-400 font-medium">Founder & CEO</p>
+                <p className="text-[10px] text-[#00ff00] font-medium">Founder & CEO</p>
               </div>
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed">
               An 18-year-old engineering student and tech enthusiast who built Vyuha to bridge the gap between casual gaming and professional esports.
             </p>
-            <div className="mt-3 pt-3 border-t border-white/10">
+            <div className="mt-3 pt-3 border-t border-[#1a1a1a]">
               <a 
                 href="https://instagram.com/abhishek.shhh" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+                className="text-xs text-[#00ff00] hover:text-[#00dd00] transition-colors flex items-center gap-1"
               >
                 <Instagram className="h-3 w-3" />
                 @abhishek.shhh
@@ -719,9 +648,9 @@ const Landing = () => {
         </section>
 
         {/* CTA Footer - Fixed Button */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/95 to-transparent">
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent">
           <Button 
-            className="w-full max-w-sm mx-auto flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-xl shadow-indigo-500/25 border border-indigo-400/30 py-5 text-sm font-semibold"
+            className="w-full max-w-sm mx-auto flex items-center justify-center gap-2 bg-[#00ff00] hover:bg-[#00dd00] text-black shadow-xl shadow-[#00ff00]/25 py-5 text-sm font-bold tracking-wide"
             onClick={() => setAuthDialog('signup')}
           >
             <Gamepad2 className="h-4 w-4" />
