@@ -15,7 +15,7 @@ const AppLayout = ({ children, title, showBack = false, hideBottomNav = false }:
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto relative">
+    <div className="min-h-screen bg-background flex flex-col w-full max-w-[420px] mx-auto relative">
       {/* Subtle background pattern */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -right-40 w-60 h-60 bg-primary/3 rounded-full blur-3xl" />

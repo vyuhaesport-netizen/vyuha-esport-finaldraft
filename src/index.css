@@ -65,6 +65,9 @@
     --warning-foreground: 0 0% 0%;
 
     --border: 256 1.3% 92.9%;
+    /* Strong borders (used for cards) */
+    --border-strong: 265 4% 12.9% / 12%;
+    --border-strong-hover: 265 4% 12.9% / 18%;
     --input: 256 1.3% 92.9%;
     --ring: 257 4% 70.4%;
 
@@ -96,8 +99,8 @@
     --chart-5: 70 18.8% 76.9%;
 
     /* Typography */
-    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-display: 'Space Grotesk', var(--font-sans);
+    --font-sans: 'Rajdhani', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-display: 'Rajdhani', var(--font-sans);
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
     /* Shadows - Light Theme with visible shadows */
@@ -162,6 +165,8 @@
     --warning-foreground: 0 0% 0%;
 
     --border: 0 0% 100% / 10%;
+    --border-strong: 0 0% 100% / 30%;
+    --border-strong-hover: 0 0% 100% / 40%;
     --input: 0 0% 100% / 15%;
     --ring: 264 2.7% 55.1%;
 
@@ -259,7 +264,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(180%);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    border: 2px solid hsl(0 0% 100% / 0.30);
+    border: 2px solid hsl(var(--border-strong));
     box-shadow: 
       var(--glass-shadow),
       inset 0 1px 0 hsl(0 0% 100% / 0.15),
@@ -268,7 +273,7 @@
   }
 
   .glass-card:hover {
-    border-color: hsl(0 0% 100% / 0.40);
+    border-color: hsl(var(--border-strong-hover));
     box-shadow: 
       var(--glass-shadow),
       inset 0 1px 0 hsl(0 0% 100% / 0.2),
@@ -279,7 +284,7 @@
   .premium-card {
     @apply relative overflow-hidden rounded-2xl;
     background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.95) 100%);
-    border: 2px solid hsl(0 0% 100% / 0.30);
+    border: 2px solid hsl(var(--border-strong));
     box-shadow: 
       0 4px 20px hsl(var(--foreground) / 0.06),
       0 0 0 1px hsl(var(--border) / 0.1);
@@ -288,7 +293,7 @@
 
   .premium-card:hover {
     transform: translateY(-4px);
-    border-color: hsl(0 0% 100% / 0.40);
+    border-color: hsl(var(--border-strong-hover));
     box-shadow: 
       0 12px 40px hsl(var(--primary) / 0.12),
       0 0 0 1px hsl(var(--primary) / 0.2);
@@ -308,7 +313,7 @@
   .stat-card {
     @apply relative overflow-hidden rounded-xl p-3;
     background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.5) 100%);
-    border: 2px solid hsl(0 0% 100% / 0.30);
+    border: 2px solid hsl(var(--border-strong));
   }
 
   .stat-card::after {
