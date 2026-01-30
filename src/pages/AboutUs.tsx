@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import AppLayout from '@/components/layout/AppLayout';
 import SEOHead from '@/components/SEOHead';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card } from '@/components/ui/card';
 import { 
   Trophy, Target, Gamepad2, Users, Shield, Star, 
   Zap, Eye, Heart, Smartphone, Lock, Scale, 
@@ -121,15 +122,15 @@ const AboutUs = () => {
       <AppLayout title="About Us" showBack>
       <div className="p-4 pb-8 space-y-5">
         {/* Hero Section */}
-        <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-xl border border-border p-5 overflow-hidden">
+        <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-xl border-2 border-borderStrong p-4 overflow-hidden">
           <div className="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-20 h-20 bg-primary/5 rounded-full translate-y-1/2 -translate-x-1/2" />
           
           <div className="relative text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 border border-border mb-4 shadow-md">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 border-2 border-borderStrong mb-3 shadow-md">
               <Swords className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold mb-2.5 tracking-tight">VYUHA ESPORT</h1>
+            <h1 className="text-xl font-bold mb-2 tracking-tight">VYUHA ESPORT</h1>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
               India's Mobile-First Competitive Gaming Platform — Where Every Gamer Has a Stage
             </p>
@@ -137,7 +138,7 @@ const AboutUs = () => {
         </div>
 
         {/* The Meaning of Vyuha */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+        <Card variant="glass" className="overflow-hidden">
           <div className="flex items-center gap-2.5 p-4 border-b border-border bg-primary/5">
             <div className="p-2 rounded-lg bg-primary/10">
               <Target className="h-5 w-5 text-primary" />
@@ -155,10 +156,10 @@ const AboutUs = () => {
               Vyuha Esport embodies this philosophy as a digital battleground designed for the modern strategist. We are an ecosystem where <strong className="text-foreground">every gamer has a stage</strong>, and <strong className="text-foreground">every organizer has the tools to build an empire</strong>.
             </p>
           </div>
-        </div>
+        </Card>
 
         {/* What We Do */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+        <Card variant="glass" className="overflow-hidden">
           <div className="flex items-center gap-2.5 p-4 border-b border-border bg-primary/5">
             <div className="p-2 rounded-lg bg-primary/10">
               <Gamepad2 className="h-5 w-5 text-primary" />
@@ -173,21 +174,21 @@ const AboutUs = () => {
               We organize competitive gaming tournaments for:
             </p>
             <div className="grid grid-cols-1 gap-2.5">
-              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/50 border border-border">
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/40 border-2 border-borderStrong">
                 <Award className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium">Daily Scrims & Community Cups</p>
                   <p className="text-xs text-muted-foreground">One-click registration for instant action</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/50 border border-border">
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/40 border-2 border-borderStrong">
                 <Users2 className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium">School & College Tournaments</p>
                   <p className="text-xs text-muted-foreground">Campus-level competitive gaming events</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/50 border border-border">
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-secondary/40 border-2 border-borderStrong">
                 <Trophy className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium">Local & Regional Events</p>
@@ -196,20 +197,20 @@ const AboutUs = () => {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Platform Stats */}
         <div className="grid grid-cols-3 gap-2.5">
-          <div className="bg-card rounded-lg border border-border p-4 text-center">
-            <p className="text-xl font-bold text-primary">1000+</p>
+          <div className="stat-card text-center">
+            <p className="text-lg font-bold text-primary">1000+</p>
             <p className="text-xs text-muted-foreground">Tournaments</p>
           </div>
-          <div className="bg-card rounded-lg border border-border p-4 text-center">
-            <p className="text-xl font-bold text-green-500">₹50L+</p>
+          <div className="stat-card text-center">
+            <p className="text-lg font-bold text-success">₹50L+</p>
             <p className="text-xs text-muted-foreground">Prize Money</p>
           </div>
-          <div className="bg-card rounded-lg border border-border p-4 text-center">
-            <p className="text-xl font-bold text-blue-500">10K+</p>
+          <div className="stat-card text-center">
+            <p className="text-lg font-bold text-gaming-blue">10K+</p>
             <p className="text-xs text-muted-foreground">Players</p>
           </div>
         </div>
@@ -218,10 +219,10 @@ const AboutUs = () => {
         <div className="space-y-3">
           <h2 className="font-bold text-base px-1">Our Three Pillars</h2>
           <div className="grid grid-cols-1 gap-2.5">
-            <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+            <div className="glass-card rounded-lg p-4">
               <div className="flex items-center gap-2.5 mb-2.5">
-                <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <Eye className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-primary/10 border-2 border-borderStrong">
+                  <Eye className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="font-bold text-sm">Transparency</h3>
               </div>
@@ -230,10 +231,10 @@ const AboutUs = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+            <div className="glass-card rounded-lg p-4">
               <div className="flex items-center gap-2.5 mb-2.5">
-                <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/20">
-                  <Users className="h-5 w-5 text-green-600" />
+                <div className="p-2 rounded-lg bg-primary/10 border-2 border-borderStrong">
+                  <Users className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="font-bold text-sm">Community</h3>
               </div>
@@ -242,10 +243,10 @@ const AboutUs = () => {
               </p>
             </div>
 
-            <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+            <div className="glass-card rounded-lg p-4">
               <div className="flex items-center gap-2.5 mb-2.5">
-                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <Star className="h-5 w-5 text-amber-600" />
+                <div className="p-2 rounded-lg bg-primary/10 border-2 border-borderStrong">
+                  <Star className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="font-bold text-sm">Opportunity</h3>
               </div>
@@ -257,14 +258,14 @@ const AboutUs = () => {
         </div>
 
         {/* Technology & Trust */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+        <Card variant="glass" className="overflow-hidden">
           <div className="flex items-center gap-2 p-3 border-b border-border bg-primary/5">
             <div className="p-1.5 rounded-lg bg-primary/10">
               <Smartphone className="h-4 w-4 text-primary" />
             </div>
             <div>
               <h2 className="font-bold text-sm">Mobile-First Revolution</h2>
-              <p className="text-[10px] text-muted-foreground">Built for Speed & Accessibility</p>
+              <p className="text-xs text-muted-foreground">Built for Speed & Accessibility</p>
             </div>
           </div>
           <div className="p-3 space-y-3">
@@ -275,30 +276,30 @@ const AboutUs = () => {
               <div className="flex items-start gap-1.5 p-2 rounded-lg bg-secondary/50">
                 <Zap className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-[10px] font-medium">Fast & Lightweight</p>
-                  <p className="text-[9px] text-muted-foreground">Works on all devices</p>
+                  <p className="text-xs font-medium">Fast & Lightweight</p>
+                  <p className="text-xs text-muted-foreground">Works on all devices</p>
                 </div>
               </div>
               <div className="flex items-start gap-1.5 p-2 rounded-lg bg-secondary/50">
                 <Lock className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-[10px] font-medium">Enterprise Security</p>
-                  <p className="text-[9px] text-muted-foreground">Data encrypted</p>
+                  <p className="text-xs font-medium">Enterprise Security</p>
+                  <p className="text-xs text-muted-foreground">Data encrypted</p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Legal Compliance */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+        <Card variant="glass" className="overflow-hidden">
           <div className="flex items-center gap-2 p-3 border-b border-border bg-primary/5">
             <div className="p-1.5 rounded-lg bg-primary/10">
               <Scale className="h-4 w-4 text-primary" />
             </div>
             <div>
               <h2 className="font-bold text-sm">Legal & Compliance</h2>
-              <p className="text-[10px] text-muted-foreground">100% Legal "Game of Skill"</p>
+              <p className="text-xs text-muted-foreground">100% Legal "Game of Skill"</p>
             </div>
           </div>
           <div className="p-3 space-y-2">
@@ -306,28 +307,28 @@ const AboutUs = () => {
               Vyuha operates strictly under Indian laws. Our tournaments are classified as <strong className="text-foreground">"Games of Skill"</strong> as defined by the Supreme Court of India.
             </p>
             <div className="flex flex-wrap gap-1.5">
-              <span className="px-2 py-1 rounded-full text-[10px] font-medium bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
                 Zero Gambling
               </span>
-              <span className="px-2 py-1 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gaming-blue/10 text-gaming-blue border border-gaming-blue/20">
                 MeitY Compliant
               </span>
-              <span className="px-2 py-1 rounded-full text-[10px] font-medium bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                 No Betting
               </span>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Fair Play */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+        <Card variant="glass" className="overflow-hidden">
           <div className="flex items-center gap-2 p-3 border-b border-border bg-primary/5">
             <div className="p-1.5 rounded-lg bg-primary/10">
               <Shield className="h-4 w-4 text-primary" />
             </div>
             <div>
               <h2 className="font-bold text-sm">Fair Play & Anti-Cheat</h2>
-              <p className="text-[10px] text-muted-foreground">Skill, Not Hacks</p>
+              <p className="text-xs text-muted-foreground">Skill, Not Hacks</p>
             </div>
           </div>
           <div className="p-3 space-y-2">
@@ -359,10 +360,10 @@ const AboutUs = () => {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Contact Section */}
-        <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-xl border border-border p-4">
+        <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-xl border-2 border-borderStrong p-4">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="h-4 w-4 text-primary" />
             <h2 className="font-bold text-sm">Get in Touch</h2>
@@ -371,11 +372,11 @@ const AboutUs = () => {
             Have questions, want to organize a tournament for your school/college, or need support? We're here!
           </p>
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border">
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border-2 border-borderStrong">
               <Mail className="h-3 w-3 text-primary" />
               <span className="text-xs">vyuhaesport@gmail.com</span>
             </div>
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border border-border">
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-card border-2 border-borderStrong">
               <Phone className="h-3 w-3 text-primary" />
               <span className="text-xs">In-App Support 24/7</span>
             </div>
@@ -384,14 +385,14 @@ const AboutUs = () => {
 
         {/* Social Links Section */}
         {(socialLinks.discord || socialLinks.instagram || socialLinks.youtube) && (
-          <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+          <Card variant="glass" className="overflow-hidden">
             <div className="flex items-center gap-2 p-3 border-b border-border bg-primary/5">
               <div className="p-1.5 rounded-lg bg-primary/10">
                 <ExternalLink className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <h2 className="font-bold text-sm">Connect With Us</h2>
-                <p className="text-[10px] text-muted-foreground">Follow us on social media</p>
+                <p className="text-xs text-muted-foreground">Follow us on social media</p>
               </div>
             </div>
             <div className="p-3">
@@ -401,12 +402,12 @@ const AboutUs = () => {
                     href={socialLinks.discord}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors min-w-[60px]"
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-secondary/40 border-2 border-borderStrong hover:bg-secondary/60 transition-colors min-w-[60px]"
                   >
-                    <svg className="h-6 w-6 text-indigo-500" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
                     </svg>
-                    <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">Discord</span>
+                    <span className="text-xs font-medium text-foreground">Discord</span>
                   </a>
                 )}
                 {socialLinks.instagram && (
@@ -414,10 +415,10 @@ const AboutUs = () => {
                     href={socialLinks.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-pink-500/10 border border-pink-500/20 hover:bg-pink-500/20 transition-colors min-w-[60px]"
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-secondary/40 border-2 border-borderStrong hover:bg-secondary/60 transition-colors min-w-[60px]"
                   >
-                    <Instagram className="h-6 w-6 text-pink-500" />
-                    <span className="text-[10px] font-medium text-pink-600 dark:text-pink-400">Instagram</span>
+                    <Instagram className="h-6 w-6 text-primary" />
+                    <span className="text-xs font-medium text-foreground">Instagram</span>
                   </a>
                 )}
                 {socialLinks.youtube && (
@@ -425,45 +426,45 @@ const AboutUs = () => {
                     href={socialLinks.youtube}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors min-w-[60px]"
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-secondary/40 border-2 border-borderStrong hover:bg-secondary/60 transition-colors min-w-[60px]"
                   >
-                    <Youtube className="h-6 w-6 text-red-500" />
-                    <span className="text-[10px] font-medium text-red-600 dark:text-red-400">YouTube</span>
+                    <Youtube className="h-6 w-6 text-primary" />
+                    <span className="text-xs font-medium text-foreground">YouTube</span>
                   </a>
                 )}
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Founder Section - Moved to bottom */}
-        <div className="bg-gradient-to-br from-purple-500/10 via-primary/5 to-transparent rounded-xl border border-border overflow-hidden shadow-sm">
-          <div className="flex items-center gap-2 p-3 border-b border-border bg-purple-500/5">
-            <div className="p-1.5 rounded-lg bg-purple-500/10">
-              <Sparkles className="h-4 w-4 text-purple-600" />
+        <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-xl border-2 border-borderStrong overflow-hidden">
+          <div className="flex items-center gap-2 p-3 border-b border-border bg-primary/5">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div>
               <h2 className="font-bold text-sm">Meet The Creator</h2>
-              <p className="text-[10px] text-muted-foreground">The Mind Behind Vyuha</p>
+              <p className="text-xs text-muted-foreground">The Mind Behind Vyuha</p>
             </div>
           </div>
           <div className="p-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20 border-2 border-purple-500/30 shadow-lg">
+              <Avatar className="h-20 w-20 border-2 border-borderStrong shadow-lg">
                 <AvatarImage src={abhishekImage} alt="Abhishek Shukla - Founder of Vyuha Esport" />
-                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-primary text-white text-lg font-bold">AS</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">AS</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <h3 className="font-bold text-base" itemProp="name">Abhishek Shukla</h3>
-                <p className="text-xs text-purple-600 dark:text-purple-400 font-medium" itemProp="jobTitle">Founder & Creator of Vyuha Esport</p>
+                <p className="text-xs text-muted-foreground font-medium" itemProp="jobTitle">Founder & Creator of Vyuha Esport</p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/40 text-foreground border border-borderStrong">
                     🎓 Engineering Student
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/40 text-foreground border border-borderStrong">
                     18 Years Old
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/40 text-foreground border border-borderStrong">
                     🧠 Tech Genius
                   </span>
                 </div>
@@ -480,20 +481,20 @@ const AboutUs = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 itemProp="sameAs"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 hover:from-pink-500/30 hover:to-purple-500/30 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary/40 border-2 border-borderStrong hover:bg-secondary/60 transition-colors"
               >
-                <Instagram className="h-4 w-4 text-pink-500" />
-                <span className="text-xs font-medium text-pink-600 dark:text-pink-400">Follow @abhishek.shhh</span>
+                <Instagram className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-foreground">Follow @abhishek.shhh</span>
               </a>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-[10px] text-muted-foreground pt-1">
+        <p className="text-center text-xs text-muted-foreground pt-1">
           Join thousands of gamers. Compete. Win. Rise. 🎮
         </p>
         
-        <p className="text-center text-[10px] text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground">
           © 2026 Vyuha Esport. All rights reserved.
         </p>
       </div>

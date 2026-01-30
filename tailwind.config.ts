@@ -14,23 +14,22 @@ export default {
   	},
   	extend: {
   		fontFamily: {
-  			sans: [
-  				'Inter',
-  				'ui-sans-serif',
-  				'system-ui',
-  				'sans-serif',
-  				'Apple Color Emoji',
-  				'Segoe UI Emoji',
-  				'Segoe UI Symbol',
-  				'Noto Color Emoji'
-  			],
-  			display: [
-  				'Space Grotesk',
-  				'Inter',
-  				'ui-sans-serif',
-  				'system-ui',
-  				'sans-serif'
-  			],
+			sans: [
+				'Rajdhani',
+				'ui-sans-serif',
+				'system-ui',
+				'sans-serif',
+				'Apple Color Emoji',
+				'Segoe UI Emoji',
+				'Segoe UI Symbol',
+				'Noto Color Emoji'
+			],
+			display: [
+				'Rajdhani',
+				'ui-sans-serif',
+				'system-ui',
+				'sans-serif'
+			],
   			mono: [
   				'Space Mono',
   				'ui-monospace',
@@ -54,6 +53,7 @@ export default {
   		},
   		colors: {
   			border: 'hsl(var(--border))',
+			borderStrong: 'hsl(var(--border-strong))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
