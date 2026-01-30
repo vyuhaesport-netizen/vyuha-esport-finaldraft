@@ -300,19 +300,19 @@ const MyMatch = () => {
     const canExit = tournament.status === 'upcoming' && new Date(tournament.tournament_date) > new Date() && tournament.tournament_mode !== 'duo' && tournament.tournament_mode !== 'squad';
 
     return (
-      <div className="bg-card rounded-lg border border-border p-3">
+      <div className="bg-card rounded-xl border-2 border-white/20 p-4">
         {/* Header */}
-        <div className="flex items-start gap-2 mb-2">
-          <div className="w-8 h-8 rounded-md bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-            <MapPin className="h-4 w-4 text-orange-500" />
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+            <MapPin className="h-5 w-5 text-orange-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-1">
+            <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-semibold text-xs line-clamp-1">{tournament.tournament_name}</h3>
-                <p className="text-[10px] text-muted-foreground">{tournament.game} • {tournament.tournament_mode}</p>
+                <h3 className="font-semibold text-base line-clamp-1">{tournament.tournament_name}</h3>
+                <p className="text-sm text-muted-foreground">{tournament.game} • {tournament.tournament_mode}</p>
               </div>
-              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${tournament.status === 'ongoing' ? 'text-green-500 border-green-500/50 animate-pulse' : tournament.status === 'upcoming' ? 'text-blue-500 border-blue-500/50' : 'text-muted-foreground'}`}>
+              <Badge variant="outline" className={`text-xs px-2 py-0.5 h-5 ${tournament.status === 'ongoing' ? 'text-green-500 border-green-500/50 animate-pulse' : tournament.status === 'upcoming' ? 'text-blue-500 border-blue-500/50' : 'text-muted-foreground'}`}>
                 {tournament.status}
               </Badge>
             </div>
@@ -321,13 +321,13 @@ const MyMatch = () => {
 
         {/* Organizer Info */}
         {organizerInfo && (
-          <div className="bg-muted/30 rounded p-2 mb-2 text-[10px]">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <User className="h-2.5 w-2.5" />
+          <div className="bg-muted/30 rounded-lg p-3 mb-3 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <User className="h-4 w-4" />
               <span>Organizer: <span className="text-foreground font-medium">{organizerInfo.full_name}</span></span>
             </div>
             {organizerInfo.phone && (
-              <div className="flex items-center gap-1 text-muted-foreground mt-0.5">
+              <div className="flex items-center gap-2 text-muted-foreground mt-1">
                 <span>📞 {organizerInfo.phone}</span>
               </div>
             )}
@@ -335,47 +335,47 @@ const MyMatch = () => {
         )}
 
         {/* Date & Location */}
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          <Calendar className="h-2.5 w-2.5" />
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" />
           {format(new Date(tournament.tournament_date), 'MMM dd, hh:mm a')}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-0.5">📍 {tournament.institution_name}</p>
+        <p className="text-sm text-muted-foreground mt-1">📍 {tournament.institution_name}</p>
 
         {/* Status Times */}
         {tournament.started_at && (
-          <div className="text-[9px] text-green-600 mt-1">
+          <div className="text-xs text-green-600 mt-2">
             ▶️ Started: {format(new Date(tournament.started_at), 'MMM dd, hh:mm a')}
           </div>
         )}
         {tournament.ended_at && (
-          <div className="text-[9px] text-muted-foreground mt-0.5">
+          <div className="text-xs text-muted-foreground mt-1">
             ⏹️ Ended: {format(new Date(tournament.ended_at), 'MMM dd, hh:mm a')}
           </div>
         )}
 
         {/* Countdown for upcoming */}
         {tournament.status === 'upcoming' && (
-          <div className="mt-1.5 p-1.5 bg-primary/10 rounded">
-            <CountdownTimer targetDate={tournament.tournament_date} label="Starts:" className="text-primary text-[10px]" />
+          <div className="mt-2 p-2.5 bg-primary/10 rounded-lg">
+            <CountdownTimer targetDate={tournament.tournament_date} label="Starts:" className="text-primary text-sm" />
           </div>
         )}
 
         {/* Prize Pool */}
         {tournament.current_prize_pool && tournament.current_prize_pool > 0 && (
-          <div className="flex items-center gap-1 mt-1.5 text-[10px]">
-            <Trophy className="h-2.5 w-2.5 text-yellow-500" />
+          <div className="flex items-center gap-2 mt-2 text-sm">
+            <Trophy className="h-4 w-4 text-yellow-500" />
             <span className="text-yellow-500 font-medium">₹{Math.round(tournament.current_prize_pool)} Prize Pool</span>
           </div>
         )}
 
         {/* Room Details Collapsible */}
         {hasRoomDetails && isOngoingOrCompleted && (
-          <Collapsible open={roomOpen} onOpenChange={setRoomOpen} className="mt-2">
+          <Collapsible open={roomOpen} onOpenChange={setRoomOpen} className="mt-3">
             <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full text-[10px] h-6">
-                <Eye className="h-2.5 w-2.5 mr-1" />
+              <Button variant="outline" size="sm" className="w-full text-sm h-9 border-2">
+                <Eye className="h-4 w-4 mr-2" />
                 {roomOpen ? 'Hide' : 'View'} Room Credentials
-                <ChevronDown className={`h-2.5 w-2.5 ml-auto transition-transform ${roomOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${roomOpen ? 'rotate-180' : ''}`} />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-1.5 space-y-1.5 p-2 bg-success/10 border border-success/20 rounded text-[10px]">

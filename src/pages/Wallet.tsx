@@ -296,93 +296,93 @@ const Wallet = () => {
     <AppLayout title="Wallet" showBack>
       <div className="p-4">
         {/* Balance Cards */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="glass-card bg-success/5 border-success/20 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <WalletIcon className="h-3.5 w-3.5 text-success" />
-              <span className="text-[10px] text-muted-foreground">Total Balance</span>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="glass-card bg-success/5 border-2 border-success/25 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <WalletIcon className="h-5 w-5 text-success" />
+              <span className="text-sm text-muted-foreground">Total Balance</span>
             </div>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-xs text-success">₹</span>
-              <span className="text-lg font-bold text-success">{balance.toFixed(0)}</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-base text-success">₹</span>
+              <span className="text-2xl font-bold text-success">{balance.toFixed(0)}</span>
             </div>
-            <p className="text-[9px] text-muted-foreground">For tournaments</p>
+            <p className="text-xs text-muted-foreground mt-1">For tournaments</p>
           </div>
 
           <button
             type="button"
             onClick={() => setShowEarningsBreakdown(!showEarningsBreakdown)}
-            className="glass-card bg-success/5 border-success/20 rounded-xl p-3 text-left hover:bg-success/10 transition-colors"
+            className="glass-card bg-success/5 border-2 border-success/25 rounded-xl p-4 text-left hover:bg-success/10 transition-colors"
           >
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <TrendingUp className="h-3.5 w-3.5 text-success" />
-              <span className="text-[10px] text-muted-foreground">Total Earned</span>
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-5 w-5 text-success" />
+              <span className="text-sm text-muted-foreground">Total Earned</span>
               {showEarningsBreakdown ? (
-                <ChevronUp className="h-2.5 w-2.5 ml-auto text-muted-foreground" />
+                <ChevronUp className="h-4 w-4 ml-auto text-muted-foreground" />
               ) : (
-                <ChevronDown className="h-2.5 w-2.5 ml-auto text-muted-foreground" />
+                <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground" />
               )}
             </div>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-xs text-success">₹</span>
-              <span className="text-lg font-bold text-success">{totalEarned.toFixed(0)}</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-base text-success">₹</span>
+              <span className="text-2xl font-bold text-success">{totalEarned.toFixed(0)}</span>
             </div>
-            <p className="text-[9px] text-muted-foreground">Withdrawable</p>
+            <p className="text-xs text-muted-foreground mt-1">Withdrawable</p>
           </button>
         </div>
 
         {/* Info Banner */}
-        <div className="glass-card bg-muted/20 rounded-lg p-2 mb-3">
-          <p className="text-[10px] text-muted-foreground">
+        <div className="glass-card bg-muted/20 rounded-xl p-3 mb-4 border-2 border-white/15">
+          <p className="text-sm text-muted-foreground">
             <strong className="text-foreground">Note:</strong> Deposits → Balance (tournaments). Winnings → Earned (withdraw).
           </p>
         </div>
 
         {/* Earnings Breakdown Section */}
         {showEarningsBreakdown && (
-          <div className="glass-card rounded-2xl p-4 mb-4 animate-in slide-in-from-top-2">
-            <div className="flex items-center gap-2 mb-3">
-              <Trophy className="h-4 w-4 text-foreground" />
-              <h3 className="font-semibold text-sm text-foreground">Earnings Breakdown</h3>
-              <Badge variant="secondary" className="ml-auto text-[10px]">
+          <div className="glass-card rounded-2xl p-5 mb-5 animate-in slide-in-from-top-2 border-2 border-white/20">
+            <div className="flex items-center gap-2.5 mb-4">
+              <Trophy className="h-5 w-5 text-foreground" />
+              <h3 className="font-semibold text-base text-foreground">Earnings Breakdown</h3>
+              <Badge variant="secondary" className="ml-auto text-sm">
                 {earningsBreakdown.length} wins
               </Badge>
             </div>
 
             {earningsBreakdown.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-muted/60 flex items-center justify-center">
-                  <Award className="h-7 w-7 text-muted-foreground/50" />
+              <div className="text-center py-10">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/60 flex items-center justify-center">
+                  <Award className="h-8 w-8 text-muted-foreground/50" />
                 </div>
-                <p className="text-muted-foreground text-sm font-medium">No prize earnings yet</p>
-                <p className="text-muted-foreground text-xs mt-1">Win tournaments to earn prizes!</p>
+                <p className="text-muted-foreground text-base font-medium">No prize earnings yet</p>
+                <p className="text-muted-foreground text-sm mt-1">Win tournaments to earn prizes!</p>
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-72 overflow-y-auto">
                 {earningsBreakdown.map((earning, index) => (
                   <div 
                     key={index} 
-                    className="flex items-center justify-between py-2.5 px-3.5 bg-muted/50 rounded-xl"
+                    className="flex items-center justify-between py-3 px-4 bg-muted/50 rounded-xl border-2 border-white/10"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0">
-                        <Trophy className="h-4 w-4 text-warning" />
+                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                      <div className="w-11 h-11 rounded-full bg-warning/20 flex items-center justify-center flex-shrink-0">
+                        <Trophy className="h-5 w-5 text-warning" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-foreground truncate">{earning.tournamentName}</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">
+                        <p className="text-base font-semibold text-foreground truncate">{earning.tournamentName}</p>
+                        <div className="flex items-center gap-2.5">
+                          <p className="text-sm text-muted-foreground">
                             {format(new Date(earning.date), 'MMM dd, yyyy')}
                           </p>
                           {earning.position && (
-                            <Badge variant="secondary" className="text-[9px] px-1.5">
+                            <Badge variant="secondary" className="text-xs px-2">
                               {earning.position}
                             </Badge>
                           )}
                         </div>
                       </div>
                     </div>
-                    <p className="text-success font-bold text-sm flex-shrink-0 ml-2">
+                    <p className="text-success font-bold text-base flex-shrink-0 ml-3">
                       +₹{earning.amount}
                     </p>
                   </div>
@@ -393,42 +393,42 @@ const Wallet = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-3 mb-5">
           <Button 
             variant="outline" 
-            className="h-10 flex-col gap-0.5 rounded-lg"
+            className="h-12 flex-col gap-1 rounded-xl border-2"
             onClick={() => setAddMoneyDialog(true)}
           >
-            <Plus className="h-4 w-4" />
-            <span className="text-[10px] font-medium">Add Money</span>
+            <Plus className="h-5 w-5" />
+            <span className="text-sm font-medium">Add Money</span>
           </Button>
           <Button 
             variant="outline" 
-            className="h-10 flex-col gap-0.5 rounded-lg"
+            className="h-12 flex-col gap-1 rounded-xl border-2"
             onClick={() => setWithdrawDialog(true)}
             disabled={totalEarned < 10}
           >
-            <ArrowUpRight className="h-4 w-4" />
-            <span className="text-[10px] font-medium">Withdraw</span>
+            <ArrowUpRight className="h-5 w-5" />
+            <span className="text-sm font-medium">Withdraw</span>
           </Button>
         </div>
 
         {/* Transaction History - Enhanced */}
-        <div className="glass-card rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-foreground" />
-              <h3 className="font-semibold text-sm text-foreground">Transaction History</h3>
+        <div className="glass-card rounded-2xl p-5 border-2 border-white/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <History className="h-5 w-5 text-foreground" />
+              <h3 className="font-semibold text-base text-foreground">Transaction History</h3>
             </div>
             <Select value={transactionFilter} onValueChange={setTransactionFilter}>
-              <SelectTrigger className="w-32 h-8 text-xs rounded-lg">
-                <Filter className="h-3 w-3 mr-1" />
+              <SelectTrigger className="w-36 h-10 text-sm rounded-xl">
+                <Filter className="h-4 w-4 mr-1.5" />
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 {getTransactionTypes().map(type => (
-                  <SelectItem key={type} value={type} className="capitalize text-xs">
+                  <SelectItem key={type} value={type} className="capitalize text-sm">
                     {type.replace('_', ' ')}
                   </SelectItem>
                 ))}
@@ -437,40 +437,40 @@ const Wallet = () => {
           </div>
 
           {filteredTransactions.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-14 h-14 rounded-full bg-muted/60 flex items-center justify-center mx-auto mb-3">
-                <ArrowDownLeft className="h-7 w-7 text-muted-foreground/50" />
+            <div className="text-center py-10">
+              <div className="w-16 h-16 rounded-full bg-muted/60 flex items-center justify-center mx-auto mb-4">
+                <ArrowDownLeft className="h-8 w-8 text-muted-foreground/50" />
               </div>
-              <p className="text-muted-foreground text-sm font-medium">No transactions found</p>
+              <p className="text-muted-foreground text-base font-medium">No transactions found</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {filteredTransactions.map((txn) => {
                 const isCreditType = ['deposit', 'prize', 'prize_won', 'winning', 'admin_credit', 'commission', 'refund', 'bonus'].includes(txn.type);
                 return (
-                  <div key={txn.id} className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
-                    <div className="flex items-center gap-2.5">
+                  <div key={txn.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                    <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           isCreditType ? 'bg-success/15' : 'bg-destructive/15'
                         }`}
                       >
                         {isCreditType ? (
-                          <ArrowDownLeft className="h-4 w-4 text-success" />
+                          <ArrowDownLeft className="h-5 w-5 text-success" />
                         ) : (
-                          <ArrowUpRight className="h-4 w-4 text-destructive" />
+                          <ArrowUpRight className="h-5 w-5 text-destructive" />
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground capitalize">{txn.type.replace('_', ' ')}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-base font-medium text-foreground capitalize">{txn.type.replace('_', ' ')}</p>
+                        <p className="text-sm text-muted-foreground">
                           {format(new Date(txn.created_at), 'MMM dd, hh:mm a')}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p
-                        className={`font-semibold text-sm ${
+                        className={`font-semibold text-base ${
                           isCreditType ? 'text-success' : 'text-destructive'
                         }`}
                       >
