@@ -14,24 +14,26 @@ export default {
   	},
   	extend: {
   		fontFamily: {
-			sans: [
-				'Rajdhani',
-				'ui-sans-serif',
-				'system-ui',
-				'sans-serif',
-				'Apple Color Emoji',
-				'Segoe UI Emoji',
-				'Segoe UI Symbol',
-				'Noto Color Emoji'
-			],
-			display: [
-				'Rajdhani',
-				'ui-sans-serif',
-				'system-ui',
-				'sans-serif'
-			],
+  			sans: [
+  				'Roboto',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'-apple-system',
+  				'BlinkMacSystemFont',
+  				'Segoe UI',
+  				'Helvetica Neue',
+  				'Arial',
+  				'Noto Sans',
+  				'sans-serif'
+  			],
+  			display: [
+  				'Rajdhani',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
+  			],
   			mono: [
-  				'Space Mono',
+  				'Roboto Mono',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',
@@ -42,7 +44,7 @@ export default {
   				'monospace'
   			],
   			serif: [
-  				'Lora',
+  				'Libre Caslon Text',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
@@ -53,7 +55,7 @@ export default {
   		},
   		colors: {
   			border: 'hsl(var(--border))',
-			borderStrong: 'hsl(var(--border-strong))',
+  			borderStrong: 'hsl(var(--border-strong))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
