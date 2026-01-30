@@ -3,15 +3,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "rounded-xl border text-card-foreground transition-all duration-200 ease-out",
+  "rounded-xl text-card-foreground transition-all duration-200 ease-out",
   {
     variants: {
       variant: {
-        default: "bg-card border-border shadow-sm hover:shadow-md hover:border-border/80 hover:-translate-y-0.5 dark:border-border/60",
-        interactive: "bg-card border-border shadow-sm hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer active:translate-y-0 dark:border-border/60",
-        glass: "glass-card shadow-md hover:shadow-lg hover:border-border/80 dark:hover:border-border/60",
-        elevated: "bg-card border-border shadow-md hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 dark:border-border/60",
-        flat: "bg-card border-border shadow-none hover:bg-muted/30 dark:border-border/40",
+        default: "bg-card border-2 border-white/20 shadow-sm hover:shadow-md hover:border-white/30 hover:-translate-y-0.5",
+        interactive: "bg-card border-2 border-white/20 shadow-sm hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer active:translate-y-0",
+        glass: "glass-card shadow-md hover:shadow-lg hover:border-white/30",
+        elevated: "bg-card border-2 border-white/20 shadow-md hover:shadow-lg hover:-translate-y-1 hover:border-primary/20",
+        flat: "bg-card border-2 border-white/15 shadow-none hover:bg-muted/30",
         premium: "premium-card shadow-lg hover:border-primary/30",
       },
     },
