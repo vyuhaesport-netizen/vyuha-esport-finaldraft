@@ -315,19 +315,19 @@ const Landing = () => {
               <img src={vyuhaLogo} alt="Vyuha" className="h-9 w-9 rounded-full object-cover ring-1 ring-primary/30" />
               <span className="font-semibold text-base text-foreground tracking-wide">VYUHA</span>
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex gap-2">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setAuthDialog('login')} 
-                className="text-sm h-9 px-5 text-muted-foreground hover:text-foreground font-medium"
+                className="text-xs h-7 px-3 text-muted-foreground hover:text-foreground font-medium"
               >
                 Login
               </Button>
               <Button 
                 size="sm" 
                 onClick={() => setAuthDialog('signup')} 
-                className="text-sm h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                className="text-xs h-7 px-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
                 Sign Up
               </Button>
@@ -717,17 +717,13 @@ const Landing = () => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox className="h-4 w-4 border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-                      <label className="text-xs text-muted-foreground">Remember me</label>
-                    </div>
                     <button 
                       type="button" 
                       onClick={() => {
                         setAuthDialog(null);
                         navigate('/forgot-password');
                       }}
-                      className="text-xs text-primary hover:underline font-medium"
+                      className="text-xs text-primary hover:underline font-medium ml-auto"
                     >
                       Forgot password?
                     </button>
