@@ -6,23 +6,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Gamepad2, Target, Swords, Shield, Trophy, Timer } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { 
   PlayerGameStats, 
   StatsFormData, 
   TIERS, 
   MAPS, 
   MODES,
-  usePlayerGameStats 
 } from '@/hooks/usePlayerGameStats';
 
 interface GameStatsFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingStats: PlayerGameStats | null;
+  onSaveSuccess: () => void;
 }
 
-const GameStatsForm = ({ open, onOpenChange, existingStats }: GameStatsFormProps) => {
-  const { saveStats, saving } = usePlayerGameStats();
+const GameStatsForm = ({ open, onOpenChange, existingStats, onSaveSuccess }: GameStatsFormProps) => {
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   
   const [formData, setFormData] = useState<StatsFormData>({
@@ -73,9 +77,75 @@ const GameStatsForm = ({ open, onOpenChange, existingStats }: GameStatsFormProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await saveStats(formData);
-    if (success) {
+    if (!user) return;
+    
+    try {
+      setSaving(true);
+      
+      if (existingStats) {
+        // Update existing stats
+        const { error } = await supabase
+          .from('player_game_stats')
+          .update({
+            ...formData,
+            last_updated_at: new Date().toISOString(),
+            update_reminder_sent: false,
+          })
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+      } else {
+        // Insert new stats
+        const { error } = await supabase
+          .from('player_game_stats')
+          .insert({
+            user_id: user.id,
+            ...formData,
+            last_updated_at: new Date().toISOString(),
+          });
+        
+        if (error) throw error;
+      }
+      
+      // Calculate values for history
+      const prevKd = existingStats?.kd_ratio || 0;
+      const newKd = formData.total_deaths > 0 ? formData.total_kills / formData.total_deaths : formData.total_kills;
+      const kdGrowth = Number((newKd - prevKd).toFixed(2));
+      const killsGrowth = existingStats ? formData.total_kills - existingStats.total_kills : 0;
+      const tierChange = existingStats && existingStats.current_tier !== formData.current_tier
+        ? `${existingStats.current_tier} → ${formData.current_tier}`
+        : null;
+      
+      // Add history entry
+      await supabase
+        .from('player_game_stats_history')
+        .insert({
+          user_id: user.id,
+          total_kills: formData.total_kills,
+          total_deaths: formData.total_deaths,
+          total_matches: formData.total_matches,
+          wins: formData.wins,
+          kd_ratio: newKd,
+          win_rate: formData.total_matches > 0 ? (formData.wins / formData.total_matches) * 100 : 0,
+          avg_damage_per_match: formData.total_matches > 0 ? formData.total_damage / formData.total_matches : 0,
+          headshot_percentage: formData.total_kills > 0 ? (formData.headshot_kills / formData.total_kills) * 100 : 0,
+          current_tier: formData.current_tier,
+          current_level: formData.current_level,
+          period_type: 'weekly',
+          kills_growth: killsGrowth,
+          kd_growth: kdGrowth,
+          tier_change: tierChange,
+        });
+      
+      toast.success('Stats updated successfully!');
+      onSaveSuccess();
       onOpenChange(false);
+      
+    } catch (error) {
+      console.error('Error saving stats:', error);
+      toast.error('Failed to save stats');
+    } finally {
+      setSaving(false);
     }
   };
 

@@ -68,7 +68,8 @@ const PlayerStatsPage = () => {
     history: gameStatsHistory, 
     loading: gameStatsLoading,
     needsUpdate,
-    getDaysSinceUpdate 
+    getDaysSinceUpdate,
+    refetch: refetchGameStats
   } = usePlayerGameStats();
 
   useEffect(() => {
@@ -551,6 +552,7 @@ const PlayerStatsPage = () => {
         open={showGameStatsForm}
         onOpenChange={setShowGameStatsForm}
         existingStats={gameStats}
+        onSaveSuccess={refetchGameStats}
       />
     </AppLayout>
   );
