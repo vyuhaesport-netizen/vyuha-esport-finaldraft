@@ -550,7 +550,7 @@ Deno.serve(async (req) => {
 
         if (roomError || !room) throw new Error("Room not found");
 
-        if (room.status !== "in_progress") {
+        if (room.status !== "live") {
           throw new Error("Room must be started before saving winner");
         }
 
