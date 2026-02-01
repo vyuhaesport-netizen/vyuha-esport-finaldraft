@@ -1275,32 +1275,29 @@ const TeamPage = () => {
                     <Card key={request.id} variant="premium" className="border-primary/20">
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <Avatar className="h-14 w-14 border-2 border-primary/30">
+                          <Avatar className="h-12 w-12 border-2 border-primary/30">
                             <AvatarImage src={request.profile?.avatar_url || ''} />
                             <AvatarFallback className="bg-primary/10 text-primary font-bold">
                               {request.profile?.username?.charAt(0).toUpperCase() || 'P'}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold">
+                            <p className="font-semibold text-sm">
                               {request.profile?.full_name || request.profile?.username || 'Player'}
                             </p>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                              <Badge variant="secondary" className="text-[10px]">
-                                IGN: {request.profile?.in_game_name || 'Not set'}
-                              </Badge>
-                              <Badge variant="outline" className="text-[10px]">
-                                UID: {request.profile?.game_uid || 'Not set'}
-                              </Badge>
-                            </div>
-                            {request.message && (
-                              <p className="text-xs text-muted-foreground mt-2 italic">"{request.message}"</p>
-                            )}
-                            <p className="text-[10px] text-muted-foreground mt-1">
+                            <p className="text-[10px] text-muted-foreground">
                               Requested {new Date(request.created_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
+
+                        {/* Player's Message */}
+                        {request.message && (
+                          <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/30">
+                            <p className="text-[10px] text-muted-foreground mb-1">Message from player:</p>
+                            <p className="text-xs italic">"{request.message}"</p>
+                          </div>
+                        )}
 
                         {/* Player Game Stats Preview */}
                         <div className="mt-3">
@@ -1517,18 +1514,25 @@ const TeamPage = () => {
                 )}
               </div>
             )}
+
+            {/* Info about stats being shared */}
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-primary font-medium">Note:</span> Your in-game stats will be automatically shared with the team leader for review.
+              </p>
+            </div>
             
             <div className="space-y-2">
-              <Label>Message (Optional)</Label>
+              <Label>Your Message</Label>
               <Textarea
-                placeholder="Introduce yourself to the team leader..."
+                placeholder="Tell the leader why you want to join their team..."
                 value={requestMessage}
                 onChange={(e) => setRequestMessage(e.target.value)}
                 maxLength={200}
                 rows={3}
                 className="rounded-xl"
               />
-              <p className="text-xs text-muted-foreground">Let them know why you want to join</p>
+              <p className="text-xs text-muted-foreground">Introduce yourself and your experience</p>
             </div>
           </div>
 
