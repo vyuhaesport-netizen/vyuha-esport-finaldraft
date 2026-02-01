@@ -414,7 +414,7 @@ const SchoolTournamentManage = () => {
     try {
       const { error } = await supabase
         .from('school_tournament_rooms')
-        .update({ status: 'in_progress' })
+        .update({ status: 'live' })
         .eq('id', roomId);
 
       if (error) throw error;
@@ -468,7 +468,7 @@ const SchoolTournamentManage = () => {
     try {
       const { error } = await supabase
         .from('school_tournament_rooms')
-        .update({ status: 'in_progress' })
+        .update({ status: 'live' })
         .in('id', selectedRoomIds);
 
       if (error) throw error;
@@ -1481,7 +1481,7 @@ const SchoolTournamentManage = () => {
                                 <p className="font-medium text-xs">{room.room_name}</p>
                                 <Badge variant={
                                   room.status === 'completed' ? 'default' :
-                                  room.status === 'in_progress' ? 'secondary' :
+                                  room.status === 'live' ? 'secondary' :
                                   room.status === 'credentials_set' ? 'secondary' : 'outline'
                                 } className="text-[10px]">
                                   {room.status}
@@ -1542,9 +1542,9 @@ const SchoolTournamentManage = () => {
                               </Button>
                             )}
                             
-                            {room.status === 'in_progress' && (
+                            {room.status === 'live' && (
                               <>
-                                <Button 
+                                <Button
                                   size="sm" 
                                   variant="destructive" 
                                   className="h-7 text-[10px]"
