@@ -1491,6 +1491,7 @@ export type Database = {
       }
       player_teams: {
         Row: {
+          acting_leader_id: string | null
           created_at: string
           game: string | null
           id: string
@@ -1504,6 +1505,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acting_leader_id?: string | null
           created_at?: string
           game?: string | null
           id?: string
@@ -1517,6 +1519,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acting_leader_id?: string | null
           created_at?: string
           game?: string | null
           id?: string

@@ -74,6 +74,7 @@ interface PlayerTeam {
   logo_url: string | null;
   slogan: string | null;
   leader_id: string;
+  acting_leader_id: string | null;
   is_open_for_players: boolean;
   requires_approval: boolean;
   max_members: number;
@@ -146,6 +147,8 @@ const TeamPage = () => {
   const [requestMessage, setRequestMessage] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [actingLeaderDialogOpen, setActingLeaderDialogOpen] = useState(false);
+  const [selectedActingLeader, setSelectedActingLeader] = useState<string | null>(null);
   
   const [teamForm, setTeamForm] = useState({
     name: '',
@@ -286,7 +289,8 @@ const TeamPage = () => {
         if (team) {
           setMyTeam(team as PlayerTeam);
           fetchTeamMembers(team.id);
-          if (team.leader_id === user.id) {
+          // Leader or Acting Leader can manage requests
+          if (team.leader_id === user.id || team.acting_leader_id === user.id) {
             fetchJoinRequests(team.id);
           }
         }
@@ -758,6 +762,8 @@ const TeamPage = () => {
     myRequests.filter(r => r.team_id === teamId && r.status === 'pending').length > 0;
 
   const isLeader = myTeam?.leader_id === user?.id;
+  const isActingLeader = myTeam?.acting_leader_id === user?.id;
+  const canManageRequests = isLeader || isActingLeader;
 
   // Share team link function
   const handleShareTeamLink = async () => {
@@ -783,6 +789,33 @@ const TeamPage = () => {
       } else {
         toast({ title: 'Error', description: 'Could not copy link.', variant: 'destructive' });
       }
+    }
+  };
+
+  // Set acting leader handler
+  const handleSetActingLeader = async (memberId: string | null) => {
+    if (!user || !myTeam || myTeam.leader_id !== user.id) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('player_teams')
+        .update({ acting_leader_id: memberId })
+        .eq('id', myTeam.id);
+
+      if (error) throw error;
+
+      toast({ 
+        title: memberId ? 'Acting Leader Set' : 'Acting Leader Removed',
+        description: memberId ? 'This member can now manage join requests.' : 'Acting leader has been removed.'
+      });
+      setActingLeaderDialogOpen(false);
+      fetchMyTeam();
+    } catch (error) {
+      console.error('Error setting acting leader:', error);
+      toast({ title: 'Error', description: 'Failed to update acting leader.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -814,7 +847,7 @@ const TeamPage = () => {
             <p className="text-[11px] text-muted-foreground">Build your squad for duo/squad matches</p>
           </div>
           
-          {isLeader && myTeam && (
+          {canManageRequests && myTeam && (
             <button
               onClick={() => setActiveTab('requests')}
               className="relative p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
@@ -975,6 +1008,10 @@ const TeamPage = () => {
                               <><ShieldCheck className="h-4 w-4 text-warning" /><span>Require Approval</span></>
                             )}
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setActingLeaderDialogOpen(true)} className="cursor-pointer gap-2">
+                            <Crown className="h-4 w-4 text-warning" />
+                            <span>Acting Leader</span>
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={handleLeaveTeam} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
                             <Trash2 className="h-4 w-4" /><span>Disband Team</span>
@@ -1032,7 +1069,7 @@ const TeamPage = () => {
                 </div>
               </div>
 
-              {isLeader && joinRequests.length > 0 && (
+              {canManageRequests && joinRequests.length > 0 && (
                 <div 
                   onClick={() => setActiveTab('requests')}
                   className="p-3 mt-4 bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 rounded-xl cursor-pointer hover:border-primary/40 transition-all"
@@ -1069,7 +1106,9 @@ const TeamPage = () => {
                       className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
                         member.role === 'leader' 
                           ? 'bg-gradient-to-r from-primary/10 to-transparent border border-primary/20' 
-                          : 'bg-muted/30 hover:bg-muted/50 border border-border/30'
+                          : myTeam?.acting_leader_id === member.user_id
+                            ? 'bg-gradient-to-r from-warning/10 to-transparent border border-warning/20'
+                            : 'bg-muted/30 hover:bg-muted/50 border border-border/30'
                       }`}
                     >
                       <Avatar className="h-10 w-10 border border-border/50">
@@ -1079,12 +1118,17 @@ const TeamPage = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-medium text-xs truncate">
                             {member.profile?.full_name || member.profile?.username || 'Player'}
                           </p>
                           {member.role === 'leader' && (
                             <Crown className="h-3 w-3 text-warning shrink-0" />
+                          )}
+                          {myTeam?.acting_leader_id === member.user_id && (
+                            <Badge className="bg-warning/20 text-warning text-[8px] px-1 py-0 shrink-0">
+                              Acting Leader
+                            </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -1152,25 +1196,6 @@ const TeamPage = () => {
               </div>
             ) : (
               filteredOpenTeams.map((team) => {
-                const teamLink = `${window.location.origin}/team?join=${team.id}`;
-                const shareText = `Join team "${team.name}" on Vyuha Esports! 🎮🔥`;
-                
-                const handleShareTeam = async (e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  const shared = await tryNativeShare({
-                    title: `Join ${team.name}`,
-                    text: shareText,
-                    url: teamLink,
-                  });
-                  
-                  if (!shared) {
-                    const copied = await copyToClipboard(teamLink);
-                    if (copied) {
-                      toast({ title: 'Link Copied!', description: team.requires_approval ? 'Share to send join request' : 'Share to invite friends directly' });
-                    }
-                  }
-                };
-                
                 return (
                   <div 
                     key={team.id} 
@@ -1217,33 +1242,23 @@ const TeamPage = () => {
                           <span>{team.leaderName}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-lg hover:bg-primary/10"
-                          onClick={handleShareTeam}
-                        >
-                          <Share2 className="h-4 w-4 text-primary" />
-                        </Button>
-                        <Button
-                          variant={pendingRequestsForTeam(team.id) ? "outline" : "default"}
-                          size="sm"
-                          onClick={() => handleJoinTeam(team)}
-                          disabled={!!myTeam || team.memberCount >= MAX_TEAM_MEMBERS || pendingRequestsForTeam(team.id)}
-                          className="rounded-lg h-8 text-[10px] px-2.5"
-                        >
-                          {team.memberCount >= MAX_TEAM_MEMBERS ? (
-                            'Full'
-                          ) : pendingRequestsForTeam(team.id) ? (
-                            <><Clock className="h-3 w-3 mr-1" /> Pending</>
-                          ) : team.requires_approval ? (
-                            <><Send className="h-3 w-3 mr-1" /> Request</>
-                          ) : (
-                            <><UserPlus className="h-3 w-3 mr-1" /> Join</>
-                          )}
-                        </Button>
-                      </div>
+                      <Button
+                        variant={pendingRequestsForTeam(team.id) ? "outline" : "default"}
+                        size="sm"
+                        onClick={() => handleJoinTeam(team)}
+                        disabled={!!myTeam || team.memberCount >= MAX_TEAM_MEMBERS || pendingRequestsForTeam(team.id)}
+                        className="rounded-lg h-8 text-[10px] px-2.5"
+                      >
+                        {team.memberCount >= MAX_TEAM_MEMBERS ? (
+                          'Full'
+                        ) : pendingRequestsForTeam(team.id) ? (
+                          <><Clock className="h-3 w-3 mr-1" /> Pending</>
+                        ) : team.requires_approval ? (
+                          <><Send className="h-3 w-3 mr-1" /> Request</>
+                        ) : (
+                          <><UserPlus className="h-3 w-3 mr-1" /> Join</>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 );
@@ -1255,12 +1270,17 @@ const TeamPage = () => {
 
         {/* Requests Tab */}
         <TabsContent value="requests" className="flex-1 mt-0 overflow-auto px-4 py-4 pb-20">
-          {isLeader && myTeam ? (
+          {canManageRequests && myTeam ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Inbox className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold text-lg">Join Requests</h3>
                 <Badge variant="secondary">{joinRequests.length}</Badge>
+                {isActingLeader && (
+                  <Badge variant="outline" className="ml-auto text-[9px] bg-warning/10 text-warning border-warning/30">
+                    Acting Leader
+                  </Badge>
+                )}
               </div>
 
               {joinRequests.length === 0 ? (
@@ -1569,6 +1589,96 @@ const TeamPage = () => {
               disabled={saving}
             />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Acting Leader Selection Dialog */}
+      <Dialog open={actingLeaderDialogOpen} onOpenChange={setActingLeaderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-warning" />
+              Set Acting Leader
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <p className="text-xs text-muted-foreground">
+                <span className="text-primary font-medium">Acting Leader</span> can view and manage join requests on your behalf. They cannot change team settings or disband the team.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select Team Member</Label>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {/* Option to remove acting leader */}
+                {myTeam?.acting_leader_id && (
+                  <button
+                    onClick={() => handleSetActingLeader(null)}
+                    className="w-full p-3 rounded-xl border border-destructive/30 bg-destructive/10 hover:bg-destructive/20 transition-all text-left flex items-center gap-3"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+                      <X className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-destructive">Remove Acting Leader</p>
+                      <p className="text-[10px] text-muted-foreground">Only you can manage requests</p>
+                    </div>
+                  </button>
+                )}
+
+                {/* List of eligible members */}
+                {teamMembers
+                  .filter(m => m.user_id !== user?.id) // Exclude leader
+                  .map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() => handleSetActingLeader(member.user_id)}
+                      className={`w-full p-3 rounded-xl border transition-all text-left flex items-center gap-3 ${
+                        myTeam?.acting_leader_id === member.user_id
+                          ? 'border-warning/50 bg-warning/10'
+                          : 'border-border/30 bg-muted/30 hover:bg-muted/50 hover:border-primary/30'
+                      }`}
+                    >
+                      <Avatar className="h-10 w-10 border-2 border-primary/20">
+                        <AvatarImage src={member.profile?.avatar_url || ''} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                          {member.profile?.username?.charAt(0).toUpperCase() || 'P'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {member.profile?.full_name || member.profile?.username || 'Player'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {member.profile?.in_game_name || 'No IGN set'}
+                        </p>
+                      </div>
+                      {myTeam?.acting_leader_id === member.user_id && (
+                        <Badge className="bg-warning/20 text-warning text-[9px] shrink-0">
+                          <Crown className="h-2.5 w-2.5 mr-0.5" /> Current
+                        </Badge>
+                      )}
+                    </button>
+                  ))}
+
+                {teamMembers.filter(m => m.user_id !== user?.id).length === 0 && (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">No team members yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Invite players to your team first</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActingLeaderDialogOpen(false)} className="rounded-xl">
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
