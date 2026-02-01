@@ -267,13 +267,15 @@ const SchoolTournamentManage = () => {
       if (existingRoomsError) throw existingRoomsError;
 
       if (existingRooms && existingRooms.length > 0) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('school_tournaments')
           .update({
             status: roundNumber === tournament?.total_rounds ? 'finale' : `round_${roundNumber}`,
             current_round: roundNumber,
           })
           .eq('id', id);
+
+        if (updateError) throw updateError;
 
         toast.success(`Round ${roundNumber} already started`);
         fetchTournamentData();
@@ -289,13 +291,15 @@ const SchoolTournamentManage = () => {
 
       toast.success(`Round ${roundNumber} started with ${data} rooms!`);
       
-      await supabase
+      const { error: updateError } = await supabase
         .from('school_tournaments')
         .update({ 
           status: roundNumber === tournament?.total_rounds ? 'finale' : `round_${roundNumber}`,
           current_round: roundNumber
         })
         .eq('id', id);
+
+      if (updateError) throw updateError;
 
       fetchTournamentData();
     } catch (error: any) {
@@ -354,10 +358,12 @@ const SchoolTournamentManage = () => {
     if (!tournament) return;
     setProcessing(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('school_tournaments')
         .update({ status: 'completed' })
         .eq('id', id);
+
+      if (error) throw error;
       toast.success('Tournament ended successfully!');
       fetchTournamentData();
     } catch (error: any) {
@@ -406,10 +412,12 @@ const SchoolTournamentManage = () => {
   const handleStartRoom = async (roomId: string) => {
     setProcessing(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('school_tournament_rooms')
         .update({ status: 'in_progress' })
         .eq('id', roomId);
+
+      if (error) throw error;
       toast.success('Room started!');
       fetchTournamentData();
     } catch (error: any) {
@@ -420,13 +428,34 @@ const SchoolTournamentManage = () => {
   };
 
   const handleEndRoom = async (roomId: string) => {
-    // IMPORTANT: Rooms can ONLY be completed by declaring a winner
-    // This prevents broken progression where rooms are "completed" without advancing teams
     const room = rooms.find(r => r.id === roomId);
-    if (room) {
-      setSelectedRoom(room);
-      setDeclareWinnerDialogOpen(true);
-      toast.info('Please select a winner to end this room');
+    if (!room) return;
+
+    if (!room.winner_team_id) {
+      toast.error('Pehle Winner Save karo, phir Room End karo.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('school-tournament-engine', {
+        body: {
+          action: 'end_room',
+          roomId,
+        }
+      });
+
+      if (error) throw error;
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to end room');
+      }
+
+      toast.success('Room ended!');
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to end room');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -437,10 +466,12 @@ const SchoolTournamentManage = () => {
     }
     setProcessing(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('school_tournament_rooms')
         .update({ status: 'in_progress' })
         .in('id', selectedRoomIds);
+
+      if (error) throw error;
       toast.success(`${selectedRoomIds.length} rooms started!`);
       setSelectedRoomIds([]);
       fetchTournamentData();
@@ -456,10 +487,36 @@ const SchoolTournamentManage = () => {
       toast.error('Select at least one room');
       return;
     }
-    // IMPORTANT: Bulk ending rooms is NOT supported - each room needs a winner declared
-    // This prevents broken progression where rooms are "completed" without advancing teams
-    toast.error('Cannot bulk end rooms. Please declare winner for each room individually to ensure proper progression.');
-    setSelectedRoomIds([]);
+
+    const selectedRooms = rooms.filter(r => selectedRoomIds.includes(r.id));
+    const missingWinner = selectedRooms.filter(r => !r.winner_team_id);
+    if (missingWinner.length > 0) {
+      toast.error(`${missingWinner.length} rooms me winner save nahi hai. Pehle Winner Save karo.`);
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('school-tournament-engine', {
+        body: {
+          action: 'bulk_end_rooms',
+          roomIds: selectedRoomIds,
+        }
+      });
+
+      if (error) throw error;
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to end rooms');
+      }
+
+      toast.success(`${result.endedCount || selectedRoomIds.length} rooms ended!`);
+      setSelectedRoomIds([]);
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to end rooms');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleDeclareRoomWinner = async () => {
@@ -470,19 +527,25 @@ const SchoolTournamentManage = () => {
 
     setProcessing(true);
     try {
-      const { error } = await supabase.rpc('declare_room_winner', {
-        p_room_id: selectedRoom.id,
-        p_winner_team_id: selectedWinnerTeam
+      const { data: result, error } = await supabase.functions.invoke('school-tournament-engine', {
+        body: {
+          action: 'save_room_winner',
+          roomId: selectedRoom.id,
+          winnerTeamId: selectedWinnerTeam,
+        }
       });
 
       if (error) throw error;
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to save winner');
+      }
 
-      toast.success('Winner declared! Team advances to next round.');
+      toast.success('Winner saved! Ab Room End karo.');
       setDeclareWinnerDialogOpen(false);
       setSelectedWinnerTeam('');
       fetchTournamentData();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to declare winner');
+      toast.error(error.message || 'Failed to save winner');
     } finally {
       setProcessing(false);
     }

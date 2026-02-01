@@ -534,6 +534,179 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "save_room_winner": {
+        // Save winner for a room (does NOT end the room)
+        const { roomId, winnerTeamId } = params;
+
+        if (!roomId || !winnerTeamId) {
+          throw new Error("roomId and winnerTeamId are required");
+        }
+
+        const { data: room, error: roomError } = await supabase
+          .from("school_tournament_rooms")
+          .select("id, status")
+          .eq("id", roomId)
+          .single();
+
+        if (roomError || !room) throw new Error("Room not found");
+
+        if (room.status !== "in_progress") {
+          throw new Error("Room must be started before saving winner");
+        }
+
+        // Verify winner is in this room
+        const { data: assignment } = await supabase
+          .from("school_tournament_room_assignments")
+          .select("id")
+          .eq("room_id", roomId)
+          .eq("team_id", winnerTeamId)
+          .single();
+
+        if (!assignment) {
+          throw new Error("Winner team is not in this room");
+        }
+
+        // Save winner on room (keep room status as in_progress)
+        const { error: updateRoomError } = await supabase
+          .from("school_tournament_rooms")
+          .update({
+            winner_team_id: winnerTeamId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", roomId);
+
+        if (updateRoomError) throw new Error(updateRoomError.message);
+
+        // Mark assignment as winner
+        const { error: updateWinnerAssignmentError } = await supabase
+          .from("school_tournament_room_assignments")
+          .update({ is_winner: true, match_rank: 1 })
+          .eq("room_id", roomId)
+          .eq("team_id", winnerTeamId);
+
+        if (updateWinnerAssignmentError) throw new Error(updateWinnerAssignmentError.message);
+
+        // Ensure all others are not winners
+        await supabase
+          .from("school_tournament_room_assignments")
+          .update({ is_winner: false })
+          .eq("room_id", roomId)
+          .neq("team_id", winnerTeamId);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "end_room": {
+        // End a room (requires winner already saved)
+        const { roomId } = params;
+
+        if (!roomId) throw new Error("roomId is required");
+
+        const { data: room, error: roomError } = await supabase
+          .from("school_tournament_rooms")
+          .select("id, tournament_id, round_number, winner_team_id, status")
+          .eq("id", roomId)
+          .single();
+
+        if (roomError || !room) throw new Error("Room not found");
+
+        if (!room.winner_team_id) {
+          throw new Error("Winner not saved for this room");
+        }
+
+        if (room.status === "completed") {
+          return new Response(JSON.stringify({ success: true, alreadyCompleted: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Mark room as completed
+        const { error: completeError } = await supabase
+          .from("school_tournament_rooms")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .eq("id", roomId);
+        if (completeError) throw new Error(completeError.message);
+
+        // Advance winner to next round
+        const { error: advanceError } = await supabase
+          .from("school_tournament_teams")
+          .update({ current_round: room.round_number + 1, updated_at: new Date().toISOString() })
+          .eq("id", room.winner_team_id);
+        if (advanceError) throw new Error(advanceError.message);
+
+        // Delete all other teams in this room
+        const { data: otherTeams } = await supabase
+          .from("school_tournament_room_assignments")
+          .select("team_id")
+          .eq("room_id", roomId)
+          .neq("team_id", room.winner_team_id);
+
+        if (otherTeams && otherTeams.length > 0) {
+          const eliminatedIds = otherTeams.map((t) => t.team_id);
+          await supabase.from("school_tournament_teams").delete().in("id", eliminatedIds);
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      case "bulk_end_rooms": {
+        const { roomIds } = params;
+        if (!Array.isArray(roomIds) || roomIds.length === 0) {
+          throw new Error("roomIds must be a non-empty array");
+        }
+
+        let endedCount = 0;
+        for (const roomId of roomIds) {
+          const endRes = await (async () => {
+            const { data: room, error: roomError } = await supabase
+              .from("school_tournament_rooms")
+              .select("id, round_number, winner_team_id, status")
+              .eq("id", roomId)
+              .single();
+
+            if (roomError || !room) throw new Error("Room not found");
+            if (!room.winner_team_id) throw new Error("Winner not saved for one or more rooms");
+
+            if (room.status !== "completed") {
+              const { error: completeError } = await supabase
+                .from("school_tournament_rooms")
+                .update({ status: "completed", updated_at: new Date().toISOString() })
+                .eq("id", roomId);
+              if (completeError) throw new Error(completeError.message);
+
+              const { error: advanceError } = await supabase
+                .from("school_tournament_teams")
+                .update({ current_round: room.round_number + 1, updated_at: new Date().toISOString() })
+                .eq("id", room.winner_team_id);
+              if (advanceError) throw new Error(advanceError.message);
+
+              const { data: otherTeams } = await supabase
+                .from("school_tournament_room_assignments")
+                .select("team_id")
+                .eq("room_id", roomId)
+                .neq("team_id", room.winner_team_id);
+
+              if (otherTeams && otherTeams.length > 0) {
+                const eliminatedIds = otherTeams.map((t) => t.team_id);
+                await supabase.from("school_tournament_teams").delete().in("id", eliminatedIds);
+              }
+            }
+
+            return true;
+          })();
+
+          if (endRes) endedCount++;
+        }
+
+        return new Response(JSON.stringify({ success: true, endedCount }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "start_next_round": {
         // Manually trigger next round creation (after all rooms in current round are completed)
         const { tournamentId, currentRound } = params;
