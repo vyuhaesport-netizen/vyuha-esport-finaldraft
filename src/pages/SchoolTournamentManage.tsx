@@ -20,8 +20,6 @@ import {
   Gamepad2,
   Trophy,
   MapPin,
-  Calendar,
-  Clock,
   Play,
   StopCircle,
   QrCode,
@@ -30,15 +28,12 @@ import {
   Eye,
   CheckCircle,
   Crown,
-  Medal,
   Loader2,
-  IndianRupee,
   RefreshCw,
   Lock,
   Timer,
   FileText,
   UserCheck,
-  AlertCircle,
   ClipboardCheck,
   Phone,
   IdCard
@@ -166,7 +161,10 @@ const SchoolTournamentManage = () => {
           .from('school_tournament_teams')
           .select('*')
           .eq('tournament_id', id)
-          .order('registered_at', { ascending: true }),
+          // Supabase default limit is 1000 rows; this tournament can have up to 2500 teams.
+          // Fetch enough rows so UI stats (Teams/Active/Round Progression) stay accurate.
+          .order('registered_at', { ascending: true })
+          .range(0, 5000),
         supabase
           .from('school_tournament_rooms')
           .select('*')
@@ -1362,7 +1360,7 @@ const SchoolTournamentManage = () => {
             </div>
             <ScrollArea className="h-[60vh]">
               <div className="space-y-1.5">
-                {sortedTeams.map((team, index) => {
+                {sortedTeams.map((team, _index) => {
                   // Find team's permanent number (1-indexed based on registration order)
                   const permanentNumber = teams.findIndex(t => t.id === team.id) + 1;
                   const leader = playerProfiles[team.leader_id];
@@ -1626,7 +1624,7 @@ const SchoolTournamentManage = () => {
                       if (a.is_verified === b.is_verified) return 0;
                       return a.is_verified ? 1 : -1;
                     })
-                    .map((team, idx) => {
+                    .map((team, _idx) => {
                       const leader = playerProfiles[team.leader_id];
                       const teamNumber = teams
                         .sort((a, b) => new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime())
