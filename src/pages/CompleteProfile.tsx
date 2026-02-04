@@ -203,10 +203,8 @@ const CompleteProfile = () => {
                   <SelectValue placeholder="Select your main game" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Free Fire">Free Fire</SelectItem>
                   <SelectItem value="BGMI">BGMI</SelectItem>
-                  <SelectItem value="Call of Duty Mobile">Call of Duty Mobile</SelectItem>
-                  <SelectItem value="PUBG New State">PUBG New State</SelectItem>
+                  <SelectItem value="Free Fire">Free Fire</SelectItem>
                 </SelectContent>
               </Select>
               {errors.preferred_game && <p className="text-red-500 text-xs">{errors.preferred_game}</p>}

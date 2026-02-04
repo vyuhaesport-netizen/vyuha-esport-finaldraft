@@ -9,8 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Dialog,
@@ -39,7 +38,6 @@ import {
   ArrowLeft,
   Users,
   Plus,
-  Search,
   Loader2,
   Crown,
   UserPlus,
@@ -55,13 +53,11 @@ import {
   CheckCircle,
   XCircle,
   MoreVertical,
-  Settings,
   Eye,
   EyeOff,
   ShieldCheck,
   Trash2,
   Share2,
-  Copy,
   Link2,
   Palette,
   Target,
@@ -190,13 +186,12 @@ const TeamPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedTeamForRequest, setSelectedTeamForRequest] = useState<PlayerTeam | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  
   const [saving, setSaving] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [actingLeaderDialogOpen, setActingLeaderDialogOpen] = useState(false);
-  const [selectedActingLeader, setSelectedActingLeader] = useState<string | null>(null);
   const [createRequirementDialogOpen, setCreateRequirementDialogOpen] = useState(false);
   const [selectedRequirementForRequest, setSelectedRequirementForRequest] = useState<TeamRequirement | null>(null);
   const [requirementRequestDialogOpen, setRequirementRequestDialogOpen] = useState(false);
@@ -220,7 +215,7 @@ const TeamPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const games = ['Free Fire', 'BGMI', 'Call of Duty Mobile', 'PUBG New State', 'Clash Royale'];
+  const games = ['BGMI', 'Free Fire'];
   const maxMemberOptions = [4, 6, 8];
 
   // Get roles based on team's game
@@ -280,11 +275,7 @@ const TeamPage = () => {
         .eq('user_id', teamToJoin.leader_id)
         .single();
       
-      const teamWithDetails = {
-        ...teamToJoin,
-        memberCount: count || 0,
-        leaderName: leaderProfile?.full_name || leaderProfile?.username || 'Unknown',
-      };
+      // Note: teamWithDetails was for display but we just need to check requires_approval
       
       if (teamToJoin.requires_approval) {
         setSelectedTeamForRequest(teamToJoin as PlayerTeam);
@@ -976,16 +967,9 @@ const TeamPage = () => {
     }
   };
 
-  const filteredOpenTeams = openTeams.filter(team =>
-    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (team.game && team.game.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const filteredRequirements = requirements.filter(req =>
-    req.team?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    req.role_needed.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    req.game.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Show all teams without filtering (search removed)
+  const filteredOpenTeams = openTeams;
+  const filteredRequirements = requirements;
 
   const pendingRequestsForTeam = (teamId: string) => 
     myRequests.filter(r => r.team_id === teamId && r.status === 'pending').length > 0;
@@ -1080,18 +1064,45 @@ const TeamPage = () => {
             <p className="text-[11px] text-muted-foreground">Build your squad for duo/squad matches</p>
           </div>
           
+          {/* Post Requirement Button (for leaders with space) */}
+          {canPostRequirements && myTeam && teamMembers.length < (myTeam.max_members || 4) && (
+            <div className="relative group">
+              <button
+                onClick={() => setCreateRequirementDialogOpen(true)}
+                className="relative p-2.5 rounded-xl bg-success/10 hover:bg-success/20 transition-colors"
+                title="Post recruitment requirement"
+              >
+                <Plus className="h-5 w-5 text-success" />
+              </button>
+              {/* Tooltip */}
+              <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                <p className="font-medium text-success">Post Requirement</p>
+                <p className="text-muted-foreground">Find players for specific roles</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Inbox Button */}
           {canManageRequests && myTeam && (
-            <button
-              onClick={() => setActiveTab('requests')}
-              className="relative p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
-            >
-              <Inbox className="h-5 w-5 text-primary" />
-              {joinRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-[10px] rounded-full flex items-center justify-center text-destructive-foreground font-bold animate-pulse">
-                  {joinRequests.length}
-                </span>
-              )}
-            </button>
+            <div className="relative group">
+              <button
+                onClick={() => setActiveTab('requests')}
+                className="relative p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors"
+                title="View join requests"
+              >
+                <Inbox className="h-5 w-5 text-primary" />
+                {joinRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-[10px] rounded-full flex items-center justify-center text-destructive-foreground font-bold animate-pulse">
+                    {joinRequests.length}
+                  </span>
+                )}
+              </button>
+              {/* Tooltip */}
+              <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                <p className="font-medium text-primary">Join Requests</p>
+                <p className="text-muted-foreground">Review pending requests</p>
+              </div>
+            </div>
           )}
           
           {!myTeam && (
@@ -1447,16 +1458,6 @@ const TeamPage = () => {
 
         {/* Browse Tab */}
         <TabsContent value="browse" className="flex-1 mt-0 overflow-auto px-4 py-4 pb-20">
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search teams by name or game..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-xl h-11 bg-card border-border/50"
-            />
-          </div>
-
           <div className="space-y-3">
             {filteredOpenTeams.length === 0 ? (
               <div className="text-center py-16">
@@ -1544,16 +1545,6 @@ const TeamPage = () => {
 
         {/* Requirements Tab (for players without teams) */}
         <TabsContent value="requirements" className="flex-1 mt-0 overflow-auto px-4 py-4 pb-20">
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by role, team, or game..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-xl h-11 bg-card border-border/50"
-            />
-          </div>
-
           <div className="space-y-3">
             {filteredRequirements.length === 0 ? (
               <div className="text-center py-16">
@@ -1889,6 +1880,17 @@ const TeamPage = () => {
               >
                 <Clock className="h-4 w-4" />
               </Button>
+            </div>
+
+            {/* Avatar Info */}
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Palette className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary">Team Avatar</p>
+                <p className="text-xs text-muted-foreground">After creating your team, tap on the avatar to choose from 8 unique mascot logos!</p>
+              </div>
             </div>
           </div>
 
