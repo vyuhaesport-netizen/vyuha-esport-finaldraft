@@ -322,9 +322,7 @@ const ProfilePage = () => {
   }, [user]);
 
   const menuItems = [
-    { icon: Trophy, label: 'My Matches', onClick: () => navigate('/my-match') },
     { icon: BarChart3, label: 'Player Stats', onClick: () => navigate('/player-stats') },
-    { icon: Wallet, label: 'Wallet', onClick: () => navigate('/wallet') },
     { icon: Users, label: 'Team', onClick: () => navigate('/team') },
     { icon: MessageCircle, label: 'Chat', onClick: () => navigate('/chat') },
     { icon: Crown, label: 'Leaderboard', onClick: () => navigate('/leaderboard') },
@@ -424,30 +422,6 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          {/* Quick Stats Row */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="stat-card text-center">
-              <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                <Target className="h-3 w-3" />
-              </div>
-              <p className="text-sm font-bold text-foreground">{playerStats.totalMatches}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Matches</p>
-            </div>
-            <div className="stat-card text-center">
-              <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                <Medal className="h-3 w-3" />
-              </div>
-              <p className="text-sm font-bold text-foreground">{playerStats.wins}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Wins</p>
-            </div>
-            <div className="stat-card text-center">
-              <div className="flex items-center justify-center gap-1 text-primary mb-1">
-                <Flame className="h-3 w-3" />
-              </div>
-              <p className="text-sm font-bold text-foreground">₹{playerStats.totalEarnings}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Earned</p>
-            </div>
-          </div>
 
           {/* Edit Profile Button */}
           <Button variant="gaming" className="w-full" onClick={() => setEditDialogOpen(true)}>
