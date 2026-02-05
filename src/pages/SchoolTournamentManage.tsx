@@ -1259,11 +1259,27 @@ const SchoolTournamentManage = () => {
                   <span className="text-muted-foreground">Teams/Room</span>
                   <span className="font-medium">{teamsPerRoom}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Entry Type</span>
+                  <Badge variant={tournament.entry_type === 'paid' ? 'default' : 'secondary'} className="text-[10px]">
+                    {tournament.entry_type === 'paid' ? `₹${tournament.entry_fee}/player` : 'FREE'}
+                  </Badge>
+                </div>
                 {tournament.entry_type === 'paid' && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Collected</span>
-                    <span className="font-medium text-green-500">₹{tournament.total_collected}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Collected</span>
+                      <span className="font-bold text-green-500">₹{tournament.total_collected?.toLocaleString() || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Prize Pool (80%)</span>
+                      <span className="font-medium text-warning">₹{Math.floor((tournament.total_collected || 0) * 0.8).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Your Earnings (10%)</span>
+                      <span className="font-medium text-primary">₹{Math.floor((tournament.total_collected || 0) * 0.1).toLocaleString()}</span>
+                    </div>
+                  </>
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Verification</span>
