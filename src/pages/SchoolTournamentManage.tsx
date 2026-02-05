@@ -1395,6 +1395,23 @@ const SchoolTournamentManage = () => {
                   <div className="text-center py-3">
                     <CheckCircle className="h-6 w-6 mx-auto text-green-500 mb-1" />
                     <p className="font-semibold text-xs">Tournament Completed!</p>
+                    
+                    {/* Distribute Prize Button for Online Prize Distribution */}
+                    {tournament.prize_distribution_mode === 'online' && tournament.entry_type === 'paid' && !tournament.prizes_distributed && (
+                      <Button 
+                        className="w-full h-10 mt-3 bg-gradient-to-r from-warning to-orange-500 hover:from-warning/90 hover:to-orange-500/90 text-white"
+                        onClick={() => navigate(`/school-tournament/${id}/distribute-prizes`)}
+                      >
+                        <Trophy className="h-4 w-4 mr-2" />
+                        Distribute Prizes (₹{Math.floor(tournament.total_collected * 0.8)})
+                      </Button>
+                    )}
+                    
+                    {tournament.prizes_distributed && (
+                      <Badge variant="secondary" className="mt-2">
+                        Prizes Distributed ✓
+                      </Badge>
+                    )}
                   </div>
                 )}
               </CardContent>

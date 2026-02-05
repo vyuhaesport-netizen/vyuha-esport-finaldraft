@@ -27,7 +27,9 @@ import {
   Clock,
   Link,
   Copy,
-  RefreshCw
+  RefreshCw,
+  Wallet,
+  ArrowUpRight
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -62,6 +64,13 @@ interface MaintenanceSettings {
   maintenance_bypass_token: string;
 }
 
+interface WithdrawalSettings {
+  min_deposit_amount: string;
+  max_withdrawal_per_day: string;
+  withdrawal_fee_threshold: string;
+  withdrawal_fee_percent: string;
+}
+
 const AdminSettings = () => {
   const [settings, setSettings] = useState<CommissionSettings>({
     organizer_commission_percent: '10',
@@ -89,12 +98,19 @@ const AdminSettings = () => {
     maintenance_end_time: '',
     maintenance_bypass_token: '',
   });
+  const [withdrawalSettings, setWithdrawalSettings] = useState<WithdrawalSettings>({
+    min_deposit_amount: '10',
+    max_withdrawal_per_day: '10000',
+    withdrawal_fee_threshold: '1000',
+    withdrawal_fee_percent: '2',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingOwnerContact, setSavingOwnerContact] = useState(false);
   const [savingSocial, setSavingSocial] = useState(false);
   const [savingMaintenance, setSavingMaintenance] = useState(false);
+  const [savingWithdrawal, setSavingWithdrawal] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
   const [generatingBypassToken, setGeneratingBypassToken] = useState(false);
 
@@ -159,6 +175,13 @@ const AdminSettings = () => {
         maintenance_bypass_token: '',
       };
 
+      const withdrawalMap: WithdrawalSettings = {
+        min_deposit_amount: '10',
+        max_withdrawal_per_day: '10000',
+        withdrawal_fee_threshold: '1000',
+        withdrawal_fee_percent: '2',
+      };
+
       data?.forEach((s) => {
         if (s.setting_key in commissionMap) {
           commissionMap[s.setting_key as keyof CommissionSettings] = s.setting_value;
@@ -175,6 +198,9 @@ const AdminSettings = () => {
         if (s.setting_key in maintenanceMap) {
           maintenanceMap[s.setting_key as keyof MaintenanceSettings] = s.setting_value;
         }
+        if (s.setting_key in withdrawalMap) {
+          withdrawalMap[s.setting_key as keyof WithdrawalSettings] = s.setting_value;
+        }
       });
 
       setSettings(commissionMap);
@@ -182,6 +208,7 @@ const AdminSettings = () => {
       setOwnerContactSettings(ownerContactMap);
       setSocialSettings(socialMap);
       setMaintenanceSettings(maintenanceMap);
+      setWithdrawalSettings(withdrawalMap);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -447,6 +474,36 @@ const AdminSettings = () => {
       toast({ title: 'Copied!', description: 'Bypass link copied to clipboard.' });
     } catch (error) {
       toast({ title: 'Copy Failed', description: 'Please copy the link manually.', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveWithdrawal = async () => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can change settings.', variant: 'destructive' });
+      return;
+    }
+
+    setSavingWithdrawal(true);
+
+    try {
+      for (const [key, value] of Object.entries(withdrawalSettings)) {
+        const { error } = await supabase
+          .from('platform_settings')
+          .upsert({ 
+            setting_key: key,
+            setting_value: value,
+            updated_by: user?.id,
+          }, { onConflict: 'setting_key' });
+
+        if (error) throw error;
+      }
+
+      toast({ title: 'Withdrawal Settings Saved', description: 'Deposit and withdrawal limits have been updated.' });
+    } catch (error) {
+      console.error('Error saving withdrawal settings:', error);
+      toast({ title: 'Error', description: 'Failed to save withdrawal settings.', variant: 'destructive' });
+    } finally {
+      setSavingWithdrawal(false);
     }
   };
 
