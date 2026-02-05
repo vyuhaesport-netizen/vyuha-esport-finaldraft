@@ -573,8 +573,14 @@ const SchoolTournamentManage = () => {
   };
 
   const handleDeclareRoomWinner = async () => {
-    if (!selectedRoom || !selectedWinnerTeam) {
-      toast.error('Please select a winner team');
+    if (!selectedRoom || selectedWinnerTeams.length === 0) {
+      toast.error('Please select at least one winner team');
+      return;
+    }
+
+    const expectedWinners = tournament?.winners_per_room || 1;
+    if (selectedWinnerTeams.length !== expectedWinners) {
+      toast.error(`Please select exactly ${expectedWinners} winner(s)`);
       return;
     }
 
@@ -584,21 +590,21 @@ const SchoolTournamentManage = () => {
         body: {
           action: 'save_room_winner',
           roomId: selectedRoom.id,
-          winnerTeamId: selectedWinnerTeam,
+          winnerTeamIds: selectedWinnerTeams,
         }
       });
 
       if (error) throw error;
       if (!result?.success) {
-        throw new Error(result?.error || 'Failed to save winner');
+        throw new Error(result?.error || 'Failed to save winners');
       }
 
-      toast.success('Winner saved! Ab Room End karo.');
+      toast.success(`${selectedWinnerTeams.length} Winner(s) saved! Ab Room End karo.`);
       setDeclareWinnerDialogOpen(false);
-      setSelectedWinnerTeam('');
+      setSelectedWinnerTeams([]);
       fetchTournamentData();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save winner');
+      toast.error(error.message || 'Failed to save winners');
     } finally {
       setProcessing(false);
     }
