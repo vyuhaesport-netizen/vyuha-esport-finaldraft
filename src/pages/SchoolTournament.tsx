@@ -175,7 +175,7 @@ const SchoolTournament = () => {
   };
 
   const calculateStructure = () => {
-    const { game, maxPlayers } = formData;
+    const { game, maxPlayers, winnersPerRoom } = formData;
     const playersPerRoom = game === 'BGMI' ? 100 : 50;
     const teamsPerRoom = game === 'BGMI' ? 25 : 12;
     const totalTeams = Math.ceil(maxPlayers / 4);
@@ -186,7 +186,7 @@ const SchoolTournament = () => {
     
     while (currentTeams > finaleTeams) {
       const rooms = Math.ceil(currentTeams / teamsPerRoom);
-      currentTeams = rooms; // Top 1 from each room
+      currentTeams = rooms * winnersPerRoom; // Winners from each room advance
       rounds++;
     }
     rounds++; // Add finale round
@@ -197,7 +197,8 @@ const SchoolTournament = () => {
       totalTeams,
       initialRooms: Math.ceil(totalTeams / teamsPerRoom),
       totalRounds: rounds,
-      finaleTeams
+      finaleTeams,
+      winnersPerRoom
     };
   };
 
