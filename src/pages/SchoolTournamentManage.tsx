@@ -1940,44 +1940,81 @@ const SchoolTournamentManage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Declare Winner Dialog */}
+      {/* Declare Winner Dialog - Multi-Select */}
       <Dialog open={declareWinnerDialogOpen} onOpenChange={setDeclareWinnerDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm">Declare Room Winner</DialogTitle>
+            <DialogTitle className="text-sm">Select Room Winners</DialogTitle>
             <DialogDescription className="text-xs">
-              {selectedRoom?.room_name} - Select the winning team
+              {selectedRoom?.room_name} - Select {tournament?.winners_per_room || 1} team(s) to advance
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
+            <div className="mb-2 text-xs text-muted-foreground flex items-center justify-between">
+              <span>Selected: {selectedWinnerTeams.length}/{tournament?.winners_per_room || 1}</span>
+              {selectedWinnerTeams.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-[10px]"
+                  onClick={() => setSelectedWinnerTeams([])}
+                >
+                  Clear All
+                </Button>
+              )}
+            </div>
             <ScrollArea className="h-[250px]">
               <div className="space-y-1.5">
                 {selectedRoom && roomAssignments[selectedRoom.id] ? (
                   teams
                     .filter(t => roomAssignments[selectedRoom.id]?.includes(t.id))
-                    .map((team) => (
-                      <button
-                        key={team.id}
-                        className={`w-full p-2.5 rounded-lg border text-left transition-colors text-xs ${
-                          selectedWinnerTeam === team.id 
-                            ? 'border-primary bg-primary/10' 
-                            : 'border-muted hover:bg-muted'
-                        }`}
-                        onClick={() => setSelectedWinnerTeam(team.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {selectedWinnerTeam === team.id && (
-                            <Crown className="h-4 w-4 text-yellow-500" />
-                          )}
-                          <div>
-                            <p className="font-medium">{team.team_name}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {team.registration_method} registration
-                            </p>
+                    .map((team, idx) => {
+                      const isSelected = selectedWinnerTeams.includes(team.id);
+                      const selectionOrder = selectedWinnerTeams.indexOf(team.id) + 1;
+                      
+                      return (
+                        <button
+                          key={team.id}
+                          className={`w-full p-2.5 rounded-lg border text-left transition-colors text-xs ${
+                            isSelected 
+                              ? 'border-primary bg-primary/10' 
+                              : 'border-muted hover:bg-muted'
+                          }`}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedWinnerTeams(prev => prev.filter(id => id !== team.id));
+                            } else {
+                              const maxWinners = tournament?.winners_per_room || 1;
+                              if (selectedWinnerTeams.length < maxWinners) {
+                                setSelectedWinnerTeams(prev => [...prev, team.id]);
+                              } else {
+                                toast.error(`Maximum ${maxWinners} winners allowed per room`);
+                              }
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                                {selectionOrder}
+                              </div>
+                            )}
+                            {!isSelected && (
+                              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium">{team.team_name}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {team.registration_method} registration
+                              </p>
+                            </div>
+                            {isSelected && selectionOrder === 1 && (
+                              <Crown className="h-4 w-4 text-yellow-500" />
+                            )}
                           </div>
-                        </div>
-                      </button>
-                    ))
+                        </button>
+                      );
+                    })
                 ) : (
                   <p className="text-center text-muted-foreground py-4 text-xs">
                     No teams assigned to this room
@@ -1988,10 +2025,10 @@ const SchoolTournamentManage = () => {
             <Button 
               className="w-full mt-3 h-9 text-xs" 
               onClick={handleDeclareRoomWinner}
-              disabled={!selectedWinnerTeam || processing}
+              disabled={selectedWinnerTeams.length !== (tournament?.winners_per_room || 1) || processing}
             >
               {processing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trophy className="h-3 w-3 mr-1" />}
-              Confirm Winner
+              Confirm {tournament?.winners_per_room || 1} Winner(s)
             </Button>
           </div>
         </DialogContent>
