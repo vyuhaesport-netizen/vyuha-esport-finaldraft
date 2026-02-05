@@ -75,6 +75,46 @@ const CompleteProfile = () => {
     }
   };
 
+  // Debounced username availability check
+  const checkUsernameAvailability = useCallback(async (username: string) => {
+    if (!username || username.length < 3 || !/^[a-z0-9]+$/.test(username)) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setCheckingUsername(true);
+    try {
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.toLowerCase())
+        .neq('user_id', user?.id || '')
+        .maybeSingle();
+
+      setUsernameAvailable(!existingUser);
+      if (existingUser) {
+        setErrors(prev => ({ ...prev, username: 'This username is already taken' }));
+      } else {
+        setErrors(prev => ({ ...prev, username: '' }));
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+    } finally {
+      setCheckingUsername(false);
+    }
+  }, [user?.id]);
+
+  // Debounce effect for username check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.username.length >= 3) {
+        checkUsernameAvailability(formData.username);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.username, checkUsernameAvailability]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -82,8 +122,12 @@ const CompleteProfile = () => {
       newErrors.username = 'Username is required';
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters';
+    } else if (formData.username.length > 20) {
+      newErrors.username = 'Username must be less than 20 characters';
     } else if (!/^[a-z0-9]+$/.test(formData.username)) {
       newErrors.username = 'Username must contain only lowercase letters and numbers';
+    } else if (usernameAvailable === false) {
+      newErrors.username = 'This username is already taken';
     }
     if (!formData.preferred_game) {
       newErrors.preferred_game = 'Please select your primary game';
