@@ -324,10 +324,10 @@ const ProfilePage = () => {
   }, [user]);
 
   const menuItems = [
-    { icon: BarChart3, label: 'Player Stats', onClick: () => navigate('/player-stats') },
-    { icon: Users, label: 'Team', onClick: () => navigate('/team') },
-    { icon: MessageCircle, label: 'Chat', onClick: () => navigate('/chat') },
-    { icon: Crown, label: 'Leaderboard', onClick: () => navigate('/leaderboard') },
+    { icon: BarChart3, label: 'Player Stats', onClick: () => navigate('/player-stats'), badge: 0 },
+    { icon: Users, label: 'Team', onClick: () => navigate('/team'), badge: 0 },
+    { icon: MessageCircle, label: 'Chat', onClick: () => navigate('/chat'), badge: hasTeam ? teamChat : 0 },
+    { icon: Crown, label: 'Leaderboard', onClick: () => navigate('/leaderboard'), badge: 0 },
   ];
 
   const moreItems = [
