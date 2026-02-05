@@ -155,7 +155,7 @@ const RoundProgressionChart = ({
           <div className="text-center">
             <p className="text-lg font-bold flex items-center justify-center gap-1">
               <Crown className="h-4 w-4 text-yellow-500" />
-              Top 1
+              Top {winnersPerRoom}
             </p>
             <p className="text-[10px] text-muted-foreground">Advances</p>
           </div>
