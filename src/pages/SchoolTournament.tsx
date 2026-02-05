@@ -238,8 +238,8 @@ const SchoolTournament = () => {
           toast.error('Max players must be between 100 and 10,000');
           return false;
         }
-        if (formData.entryType === 'paid' && formData.entryFee <= 0) {
-          toast.error('Please set entry fee');
+        if (formData.entryFee < 25) {
+          toast.error('Minimum entry fee is ₹25 per player');
           return false;
         }
         break;
