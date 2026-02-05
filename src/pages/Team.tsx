@@ -876,6 +876,12 @@ const TeamPage = () => {
       return;
     }
 
+    // Check if user has valid stats before allowing join request
+    if (team.requires_approval && !userHasStats) {
+      setStatsAlertDialogOpen(true);
+      return;
+    }
+
     if (team.requires_approval) {
       setSelectedTeamForRequest(team);
       setRequestDialogOpen(true);
