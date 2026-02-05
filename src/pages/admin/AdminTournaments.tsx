@@ -21,7 +21,8 @@ import {
   Palette,
   MapPin,
   TrendingUp,
-  Calendar
+  Calendar,
+  GraduationCap
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { generateTournamentDetailPDF, TournamentReportData } from '@/utils/pdfGenerator';
@@ -37,7 +38,7 @@ interface UnifiedTournament {
   title: string;
   game: string;
   status: string | null;
-  type: 'organizer' | 'creator' | 'local';
+  type: 'organizer' | 'creator' | 'local' | 'school';
   creator_id: string;
   creator_name: string;
   prize_pool: number;
@@ -70,13 +71,17 @@ const pieChartConfig = {
     label: "Local",
     color: "hsl(217, 91%, 60%)",
   },
+  school: {
+    label: "School/College",
+    color: "hsl(142, 76%, 36%)",
+  },
 };
 
 const AdminTournaments = () => {
   const [tournaments, setTournaments] = useState<UnifiedTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'organizer' | 'creator' | 'local'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'organizer' | 'creator' | 'local' | 'school'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [commissionSettings, setCommissionSettings] = useState<CommissionSettings>({
@@ -116,6 +121,9 @@ const AdminTournaments = () => {
         fetchAllTournaments();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'local_tournaments' }, () => {
+        fetchAllTournaments();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'school_tournament_applications' }, () => {
         fetchAllTournaments();
       })
       .subscribe();
@@ -163,13 +171,21 @@ const AdminTournaments = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Fetch school/college tournaments
+      const { data: schoolTournaments, error: schoolError } = await supabase
+        .from('school_tournament_applications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (regularError) console.error('Error fetching regular tournaments:', regularError);
       if (localError) console.error('Error fetching local tournaments:', localError);
+      if (schoolError) console.error('Error fetching school tournaments:', schoolError);
 
       // Get all unique creator IDs
       const creatorIds = [
         ...(regularTournaments?.map(t => t.created_by).filter(Boolean) || []),
-        ...(localTournaments?.map(t => t.organizer_id).filter(Boolean) || [])
+        ...(localTournaments?.map(t => t.organizer_id).filter(Boolean) || []),
+        ...(schoolTournaments?.map(t => t.user_id).filter(Boolean) || [])
       ];
       
       // Fetch all profiles for creators
@@ -243,7 +259,29 @@ const AdminTournaments = () => {
         };
       });
 
-      setTournaments([...transformedRegular, ...transformedLocal]);
+      // Transform school/college tournaments
+      const transformedSchool: UnifiedTournament[] = (schoolTournaments || []).map(t => {
+        const profile = profileMap.get(t.user_id || '');
+        
+        return {
+          id: t.id,
+          title: t.tournament_name,
+          game: t.game,
+          status: t.status,
+          type: 'school' as const,
+          creator_id: t.user_id,
+          creator_name: t.organizer_name || profile?.full_name || profile?.username || 'Unknown',
+          prize_pool: 0, // Calculated dynamically based on registrations
+          entry_fee: t.entry_fee || 0,
+          participants: 0, // Will be updated from registrations
+          max_participants: t.max_players || 100,
+          organizer_commission: 0,
+          platform_commission: 0,
+          start_date: t.tournament_date || t.created_at,
+        };
+      });
+
+      setTournaments([...transformedRegular, ...transformedLocal, ...transformedSchool]);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     } finally {
@@ -283,11 +321,13 @@ const AdminTournaments = () => {
     const organizerRevenue = tournaments.filter(t => t.type === 'organizer').reduce((sum, t) => sum + t.platform_commission, 0);
     const creatorRevenue = tournaments.filter(t => t.type === 'creator').reduce((sum, t) => sum + t.platform_commission, 0);
     const localRevenue = tournaments.filter(t => t.type === 'local').reduce((sum, t) => sum + t.platform_commission, 0);
+    const schoolRevenue = tournaments.filter(t => t.type === 'school').reduce((sum, t) => sum + t.platform_commission, 0);
     
     return [
       { name: 'Organizer', value: organizerRevenue, color: 'hsl(25, 95%, 53%)' },
       { name: 'Creator', value: creatorRevenue, color: 'hsl(330, 80%, 60%)' },
       { name: 'Local', value: localRevenue, color: 'hsl(217, 91%, 60%)' },
+      { name: 'School/College', value: schoolRevenue, color: 'hsl(142, 76%, 36%)' },
     ].filter(d => d.value > 0);
   };
 
@@ -301,19 +341,21 @@ const AdminTournaments = () => {
     }
   };
 
-  const getTypeColor = (type: 'organizer' | 'creator' | 'local') => {
+  const getTypeColor = (type: 'organizer' | 'creator' | 'local' | 'school') => {
     switch (type) {
       case 'organizer': return 'bg-orange-500/10 text-orange-600';
       case 'creator': return 'bg-pink-500/10 text-pink-600';
       case 'local': return 'bg-blue-500/10 text-blue-600';
+      case 'school': return 'bg-emerald-500/10 text-emerald-600';
     }
   };
 
-  const getTypeIcon = (type: 'organizer' | 'creator' | 'local') => {
+  const getTypeIcon = (type: 'organizer' | 'creator' | 'local' | 'school') => {
     switch (type) {
       case 'organizer': return <Building2 className="h-4 w-4" />;
       case 'creator': return <Palette className="h-4 w-4" />;
       case 'local': return <MapPin className="h-4 w-4" />;
+      case 'school': return <GraduationCap className="h-4 w-4" />;
     }
   };
 
@@ -461,7 +503,7 @@ const AdminTournaments = () => {
 
         {/* Type Filter Slider */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {(['all', 'organizer', 'creator', 'local'] as const).map((type) => (
+          {(['all', 'organizer', 'creator', 'local', 'school'] as const).map((type) => (
             <Button
               key={type}
               variant={typeFilter === type ? 'default' : 'outline'}
@@ -472,8 +514,9 @@ const AdminTournaments = () => {
               {type === 'organizer' && <Building2 className="h-3 w-3" />}
               {type === 'creator' && <Palette className="h-3 w-3" />}
               {type === 'local' && <MapPin className="h-3 w-3" />}
+              {type === 'school' && <GraduationCap className="h-3 w-3" />}
               {type === 'all' && <Trophy className="h-3 w-3" />}
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+              {type === 'school' ? 'School/College' : type.charAt(0).toUpperCase() + type.slice(1)}
               <Badge variant="secondary" className="ml-1 text-[10px] px-1.5">
                 {type === 'all' 
                   ? tournaments.length 
