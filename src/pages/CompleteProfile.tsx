@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -19,6 +19,8 @@ import {
 const CompleteProfile = () => {
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     preferred_game: '',
