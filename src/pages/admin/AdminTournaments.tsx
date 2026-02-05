@@ -170,13 +170,21 @@ const AdminTournaments = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Fetch school/college tournaments
+      const { data: schoolTournaments, error: schoolError } = await supabase
+        .from('school_tournament_applications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (regularError) console.error('Error fetching regular tournaments:', regularError);
       if (localError) console.error('Error fetching local tournaments:', localError);
+      if (schoolError) console.error('Error fetching school tournaments:', schoolError);
 
       // Get all unique creator IDs
       const creatorIds = [
         ...(regularTournaments?.map(t => t.created_by).filter(Boolean) || []),
-        ...(localTournaments?.map(t => t.organizer_id).filter(Boolean) || [])
+        ...(localTournaments?.map(t => t.organizer_id).filter(Boolean) || []),
+        ...(schoolTournaments?.map(t => t.user_id).filter(Boolean) || [])
       ];
       
       // Fetch all profiles for creators
@@ -250,7 +258,29 @@ const AdminTournaments = () => {
         };
       });
 
-      setTournaments([...transformedRegular, ...transformedLocal]);
+      // Transform school/college tournaments
+      const transformedSchool: UnifiedTournament[] = (schoolTournaments || []).map(t => {
+        const profile = profileMap.get(t.user_id || '');
+        
+        return {
+          id: t.id,
+          title: t.tournament_name,
+          game: t.game,
+          status: t.status,
+          type: 'school' as const,
+          creator_id: t.user_id,
+          creator_name: t.organizer_name || profile?.full_name || profile?.username || 'Unknown',
+          prize_pool: 0, // Calculated dynamically based on registrations
+          entry_fee: t.entry_fee || 0,
+          participants: 0, // Will be updated from registrations
+          max_participants: t.max_players || 100,
+          organizer_commission: 0,
+          platform_commission: 0,
+          start_date: t.tournament_date || t.created_at,
+        };
+      });
+
+      setTournaments([...transformedRegular, ...transformedLocal, ...transformedSchool]);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     } finally {
