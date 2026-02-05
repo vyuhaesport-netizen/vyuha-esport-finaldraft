@@ -52,11 +52,20 @@ const Landing = () => {
 
   const trackLinkClick = async (code: string) => {
     try {
-      // Simple update to track click - using raw query since RPC types need refresh
-      await supabase
+      // Track click via direct SQL update
+      const { data: link } = await supabase
         .from('collab_links')
-        .update({ total_clicks: 1 }) // This won't work for increment, but function handles it
-        .eq('link_code', code);
+        .select('id, total_clicks')
+        .eq('link_code', code)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (link) {
+        await supabase
+          .from('collab_links')
+          .update({ total_clicks: link.total_clicks + 1 })
+          .eq('id', link.id);
+      }
     } catch (error) {
       console.error('Error tracking click:', error);
     }
@@ -308,7 +317,22 @@ const Landing = () => {
           status: 'registered',
         });
 
-        // Update will be handled by the database trigger/function
+        // Update signup count
+        const { data: currentLink } = await supabase
+          .from('collab_links')
+          .select('total_signups')
+          .eq('id', link.id)
+          .single();
+        
+        if (currentLink) {
+          await supabase
+            .from('collab_links')
+            .update({ 
+              total_signups: currentLink.total_signups + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', link.id);
+        }
       }
     } catch (error) {
       console.error('Error tracking referral:', error);
