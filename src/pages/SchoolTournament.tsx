@@ -285,7 +285,7 @@ const SchoolTournament = () => {
          whatsapp_link: formData.whatsappLink || null,
          discord_link: formData.discordLink || null,
          prize_distribution_mode: formData.prizeDistributionMode,
-         winners_per_room: formData.winnersPerRoom,
+         winners_per_room: 1, // Default, organizer sets per-round in manage page
       });
 
       if (error) throw error;
