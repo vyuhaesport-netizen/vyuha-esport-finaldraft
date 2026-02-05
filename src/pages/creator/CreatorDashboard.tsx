@@ -811,6 +811,8 @@ const CreatorDashboard = () => {
       prize_pool: tournament.prize_pool?.replace(/[₹,]/g, '') || '',
       youtube_link: (tournament as any).youtube_link || '',
       instagram_link: (tournament as any).instagram_link || '',
+      whatsapp_link: (tournament as any).whatsapp_link || '',
+      discord_link: (tournament as any).discord_link || '',
       is_giveaway: (tournament as any).is_giveaway || false,
       giveaway_prize_pool: (tournament as any).giveaway_prize_pool?.toString() || '',
     });
