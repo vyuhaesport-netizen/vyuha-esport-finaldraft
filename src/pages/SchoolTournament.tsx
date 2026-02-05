@@ -942,8 +942,9 @@ const SchoolTournament = () => {
               
               const visibleTournaments = tournaments.filter(t => {
                 if (t.status !== 'completed') return true;
-                // Show completed tournaments for 3 days
-                return new Date(t.created_at) > threeDaysAgo;
+                // Show completed tournaments for 3 days after tournament_date
+                const tournamentDate = t.created_at || t.tournament_date;
+                return new Date(tournamentDate) > threeDaysAgo;
               });
 
               if (visibleTournaments.length === 0) {
