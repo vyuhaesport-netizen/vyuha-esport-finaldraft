@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import vyuhaLogo from '@/assets/vyuha-logo.png';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -19,6 +19,8 @@ import {
 const CompleteProfile = () => {
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     preferred_game: '',
@@ -73,6 +75,46 @@ const CompleteProfile = () => {
     }
   };
 
+  // Debounced username availability check
+  const checkUsernameAvailability = useCallback(async (username: string) => {
+    if (!username || username.length < 3 || !/^[a-z0-9]+$/.test(username)) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setCheckingUsername(true);
+    try {
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.toLowerCase())
+        .neq('user_id', user?.id || '')
+        .maybeSingle();
+
+      setUsernameAvailable(!existingUser);
+      if (existingUser) {
+        setErrors(prev => ({ ...prev, username: 'This username is already taken' }));
+      } else {
+        setErrors(prev => ({ ...prev, username: '' }));
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+    } finally {
+      setCheckingUsername(false);
+    }
+  }, [user?.id]);
+
+  // Debounce effect for username check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.username.length >= 3) {
+        checkUsernameAvailability(formData.username);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.username, checkUsernameAvailability]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -80,8 +122,12 @@ const CompleteProfile = () => {
       newErrors.username = 'Username is required';
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters';
+    } else if (formData.username.length > 20) {
+      newErrors.username = 'Username must be less than 20 characters';
     } else if (!/^[a-z0-9]+$/.test(formData.username)) {
       newErrors.username = 'Username must contain only lowercase letters and numbers';
+    } else if (usernameAvailable === false) {
+      newErrors.username = 'This username is already taken';
     }
     if (!formData.preferred_game) {
       newErrors.preferred_game = 'Please select your primary game';
@@ -101,22 +147,14 @@ const CompleteProfile = () => {
     e.preventDefault();
     if (!validateForm() || !user) return;
 
+    // Double-check username availability before submit
+    if (usernameAvailable === false || checkingUsername) {
+      setErrors(prev => ({ ...prev, username: 'This username is already taken' }));
+      return;
+    }
+
     setLoading(true);
     try {
-      // Check if username is already taken
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', formData.username.toLowerCase())
-        .neq('user_id', user.id)
-        .maybeSingle();
-
-      if (existingUser) {
-        setErrors({ username: 'This username is already taken' });
-        setLoading(false);
-        return;
-      }
-
       // Use upsert so the profile can be created if it doesn't exist yet.
       if (!user.email) throw new Error('Missing user email');
 
@@ -173,18 +211,39 @@ const CompleteProfile = () => {
               <Label htmlFor="username" className="text-sm font-medium text-gray-700">
                 Username <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) => {
-                  setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') });
-                  setErrors({ ...errors, username: '' });
-                }}
-                placeholder="Choose a unique username"
-                className={errors.username ? 'border-red-500' : ''}
-              />
+              <div className="relative">
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => {
+                    const value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+                    setFormData({ ...formData, username: value });
+                    setUsernameAvailable(null);
+                    if (value.length < 3) {
+                      setErrors({ ...errors, username: value.length > 0 ? 'Username must be at least 3 characters' : '' });
+                    } else {
+                      setErrors({ ...errors, username: '' });
+                    }
+                  }}
+                  placeholder="Choose a unique username"
+                  className={`pr-10 ${errors.username ? 'border-red-500' : usernameAvailable === true ? 'border-green-500' : ''}`}
+                  maxLength={20}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {checkingUsername && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  {!checkingUsername && usernameAvailable === true && formData.username.length >= 3 && (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  )}
+                  {!checkingUsername && usernameAvailable === false && (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
+              </div>
               {errors.username && <p className="text-red-500 text-xs">{errors.username}</p>}
-              <p className="text-xs text-gray-500">Only lowercase letters and numbers</p>
+              {!errors.username && usernameAvailable === true && formData.username.length >= 3 && (
+                <p className="text-green-600 text-xs">Username is available!</p>
+              )}
+              <p className="text-xs text-gray-500">3-20 characters, lowercase letters and numbers only</p>
             </div>
 
             {/* Primary Game */}
