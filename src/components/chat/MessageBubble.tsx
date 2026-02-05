@@ -1,4 +1,4 @@
- import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
  import { Check, CheckCheck, Reply, Trash2, Pencil, MoreVertical, Copy, Smile, X, Eye } from 'lucide-react';
  import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
  import { Button } from '@/components/ui/button';
@@ -70,6 +70,23 @@
    onEditCancel,
  }: MessageBubbleProps) => {
    const [showReactions, setShowReactions] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+
+  // Close actions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
+        setShowActions(false);
+        setShowReactions(false);
+      }
+    };
+    
+    if (showActions || showReactions) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showActions, showReactions]);
  
    // All members seen (excluding sender) = total - 1 (sender)
    const allSeen = totalMembers > 1 && seenCount >= totalMembers - 1;
@@ -135,7 +152,7 @@
          )}
  
          {/* Message Bubble */}
-         <div className="relative">
+        <div className="relative" ref={actionsRef}>
            {isEditing ? (
              <div className="flex items-center gap-1.5 bg-background border border-border rounded-xl p-1">
                <Input
@@ -156,7 +173,7 @@
                className={cn(
                  "relative px-3 py-2 rounded-2xl",
                  isOwn
-                   ? "bg-primary text-primary-foreground rounded-br-sm shadow-md"
+                  ? "bg-gaming-purple text-primary-foreground rounded-br-sm shadow-md"
                    : "bg-card/90 border border-border text-foreground rounded-bl-sm shadow-sm"
                )}
              >
@@ -213,15 +230,16 @@
            {/* Quick Reactions Bar */}
            {showReactions && (
              <div className={cn(
-               "absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-card border border-border rounded-full px-2 py-1 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
+              "absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150"
              )}>
                {QUICK_REACTIONS.map((emoji) => (
                  <button
                    key={emoji}
-                   className="text-lg hover:scale-110 transition-transform"
+                  className="text-xl hover:scale-125 active:scale-95 transition-transform p-0.5"
                    onClick={() => {
                      onReact?.(emoji);
                      setShowReactions(false);
+                    setShowActions(false);
                    }}
                  >
                    {emoji}
@@ -231,16 +249,16 @@
            )}
          </div>
  
-         {/* Hover Actions */}
+        {/* Action Buttons - Always visible */}
          {!isEditing && (
            <div className={cn(
-             "flex items-center gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity",
+            "flex items-center gap-0.5 mt-1",
              isOwn ? "justify-end" : "justify-start"
            )}>
              <Button
                size="icon"
                variant="ghost"
-               className="h-7 w-7"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
                onClick={onReply}
              >
                <Reply className="h-4 w-4" />
@@ -248,8 +266,11 @@
              <Button
                size="icon"
                variant="ghost"
-               className="h-7 w-7"
-               onClick={() => setShowReactions(true)}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setShowReactions(!showReactions);
+                setShowActions(true);
+              }}
              >
                <Smile className="h-4 w-4" />
              </Button>
