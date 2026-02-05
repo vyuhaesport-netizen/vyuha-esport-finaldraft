@@ -42,8 +42,6 @@ import { Check, CheckCheck, Reply, Trash2, Pencil, MoreVertical, Copy, X, Eye } 
    onEditCancel?: () => void;
  }
  
- const QUICK_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
-
 // Unique colors for different team members to easily identify who sent what
 const MEMBER_COLORS = [
   'bg-emerald-600',
@@ -115,9 +113,9 @@ const getSenderColor = (senderName: string): string => {
      >
        {/* Avatar - only for others */}
        {!isOwn && (
-         <Avatar className="h-8 w-8 flex-shrink-0 mt-0.5 border-2 border-primary/30">
+         <Avatar className={cn("h-8 w-8 flex-shrink-0 mt-0.5 border-2", `border-${senderColor.replace('bg-', '')}`)}>
            <AvatarImage src={senderAvatar || ''} />
-           <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+           <AvatarFallback className={cn(senderColor, "text-white text-xs font-bold")}>
              {senderName.charAt(0).toUpperCase()}
            </AvatarFallback>
          </Avatar>
@@ -126,7 +124,7 @@ const getSenderColor = (senderName: string): string => {
        <div className={cn("max-w-[75%] min-w-[80px]", isOwn ? "items-end" : "items-start")}>
          {/* Sender name for others */}
          {!isOwn && (
-           <span className="text-xs font-bold text-primary ml-2 mb-0.5 block">
+           <span className={cn("text-xs font-bold ml-2 mb-0.5 block", senderColor.replace('bg-', 'text-'))}>
              {senderName}
            </span>
          )}
@@ -180,12 +178,12 @@ const getSenderColor = (senderName: string): string => {
                className={cn(
                  "relative px-3 py-2 rounded-2xl",
                  isOwn
-                  ? "bg-gaming-purple text-primary-foreground rounded-br-sm shadow-md"
+                  ? "bg-gaming-purple rounded-br-sm shadow-md"
                    : "bg-card/90 border border-border text-foreground rounded-bl-sm shadow-sm"
                )}
              >
                {/* Message Content */}
-               <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">
+              <p className={cn("text-sm leading-relaxed break-words whitespace-pre-wrap", isOwn ? "text-white" : "text-foreground")}>
                  {content}
                </p>
  
