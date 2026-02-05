@@ -130,6 +130,8 @@ const CreatorDashboard = () => {
     prize_pool: '',
     youtube_link: '',
     instagram_link: '',
+    whatsapp_link: '',
+    discord_link: '',
     is_giveaway: false,
     giveaway_prize_pool: '',
   });
@@ -230,6 +232,8 @@ const CreatorDashboard = () => {
       prize_pool: '',
       youtube_link: '',
       instagram_link: '',
+      whatsapp_link: '',
+      discord_link: '',
       is_giveaway: false,
       giveaway_prize_pool: '',
     });
@@ -298,6 +302,8 @@ const CreatorDashboard = () => {
         prize_distribution: prizeDistribution,
         youtube_link: formData.youtube_link || null,
         instagram_link: formData.instagram_link || null,
+        whatsapp_link: formData.whatsapp_link || null,
+        discord_link: formData.discord_link || null,
         is_giveaway: formData.is_giveaway,
         giveaway_prize_pool: formData.is_giveaway ? prizePoolValue : null,
         current_prize_pool: formData.is_giveaway ? prizePoolValue : 0,
