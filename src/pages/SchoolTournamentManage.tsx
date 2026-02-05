@@ -407,6 +407,25 @@ const SchoolTournamentManage = () => {
     }
   };
 
+  const handleUpdateWinnersPerRoom = async (newValue: number) => {
+    if (!tournament) return;
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('school_tournaments')
+        .update({ winners_per_room: newValue })
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success(`Winners per room updated to ${newValue}!`);
+      fetchTournamentData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update setting');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleEndTournament = async () => {
     if (!tournament) return;
     setProcessing(true);
