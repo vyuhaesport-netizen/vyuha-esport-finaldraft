@@ -21,7 +21,8 @@ import {
   Palette,
   MapPin,
   TrendingUp,
-  Calendar
+  Calendar,
+  GraduationCap
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { generateTournamentDetailPDF, TournamentReportData } from '@/utils/pdfGenerator';
