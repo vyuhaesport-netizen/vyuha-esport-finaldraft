@@ -286,44 +286,32 @@ import {
        
        if (updateError) throw updateError;
        
-       // Credit organizer earnings to their dhana balance
-       const { error: dhanaError } = await supabase
-         .from('dhana_transactions')
+        // Credit organizer earnings to their normal wallet
+        const { error: walletTxError } = await supabase
+          .from('wallet_transactions')
          .insert({
            user_id: tournament?.organizer_id,
            amount: organizerEarnings,
-           type: 'commission',
+            type: 'credit',
            status: 'completed',
-           description: `Local Tournament Commission: ${tournament?.tournament_name}`,
-           tournament_id: null
+            description: `Local Tournament Commission: ${tournament?.tournament_name}`
          });
        
-       if (dhanaError) console.error('Error crediting organizer:', dhanaError);
+        if (walletTxError) console.error('Error crediting organizer:', walletTxError);
        
-       // Update organizer dhana balance
-       const { data: existingBalance } = await supabase
-         .from('dhana_balances')
-         .select('*')
+        // Update organizer wallet balance
+        const { data: organizerProfile } = await supabase
+          .from('profiles')
+          .select('wallet_balance')
          .eq('user_id', tournament?.organizer_id)
          .maybeSingle();
        
-       if (existingBalance) {
-         await supabase
-           .from('dhana_balances')
-           .update({
-             available_dhana: existingBalance.available_dhana + organizerEarnings,
-             total_earned: existingBalance.total_earned + organizerEarnings
-           })
-           .eq('user_id', tournament?.organizer_id);
-       } else {
-         await supabase
-           .from('dhana_balances')
-           .insert({
-             user_id: tournament?.organizer_id,
-             available_dhana: organizerEarnings,
-             total_earned: organizerEarnings
-           });
-       }
+        await supabase
+          .from('profiles')
+          .update({
+            wallet_balance: (organizerProfile?.wallet_balance || 0) + organizerEarnings
+          })
+          .eq('user_id', tournament?.organizer_id);
        
        // Award stats points to winners
        const rankEntries = prizeEntries.filter(e => e.awardType === 'rank' && e.rank && e.rank <= 10);
