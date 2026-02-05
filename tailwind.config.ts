@@ -15,14 +15,17 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Figtree',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
-  				'sans-serif',
-  				'Apple Color Emoji',
-  				'Segoe UI Emoji',
-  				'Segoe UI Symbol',
-  				'Noto Color Emoji'
+  				'-apple-system',
+  				'BlinkMacSystemFont',
+  				'Segoe UI',
+  				'Roboto',
+  				'Helvetica Neue',
+  				'Arial',
+  				'Noto Sans',
+  				'sans-serif'
   			],
   			display: [
   				'Rajdhani',
@@ -31,7 +34,7 @@ export default {
   				'sans-serif'
   			],
   			mono: [
-  				'SF Mono',
+  				'Space Mono',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',
@@ -42,7 +45,7 @@ export default {
   				'monospace'
   			],
   			serif: [
-  				'Crimson Pro',
+  				'Lora',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
