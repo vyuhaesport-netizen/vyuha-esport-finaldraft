@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +13,7 @@ interface PushNotificationRequest {
   message: string;
   url?: string;
   data?: Record<string, unknown>;
+  healthCheck?: boolean;
 }
 
 serve(async (req: Request) => {
@@ -30,7 +30,18 @@ serve(async (req: Request) => {
     }
 
     const body: PushNotificationRequest = await req.json();
-    const { user_ids, external_ids, segment, title, message, url, data } = body;
+    const { user_ids, external_ids, segment, title, message, url, data, healthCheck } = body;
+
+    // Handle health check requests
+    if (healthCheck) {
+      if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+        throw new Error('OneSignal credentials not configured');
+      }
+      return new Response(
+        JSON.stringify({ success: true, message: 'Push notifications configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!title || !message) {
       throw new Error('Title and message are required');
