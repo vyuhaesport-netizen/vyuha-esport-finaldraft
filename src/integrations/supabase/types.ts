@@ -2701,6 +2701,7 @@ export type Database = {
           id: string
           local_tournament_wins: number
           second_place_count: number
+          stats_points: number | null
           third_place_count: number
           total_earnings: number
           tournament_participations: number
@@ -2714,6 +2715,7 @@ export type Database = {
           id?: string
           local_tournament_wins?: number
           second_place_count?: number
+          stats_points?: number | null
           third_place_count?: number
           total_earnings?: number
           tournament_participations?: number
@@ -2727,6 +2729,7 @@ export type Database = {
           id?: string
           local_tournament_wins?: number
           second_place_count?: number
+          stats_points?: number | null
           third_place_count?: number
           total_earnings?: number
           tournament_participations?: number
