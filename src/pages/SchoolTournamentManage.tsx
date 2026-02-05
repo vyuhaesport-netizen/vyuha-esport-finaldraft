@@ -1325,6 +1325,7 @@ const SchoolTournamentManage = () => {
               currentRound={tournament.current_round}
               status={tournament.status}
               roomsByRound={tournamentStats.roomsByRound}
+              winnersPerRoom={tournament.winners_per_room || 1}
             />
 
             {/* Round Control */}
