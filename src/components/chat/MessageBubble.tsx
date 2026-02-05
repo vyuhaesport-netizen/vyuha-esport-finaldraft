@@ -152,7 +152,7 @@ import { useState, useRef, useEffect } from 'react';
          )}
  
          {/* Message Bubble */}
-         <div className="relative">
+        <div className="relative" ref={actionsRef}>
            {isEditing ? (
              <div className="flex items-center gap-1.5 bg-background border border-border rounded-xl p-1">
                <Input
@@ -173,7 +173,7 @@ import { useState, useRef, useEffect } from 'react';
                className={cn(
                  "relative px-3 py-2 rounded-2xl",
                  isOwn
-                   ? "bg-primary text-primary-foreground rounded-br-sm shadow-md"
+                  ? "bg-gaming-purple text-white rounded-br-sm shadow-md"
                    : "bg-card/90 border border-border text-foreground rounded-bl-sm shadow-sm"
                )}
              >
@@ -230,15 +230,16 @@ import { useState, useRef, useEffect } from 'react';
            {/* Quick Reactions Bar */}
            {showReactions && (
              <div className={cn(
-               "absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-card border border-border rounded-full px-2 py-1 shadow-lg z-50 animate-in fade-in zoom-in-95 duration-150"
+              "absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150"
              )}>
                {QUICK_REACTIONS.map((emoji) => (
                  <button
                    key={emoji}
-                   className="text-lg hover:scale-110 transition-transform"
+                  className="text-xl hover:scale-125 active:scale-95 transition-transform p-0.5"
                    onClick={() => {
                      onReact?.(emoji);
                      setShowReactions(false);
+                    setShowActions(false);
                    }}
                  >
                    {emoji}
