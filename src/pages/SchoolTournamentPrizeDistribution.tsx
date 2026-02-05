@@ -10,8 +10,14 @@
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Badge } from '@/components/ui/badge';
  import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
  import {
-   ArrowLeft,
    Trophy,
    Search,
    Check,
@@ -280,44 +286,32 @@
        
        if (updateError) throw updateError;
        
-       // Credit organizer earnings to their dhana balance
-       const { error: dhanaError } = await supabase
-         .from('dhana_transactions')
+        // Credit organizer earnings to their normal wallet
+        const { error: walletTxError } = await supabase
+          .from('wallet_transactions')
          .insert({
            user_id: tournament?.organizer_id,
            amount: organizerEarnings,
-           type: 'commission',
+            type: 'credit',
            status: 'completed',
-           description: `Local Tournament Commission: ${tournament?.tournament_name}`,
-           tournament_id: null
+            description: `Local Tournament Commission: ${tournament?.tournament_name}`
          });
        
-       if (dhanaError) console.error('Error crediting organizer:', dhanaError);
+        if (walletTxError) console.error('Error crediting organizer:', walletTxError);
        
-       // Update organizer dhana balance
-       const { data: existingBalance } = await supabase
-         .from('dhana_balances')
-         .select('*')
+        // Update organizer wallet balance
+        const { data: organizerProfile } = await supabase
+          .from('profiles')
+          .select('wallet_balance')
          .eq('user_id', tournament?.organizer_id)
          .maybeSingle();
        
-       if (existingBalance) {
-         await supabase
-           .from('dhana_balances')
-           .update({
-             available_dhana: existingBalance.available_dhana + organizerEarnings,
-             total_earned: existingBalance.total_earned + organizerEarnings
-           })
-           .eq('user_id', tournament?.organizer_id);
-       } else {
-         await supabase
-           .from('dhana_balances')
-           .insert({
-             user_id: tournament?.organizer_id,
-             available_dhana: organizerEarnings,
-             total_earned: organizerEarnings
-           });
-       }
+        await supabase
+          .from('profiles')
+          .update({
+            wallet_balance: (organizerProfile?.wallet_balance || 0) + organizerEarnings
+          })
+          .eq('user_id', tournament?.organizer_id);
        
        // Award stats points to winners
        const rankEntries = prizeEntries.filter(e => e.awardType === 'rank' && e.rank && e.rank <= 10);
@@ -502,14 +496,26 @@
              {awardType === 'rank' ? (
                <div>
                  <Label className="text-xs">Rank (1-10)</Label>
-                 <Input
-                   type="number"
-                   placeholder="Enter rank"
-                   value={prizeRank}
-                   onChange={(e) => setPrizeRank(e.target.value)}
-                   min={1}
-                   max={10}
-                 />
+                <Select value={prizeRank} onValueChange={(value) => setPrizeRank(value)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select rank" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rank) => {
+                      const isAssigned = prizeEntries.some(e => e.awardType === 'rank' && e.rank === rank);
+                      return (
+                        <SelectItem 
+                          key={rank} 
+                          value={rank.toString()}
+                          disabled={isAssigned}
+                          className="cursor-pointer"
+                        >
+                          Rank #{rank} {isAssigned && '(Assigned)'}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
                </div>
              ) : (
                <div>
