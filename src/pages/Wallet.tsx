@@ -306,7 +306,6 @@ const Wallet = () => {
               <span className="text-sm text-success">₹</span>
               <span className="text-xl font-bold text-success">{balance.toFixed(0)}</span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">For tournaments</p>
           </div>
 
           <button
