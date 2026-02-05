@@ -241,11 +241,9 @@ const OrganizerDashboard = () => {
         }
         return false;
       });
+      setTournaments(filteredTournaments);
 
-      if (error) throw error;
-      setTournaments(data || []);
-
-      const earnings = (data || []).reduce((sum, t) => sum + (t.organizer_earnings || 0), 0);
+      const earnings = filteredTournaments.reduce((sum, t) => sum + (t.organizer_earnings || 0), 0);
       setTotalEarnings(earnings);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
