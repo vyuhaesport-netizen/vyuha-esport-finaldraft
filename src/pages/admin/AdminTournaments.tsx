@@ -70,6 +70,10 @@ const pieChartConfig = {
     label: "Local",
     color: "hsl(217, 91%, 60%)",
   },
+  school: {
+    label: "School/College",
+    color: "hsl(142, 76%, 36%)",
+  },
 };
 
 const AdminTournaments = () => {
