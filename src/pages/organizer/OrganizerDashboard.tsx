@@ -952,92 +952,91 @@ const OrganizerDashboard = () => {
                               prize_pool: t.prize_pool?.replace(/[₹,]/g, '') || '',
                               youtube_link: (t as any).youtube_link || '',
                               instagram_link: (t as any).instagram_link || '',
+                              whatsapp_link: (t as any).whatsapp_link || '',
+                              discord_link: (t as any).discord_link || '',
                               is_giveaway: (t as any).is_giveaway || false,
                               giveaway_prize_pool: (t as any).giveaway_prize_pool?.toString() || '',
                             });
-                               whatsapp_link: (t as any).whatsapp_link || '',
-                               discord_link: (t as any).discord_link || '',
-                             });
-                             setDialogOpen(true);
-                           }}>
-                             <Edit2 className="h-3.5 w-3.5" />
-                           </Button>
-                         )}
-                         {/* Cancel Tournament - for upcoming or ongoing */}
-                         {(t.status === 'upcoming' || t.status === 'ongoing') && (
-                           <Button 
-                             variant="outline" 
-                             size="sm" 
-                             className="text-destructive border-destructive/50 hover:bg-destructive/10"
-                             onClick={() => openCancelDialog(t)}
-                           >
-                             <XCircle className="h-3.5 w-3.5" />
-                           </Button>
-                         )}
-                       </div>
- 
-                       {/* Start/End Tournament Buttons */}
-                       {t.status === 'upcoming' && canStartTournament(t) && (
-                         <Button 
-                           className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-500"
-                           size="sm"
-                           onClick={() => handleStartTournament(t)}
-                           disabled={saving}
-                         >
-                           <Play className="h-4 w-4 mr-2" /> Start Tournament
-                         </Button>
-                       )}
- 
-                       {t.status === 'ongoing' && (
-                         <Button 
-                           className="w-full mt-2 bg-gradient-to-r from-red-500 to-rose-500"
-                           size="sm"
-                           onClick={() => handleEndTournament(t)}
-                           disabled={saving}
-                         >
-                           <Square className="h-4 w-4 mr-2" /> End Tournament
-                         </Button>
-                       )}
- 
-                       {/* Winner Declaration - Only after tournament is ended and 30 min passed */}
-                       {t.status === 'completed' && !t.winner_declared_at && (
-                         <div className="mt-2">
-                           {!canDeclare && targetDate && (
-                             <div className="mb-2 p-2 bg-amber-500/10 rounded-lg text-center">
-                               <p className="text-xs text-amber-600 mb-1">Winner declaration available in:</p>
-                               <CountdownTimer 
-                                 targetDate={targetDate}
-                                 className="text-amber-600 justify-center font-semibold"
-                                 showIcon={false}
-                               />
-                             </div>
-                           )}
-                           <Button 
-                             className="w-full bg-gradient-to-r from-amber-500 to-orange-500"
-                             size="sm"
-                             onClick={() => openDeclareWinner(t)}
-                             disabled={!canDeclare}
-                           >
-                             {canDeclare ? (
-                               <>
-                                 <Award className="h-4 w-4 mr-2" /> Declare Winners
-                               </>
-                             ) : (
-                               <>
-                                 <Clock className="h-4 w-4 mr-2" /> Wait {minutesRemaining}m
-                               </>
-                             )}
-                           </Button>
-                         </div>
-                       )}
- 
-                       {t.winner_declared_at && (
-                         <div className="mt-2 p-2 bg-green-500/10 rounded-lg text-center">
-                           <p className="text-xs text-green-600 font-medium">
-                             ✓ Winners declared on {format(new Date(t.winner_declared_at), 'MMM dd, yyyy')}
-                           </p>
-                         </div>
-                       )}
+                            setDialogOpen(true);
+                          }}>
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {/* Cancel Tournament - for upcoming or ongoing */}
+                        {(t.status === 'upcoming' || t.status === 'ongoing') && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                            onClick={() => openCancelDialog(t)}
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Start/End Tournament Buttons */}
+                      {t.status === 'upcoming' && canStartTournament(t) && (
+                        <Button 
+                          className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-500"
+                          size="sm"
+                          onClick={() => handleStartTournament(t)}
+                          disabled={saving}
+                        >
+                          <Play className="h-4 w-4 mr-2" /> Start Tournament
+                        </Button>
+                      )}
+
+                      {t.status === 'ongoing' && (
+                        <Button 
+                          className="w-full mt-2 bg-gradient-to-r from-red-500 to-rose-500"
+                          size="sm"
+                          onClick={() => handleEndTournament(t)}
+                          disabled={saving}
+                        >
+                          <Square className="h-4 w-4 mr-2" /> End Tournament
+                        </Button>
+                      )}
+
+                      {/* Winner Declaration - Only after tournament is ended and 30 min passed */}
+                      {t.status === 'completed' && !t.winner_declared_at && (
+                        <div className="mt-2">
+                          {!canDeclare && targetDate && (
+                            <div className="mb-2 p-2 bg-amber-500/10 rounded-lg text-center">
+                              <p className="text-xs text-amber-600 mb-1">Winner declaration available in:</p>
+                              <CountdownTimer 
+                                targetDate={targetDate}
+                                className="text-amber-600 justify-center font-semibold"
+                                showIcon={false}
+                              />
+                            </div>
+                          )}
+                          <Button 
+                            className="w-full bg-gradient-to-r from-amber-500 to-orange-500"
+                            size="sm"
+                            onClick={() => openDeclareWinner(t)}
+                            disabled={!canDeclare}
+                          >
+                            {canDeclare ? (
+                              <>
+                                <Award className="h-4 w-4 mr-2" /> Declare Winners
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="h-4 w-4 mr-2" /> Wait {minutesRemaining}m
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
+                      {t.winner_declared_at && (
+                        <div className="mt-2 p-2 bg-green-500/10 rounded-lg text-center">
+                          <p className="text-xs text-green-600 font-medium">
+                            ✓ Winners declared on {format(new Date(t.winner_declared_at), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
