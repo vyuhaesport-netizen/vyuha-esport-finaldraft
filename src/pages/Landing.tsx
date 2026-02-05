@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,28 @@ const Landing = () => {
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Track referral code from URL
+  const refCode = searchParams.get('ref');
+
+  useEffect(() => {
+    // Store referral code in localStorage if present
+    if (refCode) {
+      localStorage.setItem('collab_ref_code', refCode);
+      // Track click on the link
+      trackLinkClick(refCode);
+    }
+  }, [refCode]);
+
+  const trackLinkClick = async (code: string) => {
+    try {
+      await supabase.rpc('track_collab_link_click', { p_link_code: code });
+    } catch (error) {
+      console.error('Error tracking click:', error);
+    }
+  };
 
   // Refs for GSAP animations
   const containerRef = useRef<HTMLDivElement>(null);
@@ -246,6 +267,14 @@ const Landing = () => {
             email: email.toLowerCase().trim(),
             full_name: fullName.trim(),
           }, { onConflict: 'user_id' });
+
+          // Track referral signup
+          const storedRefCode = localStorage.getItem('collab_ref_code');
+          if (storedRefCode) {
+            await trackReferralSignup(data.user.id, storedRefCode);
+            localStorage.removeItem('collab_ref_code');
+          }
+
           toast({ title: 'Account Created!', description: 'Complete your profile.' });
           navigate('/complete-profile');
         }
@@ -254,6 +283,38 @@ const Landing = () => {
       toast({ title: 'Error', description: 'Something went wrong.', variant: 'destructive' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const trackReferralSignup = async (userId: string, code: string) => {
+    try {
+      // Find the collab link by code
+      const { data: link } = await supabase
+        .from('collab_links')
+        .select('id')
+        .eq('link_code', code)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (link) {
+        // Create referral record
+        await supabase.from('collab_referrals').insert({
+          link_id: link.id,
+          referred_user_id: userId,
+          status: 'registered',
+        });
+
+        // Update link signup count
+        await supabase
+          .from('collab_links')
+          .update({ 
+            total_signups: supabase.rpc('increment_signup_count', { link_id: link.id }),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', link.id);
+      }
+    } catch (error) {
+      console.error('Error tracking referral:', error);
     }
   };
 
