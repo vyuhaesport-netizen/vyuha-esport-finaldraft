@@ -667,61 +667,29 @@ const SchoolTournament = () => {
                       />
                     </div>
 
-                    <div>
-                      <Label className="text-xs">Entry Type *</Label>
-                      <RadioGroup
-                        value={formData.entryType}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, entryType: value as 'free' | 'paid' }))}
-                        className="grid grid-cols-2 gap-3 mt-2"
-                      >
-                        <Label
-                          className={`flex items-center gap-2.5 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                            formData.entryType === 'free' ? 'border-primary bg-primary/10' : 'border-white/20'
-                          }`}
-                        >
-                          <RadioGroupItem value="free" className="h-4 w-4" />
-                          <div>
-                            <p className="text-sm font-medium">Free Entry</p>
-                            <p className="text-xs text-muted-foreground">No registration fee</p>
-                          </div>
-                        </Label>
-                        <Label
-                          className={`flex items-center gap-2.5 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                            formData.entryType === 'paid' ? 'border-primary bg-primary/10' : 'border-white/20'
-                          }`}
-                        >
-                          <RadioGroupItem value="paid" className="h-4 w-4" />
-                          <div>
-                            <p className="text-sm font-medium">Paid Entry</p>
-                            <p className="text-xs text-muted-foreground">Per team fee</p>
-                          </div>
-                        </Label>
-                      </RadioGroup>
-                    </div>
-
-                    {formData.entryType === 'paid' && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs">Entry Fee (₹/team) *</Label>
-                          <Input
-                            type="number"
-                            min={10}
-                             value={formData.entryFee || ''}
-                             onChange={(e) => setFormData(prev => ({ ...prev, entryFee: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
-                            className="h-9 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Prize Pool (₹)</Label>
-                          <Input
-                            type="number"
-                             value={formData.prizePool || ''}
-                             onChange={(e) => setFormData(prev => ({ ...prev, prizePool: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
-                            className="h-9 text-sm"
-                          />
-                        </div>
+                    {/* Entry Fee - Now always paid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Entry Fee (₹/player) *</Label>
+                        <Input
+                          type="number"
+                          min={25}
+                          value={formData.entryFee || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, entryFee: Math.max(25, e.target.value === '' ? 25 : parseInt(e.target.value) || 25) }))}
+                          className="h-9 text-sm"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">Min ₹25 per player</p>
                       </div>
-                    )}
+                      <div>
+                        <Label className="text-xs">Prize Pool (₹)</Label>
+                        <Input
+                          type="number"
+                          value={formData.prizePool || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, prizePool: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 }))}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                    </div>
                      
                      {/* Prize Distribution Mode */}
                      <div>
