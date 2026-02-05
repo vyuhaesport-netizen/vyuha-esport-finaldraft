@@ -114,8 +114,8 @@ const Wallet = () => {
 
       setTransactions(txns || []);
 
-      // Calculate total earned (ONLY prize winnings)
-      const prizeTypes = ['winning', 'prize', 'prize_won'];
+      // Calculate total earned (prize winnings + commissions)
+      const prizeTypes = ['winning', 'prize', 'prize_won', 'commission'];
       const earningTxns = (txns || []).filter(t => prizeTypes.includes(t.type) && t.status === 'completed');
       const earned = earningTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0);
       
