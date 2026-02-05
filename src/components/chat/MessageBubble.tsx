@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
- import { Check, CheckCheck, Reply, Trash2, Pencil, MoreVertical, Copy, Smile, X, Eye } from 'lucide-react';
+import { useRef, useEffect } from 'react';
+import { Check, CheckCheck, Reply, Trash2, Pencil, MoreVertical, Copy, X, Eye } from 'lucide-react';
  import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -43,6 +43,27 @@ import { useState, useRef, useEffect } from 'react';
  }
  
  const QUICK_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🙏'];
+
+// Unique colors for different team members to easily identify who sent what
+const MEMBER_COLORS = [
+  'bg-emerald-600',
+  'bg-sky-600', 
+  'bg-amber-600',
+  'bg-rose-600',
+  'bg-violet-600',
+  'bg-teal-600',
+  'bg-orange-600',
+  'bg-pink-600',
+];
+
+// Generate consistent color based on sender name
+const getSenderColor = (senderName: string): string => {
+  let hash = 0;
+  for (let i = 0; i < senderName.length; i++) {
+    hash = senderName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return MEMBER_COLORS[Math.abs(hash) % MEMBER_COLORS.length];
+};
  
  const MessageBubble = ({
    id: _id,
@@ -69,25 +90,8 @@ import { useState, useRef, useEffect } from 'react';
    onEditSave,
    onEditCancel,
  }: MessageBubbleProps) => {
-   const [showReactions, setShowReactions] = useState(false);
-  const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
-  // Close actions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
-        setShowActions(false);
-        setShowReactions(false);
-      }
-    };
-    
-    if (showActions || showReactions) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showActions, showReactions]);
- 
    // All members seen (excluding sender) = total - 1 (sender)
    const allSeen = totalMembers > 1 && seenCount >= totalMembers - 1;
  
@@ -98,6 +102,9 @@ import { useState, useRef, useEffect } from 'react';
    };
  
    const groupedReactions = Object.entries(reactions).filter(([_, users]) => users.length > 0);
+
+  // Get unique color for this sender
+  const senderColor = getSenderColor(senderName);
  
    return (
      <div
