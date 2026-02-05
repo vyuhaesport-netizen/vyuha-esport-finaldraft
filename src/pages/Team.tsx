@@ -2168,6 +2168,45 @@ const TeamPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Stats Required Alert Dialog */}
+      <AlertDialog open={statsAlertDialogOpen} onOpenChange={setStatsAlertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-warning" />
+              Game Stats Required
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-2">
+              <p>
+                Team leaders need to see your in-game stats before approving your request. This helps them understand your skill level.
+              </p>
+              <p className="font-medium text-foreground">
+                Please fill out your Player Stats first, then come back to send your join request.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setStatsAlertDialogOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setStatsAlertDialogOpen(false);
+                navigate('/player-stats');
+              }}
+              className="rounded-xl bg-gradient-to-r from-primary to-gaming-purple"
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Go to Player Stats
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Create Requirement Dialog */}
       <Dialog open={createRequirementDialogOpen} onOpenChange={setCreateRequirementDialogOpen}>
         <DialogContent>
