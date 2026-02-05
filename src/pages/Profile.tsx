@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useUnreadCounts } from '@/hooks/useUnreadCounts';
+import { UnreadBadge } from '@/components/UnreadBadge';
 import { 
   ChevronRight, Shield, LogOut, Trophy, Settings, 
   HelpCircle, FileText, Loader2, Info,
@@ -84,6 +86,7 @@ const ProfilePage = () => {
   const { user, isAdmin, isSuperAdmin, isOrganizer, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { teamChat, broadcasts, hasTeam } = useUnreadCounts();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -321,17 +324,17 @@ const ProfilePage = () => {
   }, [user]);
 
   const menuItems = [
-    { icon: BarChart3, label: 'Player Stats', onClick: () => navigate('/player-stats') },
-    { icon: Users, label: 'Team', onClick: () => navigate('/team') },
-    { icon: MessageCircle, label: 'Chat', onClick: () => navigate('/chat') },
-    { icon: Crown, label: 'Leaderboard', onClick: () => navigate('/leaderboard') },
+    { icon: BarChart3, label: 'Player Stats', onClick: () => navigate('/player-stats'), badge: 0 },
+    { icon: Users, label: 'Team', onClick: () => navigate('/team'), badge: 0 },
+    { icon: MessageCircle, label: 'Chat', onClick: () => navigate('/chat'), badge: hasTeam ? teamChat : 0 },
+    { icon: Crown, label: 'Leaderboard', onClick: () => navigate('/leaderboard'), badge: 0 },
   ];
 
   const moreItems = [
-    { icon: Megaphone, label: 'Broadcast Channel', onClick: () => navigate('/broadcast') },
-    { icon: HelpCircle, label: 'Help & Support', onClick: () => navigate('/help-support') },
-    { icon: Settings, label: 'Terms & Conditions', onClick: () => navigate('/terms') },
-    { icon: Info, label: 'About Us', onClick: () => navigate('/about') },
+    { icon: Megaphone, label: 'Broadcast Channel', onClick: () => navigate('/broadcast'), badge: broadcasts },
+    { icon: HelpCircle, label: 'Help & Support', onClick: () => navigate('/help-support'), badge: 0 },
+    { icon: Settings, label: 'Terms & Conditions', onClick: () => navigate('/terms'), badge: 0 },
+    { icon: Info, label: 'About Us', onClick: () => navigate('/about'), badge: 0 },
   ];
 
   if (authLoading || loading) {
@@ -529,8 +532,9 @@ const ProfilePage = () => {
               className="w-full flex items-center gap-2.5 p-3 hover:bg-muted/50 transition-all"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <div className="w-9 h-9 rounded-xl bg-secondary/40 border-2 border-borderStrong flex items-center justify-center">
+              <div className="relative w-9 h-9 rounded-xl bg-secondary/40 border-2 border-borderStrong flex items-center justify-center">
                 <item.icon className="h-4 w-4 text-primary" />
+                <UnreadBadge count={item.badge} size="sm" />
               </div>
               <span className="flex-1 text-left text-xs font-medium text-foreground">{item.label}</span>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -557,8 +561,9 @@ const ProfilePage = () => {
               onClick={item.onClick} 
               className="w-full flex items-center gap-2.5 p-3 hover:bg-muted/50 transition-all"
             >
-              <div className="w-8 h-8 rounded-lg bg-muted/70 flex items-center justify-center">
+              <div className="relative w-8 h-8 rounded-lg bg-muted/70 flex items-center justify-center">
                 <item.icon className="h-4 w-4 text-muted-foreground" />
+                <UnreadBadge count={item.badge} size="sm" />
               </div>
               <span className="flex-1 text-left text-xs font-medium text-foreground">{item.label}</span>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />

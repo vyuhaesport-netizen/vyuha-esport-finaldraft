@@ -19,6 +19,15 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -195,6 +204,8 @@ const TeamPage = () => {
   const [createRequirementDialogOpen, setCreateRequirementDialogOpen] = useState(false);
   const [selectedRequirementForRequest, setSelectedRequirementForRequest] = useState<TeamRequirement | null>(null);
   const [requirementRequestDialogOpen, setRequirementRequestDialogOpen] = useState(false);
+  const [statsAlertDialogOpen, setStatsAlertDialogOpen] = useState(false);
+  const [userHasStats, setUserHasStats] = useState<boolean | null>(null);
   
   const [teamForm, setTeamForm] = useState({
     name: '',
@@ -235,8 +246,30 @@ const TeamPage = () => {
       fetchUserPreferredGame();
       fetchMyTeam();
       fetchMyRequests();
+      checkUserStats();
     }
   }, [user]);
+
+  const checkUserStats = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('player_game_stats')
+        .select('id, is_expired, stats_valid_until')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      // User has valid stats if data exists, not expired, and valid_until hasn't passed
+      const isValid = data && 
+        !data.is_expired && 
+        (!data.stats_valid_until || new Date(data.stats_valid_until) > new Date());
+      
+      setUserHasStats(!!isValid);
+    } catch (error) {
+      console.error('Error checking user stats:', error);
+      setUserHasStats(false);
+    }
+  };
 
   // Fetch open teams and requirements after we know user's preferred game
   useEffect(() => {
@@ -849,6 +882,12 @@ const TeamPage = () => {
 
     if (team.memberCount >= (team.max_members || 4)) {
       toast({ title: 'Team Full', description: `This team has reached maximum capacity (${team.max_members || 4} players).`, variant: 'destructive' });
+      return;
+    }
+
+    // Check if user has valid stats before allowing join request
+    if (team.requires_approval && !userHasStats) {
+      setStatsAlertDialogOpen(true);
       return;
     }
 
@@ -1713,6 +1752,11 @@ const TeamPage = () => {
                         size="sm"
                         onClick={() => {
                           if (!pendingRequestsForTeam(req.team_id)) {
+                            // Check for stats before opening dialog
+                            if (!userHasStats) {
+                              setStatsAlertDialogOpen(true);
+                              return;
+                            }
                             setSelectedRequirementForRequest(req);
                             setRequirementRequestDialogOpen(true);
                           }
@@ -2123,6 +2167,45 @@ const TeamPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Stats Required Alert Dialog */}
+      <AlertDialog open={statsAlertDialogOpen} onOpenChange={setStatsAlertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-warning" />
+              Game Stats Required
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-2">
+              <p>
+                Team leaders need to see your in-game stats before approving your request. This helps them understand your skill level.
+              </p>
+              <p className="font-medium text-foreground">
+                Please fill out your Player Stats first, then come back to send your join request.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setStatsAlertDialogOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                setStatsAlertDialogOpen(false);
+                navigate('/player-stats');
+              }}
+              className="rounded-xl bg-gradient-to-r from-primary to-gaming-purple"
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Go to Player Stats
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create Requirement Dialog */}
       <Dialog open={createRequirementDialogOpen} onOpenChange={setCreateRequirementDialogOpen}>
