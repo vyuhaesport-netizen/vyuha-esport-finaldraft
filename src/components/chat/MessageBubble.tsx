@@ -173,7 +173,7 @@ import { useState, useRef, useEffect } from 'react';
                className={cn(
                  "relative px-3 py-2 rounded-2xl",
                  isOwn
-                  ? "bg-gaming-purple text-white rounded-br-sm shadow-md"
+                  ? "bg-gaming-purple text-primary-foreground rounded-br-sm shadow-md"
                    : "bg-card/90 border border-border text-foreground rounded-bl-sm shadow-sm"
                )}
              >
