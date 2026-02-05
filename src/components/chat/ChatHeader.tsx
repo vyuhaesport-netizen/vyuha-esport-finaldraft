@@ -1,4 +1,4 @@
- import { ArrowLeft, MoreVertical, Users, Search, Palette } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Users, Search, Palette, FlaskConical } from 'lucide-react';
  import { Button } from '@/components/ui/button';
  import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
  import {
@@ -18,6 +18,7 @@
    onSearch?: () => void;
    isOnline?: boolean;
    onChangeBackground?: () => void;
+  onLoadMockData?: () => void;
  }
  
  const ChatHeader = ({
@@ -29,6 +30,7 @@
    onSearch,
    isOnline = true,
    onChangeBackground,
+  onLoadMockData,
  }: ChatHeaderProps) => {
    return (
      <header className="sticky top-0 z-50 bg-background border-b border-border">
@@ -117,6 +119,11 @@
                <DropdownMenuItem onClick={onChangeBackground}>
                  <Palette className="h-4 w-4 mr-2" />
                  Change Wallpaper
+               </DropdownMenuItem>
+               <DropdownMenuSeparator />
+               <DropdownMenuItem onClick={onLoadMockData}>
+                 <FlaskConical className="h-4 w-4 mr-2" />
+                 Load Test Data (50 msgs)
                </DropdownMenuItem>
                <DropdownMenuSeparator />
                <DropdownMenuItem>
