@@ -503,7 +503,7 @@ const AdminTournaments = () => {
 
         {/* Type Filter Slider */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {(['all', 'organizer', 'creator', 'local'] as const).map((type) => (
+          {(['all', 'organizer', 'creator', 'local', 'school'] as const).map((type) => (
             <Button
               key={type}
               variant={typeFilter === type ? 'default' : 'outline'}
@@ -514,8 +514,9 @@ const AdminTournaments = () => {
               {type === 'organizer' && <Building2 className="h-3 w-3" />}
               {type === 'creator' && <Palette className="h-3 w-3" />}
               {type === 'local' && <MapPin className="h-3 w-3" />}
+              {type === 'school' && <GraduationCap className="h-3 w-3" />}
               {type === 'all' && <Trophy className="h-3 w-3" />}
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+              {type === 'school' ? 'School/College' : type.charAt(0).toUpperCase() + type.slice(1)}
               <Badge variant="secondary" className="ml-1 text-[10px] px-1.5">
                 {type === 'all' 
                   ? tournaments.length 
