@@ -945,113 +945,118 @@ const SchoolTournament = () => {
                 return new Date(t.created_at) > threeDaysAgo;
               });
 
-              return visibleTournaments.length === 0 ? (
-              <Card className="glass-card border-2 border-white/30 text-center py-8">
-                <CardContent className="pt-0">
-                  <Trophy className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">No tournaments</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Submit an application and wait for approval
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {tournaments.map((tournament) => (
-                  <Card key={tournament.id} className="glass-card border-2 border-white/30 overflow-hidden">
-                    <CardContent className="p-3">
-                      <div className="flex justify-between items-start mb-2.5">
-                        <div>
-                          <h3 className="font-bold text-sm">{tournament.tournament_name}</h3>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin className="h-3 w-3" /> {tournament.school_name}
-                          </p>
-                        </div>
-                        <Badge variant={
-                          tournament.status === 'registration' ? 'secondary' :
-                          tournament.status === 'completed' ? 'default' :
-                          tournament.status === 'cancelled' ? 'destructive' : 'default'
-                        } className="text-xs px-2 py-0.5">
-                          {tournament.status}
-                        </Badge>
-                      </div>
-
-                      {/* Stats Grid - matching TournamentCard style */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <div className="bg-primary/10 rounded-lg p-2.5 text-center border border-primary/25">
-                          <Users className="h-3.5 w-3.5 text-primary mx-auto mb-1" />
-                          <p className="text-sm font-bold">{tournament.current_players}</p>
-                          <p className="text-[10px] text-muted-foreground">Players</p>
-                        </div>
-                        <div className="bg-warning/10 rounded-lg p-2.5 text-center border border-warning/25">
-                          <Trophy className="h-3.5 w-3.5 text-warning mx-auto mb-1" />
-                          <p className="text-sm font-bold">{tournament.total_rooms}</p>
-                          <p className="text-[10px] text-muted-foreground">Rooms</p>
-                        </div>
-                        <div className="bg-success/10 rounded-lg p-2.5 text-center border border-success/25">
-                          <Calendar className="h-3.5 w-3.5 text-success mx-auto mb-1" />
-                          <p className="text-sm font-bold">R{tournament.current_round}/{tournament.total_rounds}</p>
-                          <p className="text-[10px] text-muted-foreground">Round</p>
-                        </div>
-                      </div>
-
-                      {/* Private Code */}
-                      <div className="flex items-center justify-between p-2 bg-primary/10 rounded-lg border border-primary/25 mb-3">
-                        <div className="flex items-center gap-2">
-                          <QrCode className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-mono font-bold">{tournament.private_code}</span>
-                        </div>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
-                          navigator.clipboard.writeText(`Join Code: ${tournament.private_code}`);
-                          toast.success('Code copied!');
-                        }}>
-                          <Share2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {tournament.entry_type === 'paid' && (
-                        <div className="flex items-center justify-between text-sm mb-3 px-1">
-                          <span className="text-muted-foreground">Collected</span>
-                          <span className="font-bold text-success">
-                            <IndianRupee className="h-3 w-3 inline" />
-                            {tournament.total_collected}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Manage Button */}
-                      <Button 
-                        className="w-full h-9 text-sm" 
-                        onClick={() => navigate(`/school-tournament/${tournament.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1.5" /> Manage Tournament
-                      </Button>
-
-                      {/* Verification Section - only for spot verification tournaments */}
-                      {(tournament as any).verification_type === 'spot' && (
-                        <div className="mt-3 p-2.5 bg-orange-500/10 rounded-lg border border-orange-500/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <UserCheck className="h-4 w-4 text-orange-500" />
-                            <span className="text-xs font-semibold text-orange-500">Spot Verification Required</span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mb-2">
-                            Teams must visit your institution for physical ID verification before tournament starts.
-                          </p>
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            className="w-full h-8 text-xs border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
-                            onClick={() => navigate(`/school-tournament/${tournament.id}?tab=verify`)}
-                          >
-                            <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" /> Open Verification Panel
-                          </Button>
-                        </div>
-                      )}
+              if (visibleTournaments.length === 0) {
+                return (
+                  <Card className="glass-card border-2 border-white/30 text-center py-8">
+                    <CardContent className="pt-0">
+                      <Trophy className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">No tournaments</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Submit an application and wait for approval
+                      </p>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {visibleTournaments.map((tournament) => (
+                    <Card key={tournament.id} className="glass-card border-2 border-white/30 overflow-hidden">
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-start mb-2.5">
+                          <div>
+                            <h3 className="font-bold text-sm">{tournament.tournament_name}</h3>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <MapPin className="h-3 w-3" /> {tournament.school_name}
+                            </p>
+                          </div>
+                          <Badge variant={
+                            tournament.status === 'registration' ? 'secondary' :
+                            tournament.status === 'completed' ? 'default' :
+                            tournament.status === 'cancelled' ? 'destructive' : 'default'
+                          } className="text-xs px-2 py-0.5">
+                            {tournament.status}
+                          </Badge>
+                        </div>
+
+                        {/* Stats Grid - matching TournamentCard style */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <div className="bg-primary/10 rounded-lg p-2.5 text-center border border-primary/25">
+                            <Users className="h-3.5 w-3.5 text-primary mx-auto mb-1" />
+                            <p className="text-sm font-bold">{tournament.current_players}</p>
+                            <p className="text-[10px] text-muted-foreground">Players</p>
+                          </div>
+                          <div className="bg-warning/10 rounded-lg p-2.5 text-center border border-warning/25">
+                            <Trophy className="h-3.5 w-3.5 text-warning mx-auto mb-1" />
+                            <p className="text-sm font-bold">{tournament.total_rooms}</p>
+                            <p className="text-[10px] text-muted-foreground">Rooms</p>
+                          </div>
+                          <div className="bg-success/10 rounded-lg p-2.5 text-center border border-success/25">
+                            <Calendar className="h-3.5 w-3.5 text-success mx-auto mb-1" />
+                            <p className="text-sm font-bold">R{tournament.current_round}/{tournament.total_rounds}</p>
+                            <p className="text-[10px] text-muted-foreground">Round</p>
+                          </div>
+                        </div>
+
+                        {/* Private Code */}
+                        <div className="flex items-center justify-between p-2 bg-primary/10 rounded-lg border border-primary/25 mb-3">
+                          <div className="flex items-center gap-2">
+                            <QrCode className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-mono font-bold">{tournament.private_code}</span>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
+                            navigator.clipboard.writeText(`Join Code: ${tournament.private_code}`);
+                            toast.success('Code copied!');
+                          }}>
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {tournament.entry_type === 'paid' && (
+                          <div className="flex items-center justify-between text-sm mb-3 px-1">
+                            <span className="text-muted-foreground">Collected</span>
+                            <span className="font-bold text-success">
+                              <IndianRupee className="h-3 w-3 inline" />
+                              {tournament.total_collected}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Manage Button */}
+                        <Button 
+                          className="w-full h-9 text-sm" 
+                          onClick={() => navigate(`/school-tournament/${tournament.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1.5" /> Manage Tournament
+                        </Button>
+
+                        {/* Verification Section - only for spot verification tournaments */}
+                        {(tournament as any).verification_type === 'spot' && (
+                          <div className="mt-3 p-2.5 bg-orange-500/10 rounded-lg border border-orange-500/30">
+                            <div className="flex items-center gap-2 mb-2">
+                              <UserCheck className="h-4 w-4 text-orange-500" />
+                              <span className="text-xs font-semibold text-orange-500">Spot Verification Required</span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mb-2">
+                              Teams must visit your institution for physical ID verification before tournament starts.
+                            </p>
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-8 text-xs border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
+                              onClick={() => navigate(`/school-tournament/${tournament.id}?tab=verify`)}
+                            >
+                              <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" /> Open Verification Panel
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              );
+            })()}
           </TabsContent>
         </Tabs>
       </div>
