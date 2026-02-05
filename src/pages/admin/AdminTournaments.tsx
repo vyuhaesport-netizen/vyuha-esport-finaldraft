@@ -122,6 +122,9 @@ const AdminTournaments = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'local_tournaments' }, () => {
         fetchAllTournaments();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'school_tournament_applications' }, () => {
+        fetchAllTournaments();
+      })
       .subscribe();
 
     return () => {
