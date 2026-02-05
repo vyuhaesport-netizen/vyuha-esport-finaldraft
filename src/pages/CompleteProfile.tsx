@@ -211,18 +211,39 @@ const CompleteProfile = () => {
               <Label htmlFor="username" className="text-sm font-medium text-gray-700">
                 Username <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) => {
-                  setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') });
-                  setErrors({ ...errors, username: '' });
-                }}
-                placeholder="Choose a unique username"
-                className={errors.username ? 'border-red-500' : ''}
-              />
+              <div className="relative">
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => {
+                    const value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+                    setFormData({ ...formData, username: value });
+                    setUsernameAvailable(null);
+                    if (value.length < 3) {
+                      setErrors({ ...errors, username: value.length > 0 ? 'Username must be at least 3 characters' : '' });
+                    } else {
+                      setErrors({ ...errors, username: '' });
+                    }
+                  }}
+                  placeholder="Choose a unique username"
+                  className={`pr-10 ${errors.username ? 'border-red-500' : usernameAvailable === true ? 'border-green-500' : ''}`}
+                  maxLength={20}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {checkingUsername && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  {!checkingUsername && usernameAvailable === true && formData.username.length >= 3 && (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  )}
+                  {!checkingUsername && usernameAvailable === false && (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
+              </div>
               {errors.username && <p className="text-red-500 text-xs">{errors.username}</p>}
-              <p className="text-xs text-gray-500">Only lowercase letters and numbers</p>
+              {!errors.username && usernameAvailable === true && formData.username.length >= 3 && (
+                <p className="text-green-600 text-xs">Username is available!</p>
+              )}
+              <p className="text-xs text-gray-500">3-20 characters, lowercase letters and numbers only</p>
             </div>
 
             {/* Primary Game */}
