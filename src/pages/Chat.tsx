@@ -664,6 +664,7 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
          onBack={() => navigate(-1)}
         onViewMembers={() => navigate('/team')}
         onChangeBackground={() => setBackgroundPickerOpen(true)}
+        onLoadMockData={loadMockData}
       />
  
       {/* Messages Area with selected background */}
