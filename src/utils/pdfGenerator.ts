@@ -52,7 +52,7 @@ export interface TournamentReportData {
   title: string;
   game: string;
   status: string | null;
-  type: 'organizer' | 'creator' | 'local';
+  type: 'organizer' | 'creator' | 'local' | 'school';
   creator_name: string;
   prize_pool: number;
   entry_fee: number;
