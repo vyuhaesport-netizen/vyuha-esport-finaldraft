@@ -48,6 +48,7 @@ import AdminAIBroadcast from "./pages/admin/AdminAIBroadcast";
 import AdminAIMonitor from "./pages/admin/AdminAIMonitor";
 import AdminPushNotifications from "./pages/admin/AdminPushNotifications";
 import AdminCollabLinks from "./pages/admin/AdminCollabLinks";
+ import AdminBackendStatus from "./pages/admin/AdminBackendStatus";
 import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
 import OrganizerHub from "./pages/organizer/OrganizerHub";
 import OrganizerWallet from "./pages/organizer/OrganizerWallet";
@@ -276,6 +277,7 @@ const AppRoutes = () => {
       <Route path="/admin/push-notifications" element={<ProtectedRoute><AdminPushNotifications /></ProtectedRoute>} />
       <Route path="/admin/creator-invites" element={<ProtectedRoute><AdminCreatorInvites /></ProtectedRoute>} />
       <Route path="/admin/collab-links" element={<ProtectedRoute><AdminCollabLinks /></ProtectedRoute>} />
+       <Route path="/admin/backend-status" element={<ProtectedRoute><AdminBackendStatus /></ProtectedRoute>} />
       
       {/* Organizer Routes */}
       <Route path="/organizer" element={<ProtectedRoute><OrganizerHub /></ProtectedRoute>} />
