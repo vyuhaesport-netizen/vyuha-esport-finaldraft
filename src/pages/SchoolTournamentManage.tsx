@@ -64,6 +64,8 @@ interface Tournament {
   total_collected: number;
   players_per_room: number;
   verification_type: 'online' | 'spot';
+   prize_distribution_mode?: 'online' | 'local_venue';
+   winners_per_room?: number;
 }
 
 interface PlayerProfile {
