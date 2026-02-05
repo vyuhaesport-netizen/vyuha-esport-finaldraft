@@ -147,22 +147,14 @@ const CompleteProfile = () => {
     e.preventDefault();
     if (!validateForm() || !user) return;
 
+    // Double-check username availability before submit
+    if (usernameAvailable === false || checkingUsername) {
+      setErrors(prev => ({ ...prev, username: 'This username is already taken' }));
+      return;
+    }
+
     setLoading(true);
     try {
-      // Check if username is already taken
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', formData.username.toLowerCase())
-        .neq('user_id', user.id)
-        .maybeSingle();
-
-      if (existingUser) {
-        setErrors({ username: 'This username is already taken' });
-        setLoading(false);
-        return;
-      }
-
       // Use upsert so the profile can be created if it doesn't exist yet.
       if (!user.email) throw new Error('Missing user email');
 
