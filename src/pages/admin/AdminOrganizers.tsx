@@ -342,15 +342,26 @@ const AdminOrganizers = () => {
                       </Button>
                       {hasPermission('organizers:manage') && (
                         <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setLinkOrganizer(organizer);
+                            setGiveLinkDialog(true);
+                          }}
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {hasPermission('organizers:manage') && (
+                        <Button
                           variant="destructive"
                           size="sm"
-                          className="flex-1"
                           onClick={() => {
                             setSelectedOrganizer(organizer);
                             setActionDialog('remove-organizer');
                           }}
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
