@@ -235,25 +235,6 @@ const getSenderColor = (senderName: string): string => {
            )}
  
            {/* Quick Reactions Bar */}
-           {showReactions && (
-             <div className={cn(
-              "absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-card border border-border rounded-full px-3 py-2 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150"
-             )}>
-               {QUICK_REACTIONS.map((emoji) => (
-                 <button
-                   key={emoji}
-                  className="text-xl hover:scale-125 active:scale-95 transition-transform p-0.5"
-                   onClick={() => {
-                     onReact?.(emoji);
-                     setShowReactions(false);
-                    setShowActions(false);
-                   }}
-                 >
-                   {emoji}
-                 </button>
-               ))}
-             </div>
-           )}
          </div>
  
         {/* Action Buttons - Always visible */}
@@ -269,17 +250,6 @@ const getSenderColor = (senderName: string): string => {
                onClick={onReply}
              >
                <Reply className="h-4 w-4" />
-             </Button>
-             <Button
-               size="icon"
-               variant="ghost"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setShowReactions(!showReactions);
-                setShowActions(true);
-              }}
-             >
-               <Smile className="h-4 w-4" />
              </Button>
              <DropdownMenu>
                <DropdownMenuTrigger asChild>
