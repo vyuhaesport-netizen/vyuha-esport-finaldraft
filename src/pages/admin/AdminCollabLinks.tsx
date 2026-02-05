@@ -43,7 +43,7 @@
  interface CollabLink {
    id: string;
    user_id: string;
-   user_type: 'organizer' | 'creator';
+  user_type: string;
    link_code: string;
    commission_per_registration: number;
    expires_at: string | null;
@@ -103,7 +103,7 @@
            ...link,
            user_name: profile?.full_name || profile?.username || 'Unknown',
            user_email: profile?.email || '',
-         };
+        } as CollabLink;
        });
  
        setLinks(linksWithUsers);
