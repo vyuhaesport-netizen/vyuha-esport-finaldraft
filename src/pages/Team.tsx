@@ -1752,6 +1752,11 @@ const TeamPage = () => {
                         size="sm"
                         onClick={() => {
                           if (!pendingRequestsForTeam(req.team_id)) {
+                            // Check for stats before opening dialog
+                            if (!userHasStats) {
+                              setStatsAlertDialogOpen(true);
+                              return;
+                            }
                             setSelectedRequirementForRequest(req);
                             setRequirementRequestDialogOpen(true);
                           }
