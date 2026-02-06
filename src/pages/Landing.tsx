@@ -45,31 +45,14 @@ const Landing = () => {
     // Store referral code in localStorage if present
     if (refCode) {
       localStorage.setItem('collab_ref_code', refCode);
-      // Track click on the link
-      trackLinkClick(refCode);
+      // Track click via backend function (works even before login)
+      supabase.functions.invoke('collab-track', {
+        body: { action: 'click', code: refCode },
+      }).catch(() => {
+        // ignore
+      });
     }
   }, [refCode]);
-
-  const trackLinkClick = async (code: string) => {
-    try {
-      // Track click via direct SQL update
-      const { data: link } = await supabase
-        .from('collab_links')
-        .select('id, total_clicks')
-        .eq('link_code', code)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (link) {
-        await supabase
-          .from('collab_links')
-          .update({ total_clicks: link.total_clicks + 1 })
-          .eq('id', link.id);
-      }
-    } catch (error) {
-      console.error('Error tracking click:', error);
-    }
-  };
 
   // Refs for GSAP animations
   const containerRef = useRef<HTMLDivElement>(null);
@@ -263,35 +246,49 @@ const Landing = () => {
     if (!validateForm()) return;
     setLoading(true);
     try {
-      if (authDialog === 'login') {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast({ title: 'Login Failed', description: error.message, variant: 'destructive' });
-        } else {
-          navigate('/home');
-        }
-      } else {
-        const { data, error } = await signUp(email, password);
-        if (error) {
-          toast({ title: 'Signup Failed', description: error.message, variant: 'destructive' });
-        } else if (data?.user) {
-          await supabase.from('profiles').upsert({
-            user_id: data.user.id,
-            email: email.toLowerCase().trim(),
-            full_name: fullName.trim(),
-          }, { onConflict: 'user_id' });
+        if (authDialog === 'login') {
+          const { error } = await signIn(email, password);
+          if (error) {
+            toast({ title: 'Login Failed', description: error.message, variant: 'destructive' });
+          } else {
+            const storedRefCode = localStorage.getItem('collab_ref_code');
+            if (storedRefCode) {
+              const { error: trackErr } = await supabase.functions.invoke('collab-track', {
+                body: { action: 'signup', code: storedRefCode },
+              });
+              if (!trackErr) {
+                localStorage.removeItem('collab_ref_code');
+              }
+            }
 
-          // Track referral signup
-          const storedRefCode = localStorage.getItem('collab_ref_code');
-          if (storedRefCode) {
-            await trackReferralSignup(data.user.id, storedRefCode);
-            localStorage.removeItem('collab_ref_code');
+            navigate('/home');
           }
+        } else {
+          const { data, error } = await signUp(email, password);
+          if (error) {
+            toast({ title: 'Signup Failed', description: error.message, variant: 'destructive' });
+          } else if (data?.user) {
+            await supabase.from('profiles').upsert({
+              user_id: data.user.id,
+              email: email.toLowerCase().trim(),
+              full_name: fullName.trim(),
+            }, { onConflict: 'user_id' });
 
-          toast({ title: 'Account Created!', description: 'Complete your profile.' });
-          navigate('/complete-profile');
+            // Track referral signup (best-effort; keep code if user isn't authenticated yet)
+            const storedRefCode = localStorage.getItem('collab_ref_code');
+            if (storedRefCode) {
+              const { error: trackErr } = await supabase.functions.invoke('collab-track', {
+                body: { action: 'signup', code: storedRefCode },
+              });
+              if (!trackErr) {
+                localStorage.removeItem('collab_ref_code');
+              }
+            }
+
+            toast({ title: 'Account Created!', description: 'Complete your profile.' });
+            navigate('/complete-profile');
+          }
         }
-      }
     } catch {
       toast({ title: 'Error', description: 'Something went wrong.', variant: 'destructive' });
     } finally {
@@ -299,40 +296,16 @@ const Landing = () => {
     }
   };
 
-  const trackReferralSignup = async (userId: string, code: string) => {
+  const trackReferralSignup = async (code: string) => {
+    // Best-effort: this requires an authenticated session (so it may fail right after signup
+    // if email confirmation is required). In that case we keep the code in localStorage and
+    // retry on next login.
     try {
-      // Find the collab link by code
-      const { data: link } = await supabase
-        .from('collab_links')
-        .select('id')
-        .eq('link_code', code)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (link) {
-        // Create referral record
-        await supabase.from('collab_referrals').insert({
-          link_id: link.id,
-          referred_user_id: userId,
-          status: 'registered',
-        });
-
-        // Update signup count
-        const { data: currentLink } = await supabase
-          .from('collab_links')
-          .select('total_signups')
-          .eq('id', link.id)
-          .single();
-        
-        if (currentLink) {
-          await supabase
-            .from('collab_links')
-            .update({ 
-              total_signups: currentLink.total_signups + 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', link.id);
-        }
+      const { error } = await supabase.functions.invoke('collab-track', {
+        body: { action: 'signup', code },
+      });
+      if (!error) {
+        localStorage.removeItem('collab_ref_code');
       }
     } catch (error) {
       console.error('Error tracking referral:', error);

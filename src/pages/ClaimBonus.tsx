@@ -35,10 +35,10 @@ const ClaimBonus = () => {
 
   // Bonus milestones configuration with enhanced visuals
   const bonusMilestones: BonusMilestone[] = [
-    { points: 50, bonus: 10, name: 'Starter Bonus', icon: <Star className="h-6 w-6" />, color: 'from-blue-500 to-cyan-500' },
-    { points: 100, bonus: 25, name: 'Rising Star', icon: <Zap className="h-6 w-6" />, color: 'from-purple-500 to-pink-500' },
-    { points: 500, bonus: 100, name: 'Pro Player', icon: <Target className="h-6 w-6" />, color: 'from-orange-500 to-amber-500' },
-    { points: 1000, bonus: 500, name: 'Legend Reward', icon: <Crown className="h-6 w-6" />, color: 'from-yellow-400 to-amber-500' },
+    { points: 200, bonus: 10, name: 'Starter Bonus', icon: <Star className="h-6 w-6" />, color: 'from-blue-500 to-cyan-500' },
+    { points: 500, bonus: 25, name: 'Rising Star', icon: <Zap className="h-6 w-6" />, color: 'from-purple-500 to-pink-500' },
+    { points: 1000, bonus: 100, name: 'Pro Player', icon: <Target className="h-6 w-6" />, color: 'from-orange-500 to-amber-500' },
+    { points: 3000, bonus: 500, name: 'Legend Reward', icon: <Crown className="h-6 w-6" />, color: 'from-yellow-400 to-amber-500' },
   ];
 
   useEffect(() => {
@@ -60,7 +60,7 @@ const ClaimBonus = () => {
       // Fetch user stats points
       const { data: userStats } = await supabase
         .from('user_stats')
-        .select('first_place_count, second_place_count, third_place_count')
+        .select('first_place_count, second_place_count, third_place_count, stats_points')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -68,7 +68,8 @@ const ClaimBonus = () => {
         const first = userStats.first_place_count || 0;
         const second = userStats.second_place_count || 0;
         const third = userStats.third_place_count || 0;
-        const points = (first * 10) + (second * 9) + (third * 8);
+        const computedFallback = (first * 10) + (second * 9) + (third * 8);
+        const points = userStats.stats_points ?? computedFallback;
         setTotalPoints(points);
       }
 
