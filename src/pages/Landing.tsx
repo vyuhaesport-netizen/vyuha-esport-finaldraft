@@ -332,6 +332,25 @@ const Landing = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/home`,
+        },
+      });
+      if (error) {
+        toast({ title: 'Google Sign In Failed', description: error.message, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Something went wrong with Google sign in.', variant: 'destructive' });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   // Tournament data
   const liveTournaments = [
     { id: 1, name: 'BGMI Championship', prize: '₹50,000', players: '234/256', status: 'LIVE', game: 'BGMI' },
