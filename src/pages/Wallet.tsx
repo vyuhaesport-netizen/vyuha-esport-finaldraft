@@ -39,11 +39,7 @@ import {
   Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
-import {
-  buildWithdrawableBreakdown,
-  computeWithdrawableFromTransactions,
-  getWithdrawableEarningTransactions,
-} from '@/features/wallet/walletEarnings';
+import { buildWithdrawableBreakdown } from '@/features/wallet/walletEarnings';
 
 interface Transaction {
   id: string;
