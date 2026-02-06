@@ -119,18 +119,13 @@ const Wallet = () => {
 
       setTransactions(txns || []);
 
-      // Total Earned (withdrawable): prize winnings + all commissions (creator/organizer/local/referral)
-      // Source of truth: profile.withdrawable_balance (matches backend withdrawal validation)
-      // Fallback: compute from transaction log (case-insensitive)
+      // Total Earned (withdrawable): ONLY prize winnings + commissions
+      // Calculated from transactions only - ignoring profiles.withdrawable_balance (may have stale data)
+      // admin_credit, deposit, refund, bonus -> go to Total Balance only, NOT here
       const earningTxns = getWithdrawableEarningTransactions(txns || []);
       const computedWithdrawable = computeWithdrawableFromTransactions(txns || []);
 
-      const withdrawableFromProfile =
-        typeof profile?.withdrawable_balance === 'number'
-          ? Number(profile.withdrawable_balance)
-          : undefined;
-
-      setTotalEarned(withdrawableFromProfile ?? computedWithdrawable ?? 0);
+      setTotalEarned(computedWithdrawable);
 
       // Breakdown for what contributes to Total Earned
       setEarningsBreakdown(buildWithdrawableBreakdown(earningTxns));

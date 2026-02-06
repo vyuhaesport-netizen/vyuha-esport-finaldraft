@@ -22,15 +22,31 @@ const normalizeStatus = (status: string | null | undefined) =>
 
 const isCompleted = (t: WalletTransactionLike) => normalizeStatus(t.status) === 'completed';
 
+/**
+ * Types that count as WITHDRAWABLE earnings:
+ * - prize, prize_won, winning (tournament winnings)
+ * - commission, organizer_commission (organizer/creator/local/referral commissions)
+ * 
+ * NOT included (these go to Total Balance only):
+ * - deposit, admin_credit, refund, bonus
+ */
 export const isWithdrawableEarningType = (type: string | null | undefined) => {
   const t = normalizeType(type);
-  return t === 'winning' || t === 'prize' || t === 'prize_won' || t.includes('commission');
+  // Prize winnings
+  if (t === 'winning' || t === 'prize' || t === 'prize_won') return true;
+  // All commission types (organizer_commission, commission, etc.)
+  if (t.includes('commission')) return true;
+  return false;
 };
 
 export const getWithdrawableEarningTransactions = <T extends WalletTransactionLike>(
   txns: T[]
 ) => txns.filter((t) => isCompleted(t) && isWithdrawableEarningType(t.type));
 
+/**
+ * Calculate withdrawable amount from transactions only.
+ * Formula: (all earnings) - (all completed withdrawals)
+ */
 export const computeWithdrawableFromTransactions = (txns: WalletTransactionLike[]) => {
   const earningTotal = getWithdrawableEarningTransactions(txns).reduce(
     (sum, t) => sum + Math.abs(t.amount || 0),
@@ -52,7 +68,8 @@ export const buildWithdrawableBreakdown = (
   earningTxns: WalletTransactionLike[]
 ): WithdrawableBreakdownItem[] => {
   return earningTxns.map((t) => {
-    let tournamentName = normalizeType(t.type).includes('commission')
+    const typeNorm = normalizeType(t.type);
+    let tournamentName = typeNorm.includes('commission')
       ? 'Commission'
       : 'Tournament Prize';
 
@@ -79,3 +96,4 @@ export const buildWithdrawableBreakdown = (
     };
   });
 };
+
