@@ -286,6 +286,19 @@ const CreatorDashboard = () => {
       return;
     }
 
+    // Check tournament creation limit only for new tournaments
+    if (!selectedTournament) {
+      const activeTournaments = tournaments.filter(t => t.status === 'upcoming' || t.status === 'ongoing');
+      if (activeTournaments.length >= tournamentLimit) {
+        toast({ 
+          title: 'Tournament Limit Reached', 
+          description: `You can only have ${tournamentLimit} active tournaments at a time. Complete or cancel existing tournaments first.`, 
+          variant: 'destructive' 
+        });
+        return;
+      }
+    }
+
     // Validate giveaway requirements
     if (formData.is_giveaway) {
       const giveawayPrize = parseFloat(formData.giveaway_prize_pool) || 0;
