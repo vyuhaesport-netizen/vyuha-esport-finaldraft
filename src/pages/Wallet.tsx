@@ -317,7 +317,7 @@ const Wallet = () => {
         {/* Info Banner */}
         <div className="glass-card bg-muted/20 rounded-xl p-2.5 mb-3 border-2 border-white/30">
           <p className="text-xs text-muted-foreground">
-            <strong className="text-foreground">Note:</strong> Deposits/Refunds  Balance (tournaments). Winnings/Commissions  Earned (withdraw).
+            <strong className="text-foreground">Note:</strong> Deposits/Refunds → Balance (tournaments). Winnings/Commissions → Earned (withdraw).
           </p>
         </div>
 
