@@ -30,6 +30,8 @@ interface UserStats {
   tournament_participations: number;
   total_earnings: number;
   stats_points?: number | null;
+  team_wins?: number | null;
+  best_team_name?: string | null;
 }
 
 interface MatchHistory {
