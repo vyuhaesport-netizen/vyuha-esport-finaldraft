@@ -41,10 +41,12 @@ Deno.serve(async (req) => {
     // Get local tournaments that are completed, no winner declared, and completed more than 1 hour ago
     const { data: localTournaments, error: localError } = await supabase
       .from('local_tournaments')
-      .select('id, title, entry_fee, created_by')
+      .select('id, tournament_name, entry_fee, organizer_id, updated_at')
       .eq('status', 'completed')
       .is('winner_declared_at', null)
-      .lt('end_date', oneHourAgo);
+      .lt('updated_at', oneHourAgo);
+    
+    console.log('Found local tournaments to cancel:', localTournaments?.length || 0, localTournaments);
 
     if (localError) {
       console.error('Error fetching local tournaments:', localError);
