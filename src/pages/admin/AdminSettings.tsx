@@ -75,6 +75,10 @@ interface AuthSettings {
   google_auth_enabled: string;
 }
 
+interface TournamentLimitSettings {
+  tournament_creation_limit: string;
+}
+
 const AdminSettings = () => {
   const [settings, setSettings] = useState<CommissionSettings>({
     organizer_commission_percent: '10',
