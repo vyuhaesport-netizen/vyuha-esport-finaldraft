@@ -131,9 +131,9 @@ const Wallet = () => {
 
       setTotalEarned(withdrawableAmount);
 
-      // Create earnings breakdown
-      const breakdown: EarningBreakdown[] = earningTxns.map((t) => {
-        let tournamentName = 'Earning';
+      // Create earnings breakdown (only tournament winnings)
+      const breakdown: EarningBreakdown[] = winningTxns.map((t) => {
+        let tournamentName = 'Tournament Prize';
         let position = '';
 
         if (t.description) {
