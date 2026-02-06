@@ -171,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(() => {
             checkRoles(session.user.id);
             checkSuperAdmin(session.user.id);
+            void maybeTrackStoredCollabReferral(session);
           }, 0);
         } else {
           setIsAdmin(false);
