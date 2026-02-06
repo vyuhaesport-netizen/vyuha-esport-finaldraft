@@ -226,7 +226,7 @@ const CompleteProfile = () => {
                     }
                   }}
                   placeholder="Choose a unique username"
-                  className={`pr-10 bg-background ${errors.username ? 'border-destructive' : usernameAvailable === true ? 'border-green-500' : 'border-border'}`}
+                  className={`pr-10 bg-background ${errors.username ? 'border-destructive' : usernameAvailable === true ? 'border-success' : 'border-border'}`}
                   maxLength={20}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
