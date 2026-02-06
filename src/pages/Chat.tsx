@@ -706,16 +706,15 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
  
    return (
      <div className="h-screen bg-background flex flex-col max-w-lg mx-auto overflow-hidden">
-       {/* WhatsApp-style Header */}
-       <ChatHeader
-         teamName={myTeam.name}
-         memberCount={teamMembers.length}
-         teamAvatars={teamAvatars}
-         onBack={() => navigate(-1)}
-        onViewMembers={() => navigate('/team')}
-        onChangeBackground={() => setBackgroundPickerOpen(true)}
-        onLoadMockData={loadMockData}
-      />
+        {/* WhatsApp-style Header */}
+        <ChatHeader
+          teamName={myTeam.name}
+          memberCount={teamMembers.length}
+          teamAvatars={teamAvatars}
+          onBack={() => navigate(-1)}
+          onViewMembers={() => navigate('/team')}
+          onChangeBackground={() => setBackgroundPickerOpen(true)}
+        />
  
       {/* Messages Area with selected background */}
       <div 
