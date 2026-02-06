@@ -275,31 +275,36 @@
     }
   };
  
-   const checkEdgeFunctions = async () => {
-     try {
-       const { error } = await supabase.functions.invoke('zapupi-diagnostics', { method: 'GET' });
-       if (error) throw error;
-       updateIntegration('Edge Functions', {
-         status: 'success',
-         message: 'Deployed',
-         details: 'Edge functions responding'
-       });
-     } catch (error: any) {
-       if (error.message?.includes('404')) {
-         updateIntegration('Edge Functions', {
-           status: 'error',
-           message: 'Not deployed',
-           details: 'Run: npx supabase functions deploy'
-         });
-       } else {
-         updateIntegration('Edge Functions', {
-           status: 'error',
-           message: 'Error',
-           details: error.message
-         });
-       }
-     }
-   };
+  const checkEdgeFunctions = async () => {
+    try {
+      const { error } = await withRetry(
+        () => withTimeout(supabase.functions.invoke('zapupi-diagnostics', { method: 'GET' }), 15000),
+        { label: 'Edge functions', retries: 2 }
+      );
+
+      if (error) throw error;
+
+      updateIntegration('Edge Functions', {
+        status: 'success',
+        message: 'Deployed',
+        details: 'Edge functions responding'
+      });
+    } catch (error: any) {
+      if (error.message?.includes('404')) {
+        updateIntegration('Edge Functions', {
+          status: 'error',
+          message: 'Not deployed',
+          details: 'Run: npx supabase functions deploy'
+        });
+      } else {
+        updateIntegration('Edge Functions', {
+          status: 'error',
+          message: 'Error',
+          details: error.message
+        });
+      }
+    }
+  };
  
    const runAllChecks = async () => {
      setChecking(true);
