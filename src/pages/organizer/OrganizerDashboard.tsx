@@ -134,6 +134,7 @@ const OrganizerDashboard = () => {
     giveaway_prize_pool: '',
   });
   const [organizerWalletBalance, setOrganizerWalletBalance] = useState(0);
+  const [tournamentLimit, setTournamentLimit] = useState(5);
   const [commissionSettings, setCommissionSettings] = useState({
     organizer_percent: 10,
     platform_percent: 10,
@@ -205,6 +206,7 @@ const OrganizerDashboard = () => {
           if (s.setting_key === 'organizer_commission_percent') settings.organizer_percent = parseFloat(s.setting_value);
           if (s.setting_key === 'platform_commission_percent') settings.platform_percent = parseFloat(s.setting_value);
           if (s.setting_key === 'prize_pool_percent') settings.prize_pool_percent = parseFloat(s.setting_value);
+          if (s.setting_key === 'tournament_creation_limit') setTournamentLimit(parseInt(s.setting_value) || 5);
         });
         if (Object.keys(settings).length > 0) {
           setCommissionSettings(prev => ({ ...prev, ...settings }));
@@ -286,6 +288,19 @@ const OrganizerDashboard = () => {
     if (!formData.title || !formData.game || !formData.start_date) {
       toast({ title: 'Error', description: 'Please fill all required fields.', variant: 'destructive' });
       return;
+    }
+
+    // Check tournament creation limit only for new tournaments
+    if (!selectedTournament) {
+      const activeTournaments = tournaments.filter(t => t.status === 'upcoming' || t.status === 'ongoing');
+      if (activeTournaments.length >= tournamentLimit) {
+        toast({ 
+          title: 'Tournament Limit Reached', 
+          description: `You can only have ${tournamentLimit} active tournaments at a time. Complete or cancel existing tournaments first.`, 
+          variant: 'destructive' 
+        });
+        return;
+      }
     }
 
     // Validate giveaway requirements

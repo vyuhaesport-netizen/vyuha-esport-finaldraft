@@ -29,7 +29,8 @@ import {
   Copy,
   RefreshCw,
   Wallet,
-  ArrowUpRight
+  ArrowUpRight,
+  Trophy
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -75,6 +76,10 @@ interface AuthSettings {
   google_auth_enabled: string;
 }
 
+interface TournamentLimitSettings {
+  tournament_creation_limit: string;
+}
+
 const AdminSettings = () => {
   const [settings, setSettings] = useState<CommissionSettings>({
     organizer_commission_percent: '10',
@@ -111,6 +116,9 @@ const AdminSettings = () => {
   const [authSettings, setAuthSettings] = useState<AuthSettings>({
     google_auth_enabled: 'false',
   });
+  const [tournamentLimitSettings, setTournamentLimitSettings] = useState<TournamentLimitSettings>({
+    tournament_creation_limit: '5',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
@@ -119,6 +127,7 @@ const AdminSettings = () => {
   const [savingMaintenance, setSavingMaintenance] = useState(false);
   const [savingWithdrawal, setSavingWithdrawal] = useState(false);
   const [savingAuth, setSavingAuth] = useState(false);
+  const [savingTournamentLimit, setSavingTournamentLimit] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
   const [generatingBypassToken, setGeneratingBypassToken] = useState(false);
 
@@ -194,6 +203,10 @@ const AdminSettings = () => {
         google_auth_enabled: 'false',
       };
 
+      const tournamentLimitMap: TournamentLimitSettings = {
+        tournament_creation_limit: '5',
+      };
+
       data?.forEach((s) => {
         if (s.setting_key in commissionMap) {
           commissionMap[s.setting_key as keyof CommissionSettings] = s.setting_value;
@@ -216,6 +229,9 @@ const AdminSettings = () => {
         if (s.setting_key in authMap) {
           authMap[s.setting_key as keyof AuthSettings] = s.setting_value;
         }
+        if (s.setting_key in tournamentLimitMap) {
+          tournamentLimitMap[s.setting_key as keyof TournamentLimitSettings] = s.setting_value;
+        }
       });
 
       setSettings(commissionMap);
@@ -225,6 +241,7 @@ const AdminSettings = () => {
       setMaintenanceSettings(maintenanceMap);
       setWithdrawalSettings(withdrawalMap);
       setAuthSettings(authMap);
+      setTournamentLimitSettings(tournamentLimitMap);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -556,6 +573,37 @@ const AdminSettings = () => {
     }
   };
 
+  const handleSaveTournamentLimit = async () => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can change settings.', variant: 'destructive' });
+      return;
+    }
+
+    setSavingTournamentLimit(true);
+
+    try {
+      const { error } = await supabase
+        .from('platform_settings')
+        .upsert({ 
+          setting_key: 'tournament_creation_limit',
+          setting_value: tournamentLimitSettings.tournament_creation_limit,
+          updated_by: user?.id,
+        }, { onConflict: 'setting_key' });
+
+      if (error) throw error;
+
+      toast({ 
+        title: 'Tournament Limit Saved', 
+        description: `Organizers/Creators can now create max ${tournamentLimitSettings.tournament_creation_limit} active tournaments.`,
+      });
+    } catch (error) {
+      console.error('Error saving tournament limit:', error);
+      toast({ title: 'Error', description: 'Failed to save tournament limit.', variant: 'destructive' });
+    } finally {
+      setSavingTournamentLimit(false);
+    }
+  };
+
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -849,6 +897,51 @@ const AdminSettings = () => {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Tournament Creation Limit */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Trophy className="h-5 w-5 text-primary" />
+              Tournament Creation Limit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Set the maximum number of active (upcoming/ongoing) tournaments that an Organizer or Creator can have at a time.
+            </p>
+
+            <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Max Active Tournaments per User</Label>
+                <Input
+                  type="number"
+                  placeholder="5"
+                  min="1"
+                  max="50"
+                  value={tournamentLimitSettings.tournament_creation_limit}
+                  onChange={(e) => setTournamentLimitSettings(prev => ({ ...prev, tournament_creation_limit: e.target.value }))}
+                  disabled={!isSuperAdmin}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Organizers/Creators cannot create new tournaments if they have this many active (upcoming or ongoing) tournaments.
+                </p>
+              </div>
+            </div>
+
+            {isSuperAdmin && (
+              <Button 
+                variant="gaming" 
+                className="w-full" 
+                onClick={handleSaveTournamentLimit}
+                disabled={savingTournamentLimit}
+              >
+                {savingTournamentLimit ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Save Tournament Limit
+              </Button>
+            )}
           </CardContent>
         </Card>
 
