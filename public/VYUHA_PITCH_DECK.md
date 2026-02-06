@@ -151,9 +151,20 @@ Total Mobile Gamers: 500M
 
 ## Multiple Revenue Streams
 
+### Revenue Split Model (80/10/10)
+
+| Share | Recipient | Purpose |
+|-------|-----------|---------|
+| **80%** | Prize Pool | Distributed to winners |
+| **10%** | Platform (Vyuha) | Platform maintenance & growth |
+| **10%** | Organizer/Creator | Commission for hosting |
+
 ### 1. Platform Fee (Primary)
-- **20% commission** on all tournament entry fees
-- Example: ₹25 entry × 1000 players = ₹5,000 platform revenue
+- **10% commission** on all tournament entry fees
+- Example: ₹25 entry × 1000 players = ₹25,000 collected
+  - ₹20,000 → Prize Pool (80%)
+  - ₹2,500 → Platform Revenue (10%)
+  - ₹2,500 → Organizer Earnings (10%)
 
 ### 2. Premium Features (Future)
 - Pro player profiles
@@ -175,10 +186,10 @@ Total Mobile Gamers: 500M
 | Metric | Value |
 |--------|-------|
 | Average Entry Fee | ₹25-50 |
-| Platform Commission | 20% |
-| Revenue per Tournament (100 players) | ₹500-1,000 |
+| Platform Commission | 10% |
+| Revenue per Tournament (1000 players, ₹25 fee) | ₹2,500 |
 | Monthly Tournaments Target | 1,000+ |
-| Monthly Revenue Potential | ₹5-10 Lakh |
+| Monthly Revenue Potential | ₹25 Lakh+ |
 
 ---
 
