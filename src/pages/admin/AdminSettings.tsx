@@ -202,6 +202,10 @@ const AdminSettings = () => {
         google_auth_enabled: 'false',
       };
 
+      const tournamentLimitMap: TournamentLimitSettings = {
+        tournament_creation_limit: '5',
+      };
+
       data?.forEach((s) => {
         if (s.setting_key in commissionMap) {
           commissionMap[s.setting_key as keyof CommissionSettings] = s.setting_value;
