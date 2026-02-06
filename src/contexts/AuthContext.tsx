@@ -192,6 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         checkRoles(session.user.id);
         checkSuperAdmin(session.user.id);
+        void maybeTrackStoredCollabReferral(session);
       }
       
       setLoading(false);
