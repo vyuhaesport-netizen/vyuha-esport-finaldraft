@@ -66,23 +66,28 @@
      setIntegrations(prev => prev.map(i => i.name === name ? { ...i, ...update } : i));
    };
  
-   const checkDatabase = async () => {
-     try {
-       const { error } = await supabase.from('profiles').select('id').limit(1);
-       if (error) throw error;
-       updateIntegration('Database Connection', {
-         status: 'success',
-         message: 'Connected successfully',
-         details: 'Database is responding normally'
-       });
-     } catch (error: any) {
-       updateIntegration('Database Connection', {
-         status: 'error',
-         message: 'Connection failed',
-         details: error.message
-       });
-     }
-   };
+  const checkDatabase = async () => {
+    try {
+      const { error } = await withRetry(
+        () => withTimeout(supabase.from('profiles').select('id').limit(1), 12000),
+        { label: 'Database', retries: 2 }
+      );
+
+      if (error) throw error;
+
+      updateIntegration('Database Connection', {
+        status: 'success',
+        message: 'Connected successfully',
+        details: 'Database is responding normally'
+      });
+    } catch (error: any) {
+      updateIntegration('Database Connection', {
+        status: 'error',
+        message: 'Connection failed',
+        details: error.message
+      });
+    }
+  };
  
    const checkZapUPI = async () => {
      try {
