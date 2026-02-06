@@ -56,6 +56,24 @@ const Landing = () => {
     }
   }, [refCode]);
 
+  // Fetch Google auth setting
+  useEffect(() => {
+    const fetchGoogleAuthSetting = async () => {
+      try {
+        const { data } = await supabase
+          .from('platform_settings')
+          .select('setting_value')
+          .eq('setting_key', 'google_auth_enabled')
+          .maybeSingle();
+        
+        setGoogleAuthEnabled(data?.setting_value === 'true');
+      } catch {
+        // Default to false
+      }
+    };
+    fetchGoogleAuthSetting();
+  }, []);
+
   // Refs for GSAP animations
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
