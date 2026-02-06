@@ -2696,12 +2696,14 @@ export type Database = {
       }
       user_stats: {
         Row: {
+          best_team_name: string | null
           created_at: string
           first_place_count: number
           id: string
           local_tournament_wins: number
           second_place_count: number
           stats_points: number | null
+          team_wins: number | null
           third_place_count: number
           total_earnings: number
           tournament_participations: number
@@ -2710,12 +2712,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          best_team_name?: string | null
           created_at?: string
           first_place_count?: number
           id?: string
           local_tournament_wins?: number
           second_place_count?: number
           stats_points?: number | null
+          team_wins?: number | null
           third_place_count?: number
           total_earnings?: number
           tournament_participations?: number
@@ -2724,12 +2728,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          best_team_name?: string | null
           created_at?: string
           first_place_count?: number
           id?: string
           local_tournament_wins?: number
           second_place_count?: number
           stats_points?: number | null
+          team_wins?: number | null
           third_place_count?: number
           total_earnings?: number
           tournament_participations?: number
