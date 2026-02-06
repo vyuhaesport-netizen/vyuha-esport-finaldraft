@@ -391,7 +391,7 @@ const SchoolTournamentManage = () => {
         setRoomAssignments({});
       }
 
-      // Fetch all player profiles for teams in batches (Supabase .in() has URL length limits)
+      // Fetch all player profiles for teams in PARALLEL batches (much faster)
       if (allTeams.length > 0) {
         const allPlayerIds: string[] = [];
         allTeams.forEach((team: any) => {
@@ -402,21 +402,32 @@ const SchoolTournamentManage = () => {
         });
         const uniqueIds = [...new Set(allPlayerIds)];
         
-        // Batch fetch profiles to avoid URL length limits (max ~300 UUIDs per batch)
-        const BATCH_SIZE = 300;
+        // Parallel batch fetch (100 UUIDs per batch for better URL handling)
+        const BATCH_SIZE = 100;
         const profileMap: Record<string, PlayerProfile> = {};
         
+        const batches: string[][] = [];
         for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
-          const batch = uniqueIds.slice(i, i + BATCH_SIZE);
-          if (batch.length > 0) {
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('user_id, username, full_name, in_game_name, game_uid')
-              .in('user_id', batch);
+          batches.push(uniqueIds.slice(i, i + BATCH_SIZE));
+        }
+        
+        // Fetch all batches in parallel (max 10 concurrent for rate limiting)
+        const MAX_CONCURRENT = 10;
+        for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
+          const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT);
+          const results = await Promise.all(
+            concurrentBatches.map(batch => 
+              supabase
+                .from('profiles')
+                .select('user_id, username, full_name, in_game_name, game_uid')
+                .in('user_id', batch)
+            )
+          );
+          results.forEach(({ data: profiles }) => {
             if (profiles) {
               profiles.forEach(p => { profileMap[p.user_id] = p; });
             }
-          }
+          });
         }
         setPlayerProfiles(profileMap);
       }
