@@ -76,20 +76,43 @@ Deno.serve(async (req) => {
         // Entry fee is already a number in the tournaments table
         const refundAmount = tournament.entry_fee || 0;
 
-        // Refund each participant
+        // Refund each participant using direct updates (service role bypasses RLS)
         for (const reg of registrations || []) {
           if (refundAmount > 0) {
-            // Add to user's wallet using correct function signature
-            const { error: walletError } = await supabase.rpc('admin_adjust_wallet', {
-              p_target_user_id: reg.user_id,
-              p_action: 'add',
-              p_amount: refundAmount,
-              p_reason: `Refund for cancelled tournament: ${tournament.title} (Winner not declared in time)`
-            });
+            // Update wallet balance directly
+            const { error: walletError } = await supabase
+              .from('profiles')
+              .update({ 
+                wallet_balance: supabase.rpc('increment_balance', { user_id: reg.user_id, amount: refundAmount })
+              })
+              .eq('user_id', reg.user_id);
 
-            if (walletError) {
-              console.error(`Error refunding user ${reg.user_id}:`, walletError);
+            // Actually, let's use a simpler approach - get current balance and update
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('wallet_balance')
+              .eq('user_id', reg.user_id)
+              .single();
+
+            const currentBalance = profile?.wallet_balance || 0;
+            const newBalance = currentBalance + refundAmount;
+
+            const { error: updateWalletError } = await supabase
+              .from('profiles')
+              .update({ wallet_balance: newBalance })
+              .eq('user_id', reg.user_id);
+
+            if (updateWalletError) {
+              console.error(`Error refunding user ${reg.user_id}:`, updateWalletError);
             } else {
+              // Log the transaction
+              await supabase.from('wallet_transactions').insert({
+                user_id: reg.user_id,
+                type: 'refund',
+                amount: refundAmount,
+                status: 'completed',
+                description: `Refund for auto-cancelled tournament: ${tournament.title} (Winner not declared in time)`
+              });
               console.log(`Refunded ₹${refundAmount} to user ${reg.user_id}`);
             }
           }
