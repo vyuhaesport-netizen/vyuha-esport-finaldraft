@@ -339,7 +339,10 @@ const MyMatch = () => {
       }
     };
 
-    const hasRoomDetails = tournament.room_id || tournament.room_password;
+    // Check if user has assigned room OR tournament has room details
+    const hasUserRoom = userRoom && (userRoom.room_id || userRoom.room_password);
+    const hasTournamentRoom = tournament.room_id || tournament.room_password;
+    const hasRoomDetails = hasUserRoom || hasTournamentRoom;
     const isOngoingOrCompleted = tournament.status === 'ongoing' || tournament.status === 'completed';
     const canExit = tournament.status === 'upcoming' && new Date(tournament.tournament_date) > new Date() && tournament.tournament_mode !== 'duo' && tournament.tournament_mode !== 'squad';
 
