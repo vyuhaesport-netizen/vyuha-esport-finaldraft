@@ -719,7 +719,11 @@ const AdminDocumentation = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="print:hidden">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
+            <TabsTrigger value="pitchdeck" className="flex items-center gap-1">
+              <Rocket className="h-3 w-3" />
+              Pitch Deck
+            </TabsTrigger>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="updates" className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
