@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Loader2, Medal, Award, Crown, TrendingUp, Target, 
-  Gamepad2, Gift, ChevronRight, Users, Trophy, Calendar,
+  Gamepad2, Users, Trophy, Calendar,
   BarChart3, PieChart, Activity, Swords, Star, Crosshair
 } from 'lucide-react';
 import { 
@@ -30,6 +30,8 @@ interface UserStats {
   tournament_participations: number;
   total_earnings: number;
   stats_points?: number | null;
+  team_wins?: number | null;
+  best_team_name?: string | null;
 }
 
 interface MatchHistory {
@@ -326,23 +328,25 @@ const PlayerStatsPage = () => {
           ))}
         </div>
 
-        {/* Claim Bonus CTA - Glass */}
-        <Link to="/claim-bonus">
-          <GlassCard className="hover:border-primary/30 transition-colors cursor-pointer">
+        {/* Best Team Badge - Only show if user has team wins */}
+        {userStats?.best_team_name && (userStats?.team_wins || 0) > 0 && (
+          <GlassCard className="border-yellow-500/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <Gift className="h-4 w-4 text-primary" />
+                <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 text-yellow-500" />
                 </div>
                 <div>
-                  <p className="font-semibold text-xs">Claim Your Rewards</p>
-                  <p className="text-[10px] text-muted-foreground">Milestone bonuses available!</p>
+                  <p className="font-semibold text-xs text-yellow-500">🏆 Best Team: {userStats.best_team_name}</p>
+                  <p className="text-[10px] text-muted-foreground">{userStats.team_wins} team {(userStats.team_wins || 0) === 1 ? 'victory' : 'victories'}</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[9px]">
+                Champion
+              </Badge>
             </div>
           </GlassCard>
-        </Link>
+        )}
 
         {/* Glass Tabs */}
         <div 
