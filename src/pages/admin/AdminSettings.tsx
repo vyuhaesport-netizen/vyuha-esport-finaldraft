@@ -71,6 +71,10 @@ interface WithdrawalSettings {
   withdrawal_fee_percent: string;
 }
 
+interface AuthSettings {
+  google_auth_enabled: string;
+}
+
 const AdminSettings = () => {
   const [settings, setSettings] = useState<CommissionSettings>({
     organizer_commission_percent: '10',
