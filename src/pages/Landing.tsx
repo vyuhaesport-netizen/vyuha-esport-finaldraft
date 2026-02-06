@@ -45,31 +45,14 @@ const Landing = () => {
     // Store referral code in localStorage if present
     if (refCode) {
       localStorage.setItem('collab_ref_code', refCode);
-      // Track click on the link
-      trackLinkClick(refCode);
+      // Track click via backend function (works even before login)
+      supabase.functions.invoke('collab-track', {
+        body: { action: 'click', code: refCode },
+      }).catch(() => {
+        // ignore
+      });
     }
   }, [refCode]);
-
-  const trackLinkClick = async (code: string) => {
-    try {
-      // Track click via direct SQL update
-      const { data: link } = await supabase
-        .from('collab_links')
-        .select('id, total_clicks')
-        .eq('link_code', code)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (link) {
-        await supabase
-          .from('collab_links')
-          .update({ total_clicks: link.total_clicks + 1 })
-          .eq('id', link.id);
-      }
-    } catch (error) {
-      console.error('Error tracking click:', error);
-    }
-  };
 
   // Refs for GSAP animations
   const containerRef = useRef<HTMLDivElement>(null);
