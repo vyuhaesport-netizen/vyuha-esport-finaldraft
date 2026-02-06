@@ -246,35 +246,49 @@ const Landing = () => {
     if (!validateForm()) return;
     setLoading(true);
     try {
-      if (authDialog === 'login') {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast({ title: 'Login Failed', description: error.message, variant: 'destructive' });
-        } else {
-          navigate('/home');
-        }
-      } else {
-        const { data, error } = await signUp(email, password);
-        if (error) {
-          toast({ title: 'Signup Failed', description: error.message, variant: 'destructive' });
-        } else if (data?.user) {
-          await supabase.from('profiles').upsert({
-            user_id: data.user.id,
-            email: email.toLowerCase().trim(),
-            full_name: fullName.trim(),
-          }, { onConflict: 'user_id' });
+        if (authDialog === 'login') {
+          const { error } = await signIn(email, password);
+          if (error) {
+            toast({ title: 'Login Failed', description: error.message, variant: 'destructive' });
+          } else {
+            const storedRefCode = localStorage.getItem('collab_ref_code');
+            if (storedRefCode) {
+              const { error: trackErr } = await supabase.functions.invoke('collab-track', {
+                body: { action: 'signup', code: storedRefCode },
+              });
+              if (!trackErr) {
+                localStorage.removeItem('collab_ref_code');
+              }
+            }
 
-          // Track referral signup
-          const storedRefCode = localStorage.getItem('collab_ref_code');
-          if (storedRefCode) {
-            await trackReferralSignup(data.user.id, storedRefCode);
-            localStorage.removeItem('collab_ref_code');
+            navigate('/home');
           }
+        } else {
+          const { data, error } = await signUp(email, password);
+          if (error) {
+            toast({ title: 'Signup Failed', description: error.message, variant: 'destructive' });
+          } else if (data?.user) {
+            await supabase.from('profiles').upsert({
+              user_id: data.user.id,
+              email: email.toLowerCase().trim(),
+              full_name: fullName.trim(),
+            }, { onConflict: 'user_id' });
 
-          toast({ title: 'Account Created!', description: 'Complete your profile.' });
-          navigate('/complete-profile');
+            // Track referral signup (best-effort; keep code if user isn't authenticated yet)
+            const storedRefCode = localStorage.getItem('collab_ref_code');
+            if (storedRefCode) {
+              const { error: trackErr } = await supabase.functions.invoke('collab-track', {
+                body: { action: 'signup', code: storedRefCode },
+              });
+              if (!trackErr) {
+                localStorage.removeItem('collab_ref_code');
+              }
+            }
+
+            toast({ title: 'Account Created!', description: 'Complete your profile.' });
+            navigate('/complete-profile');
+          }
         }
-      }
     } catch {
       toast({ title: 'Error', description: 'Something went wrong.', variant: 'destructive' });
     } finally {
