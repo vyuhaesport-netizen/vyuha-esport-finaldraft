@@ -61,7 +61,6 @@ interface SocialSettings {
 interface MaintenanceSettings {
   maintenance_mode: string;
   maintenance_message: string;
-  maintenance_end_time: string;
   maintenance_bypass_token: string;
 }
 
