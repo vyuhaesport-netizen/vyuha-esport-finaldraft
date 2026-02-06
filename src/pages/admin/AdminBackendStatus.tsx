@@ -20,15 +20,17 @@ let lastAutoCheckAt = 0;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const wrapped = Promise.resolve(promise);
 
   const timeoutPromise = new Promise<T>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
   });
 
   try {
-    return await Promise.race([promise, timeoutPromise]);
+    return await Promise.race([wrapped, timeoutPromise]);
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
