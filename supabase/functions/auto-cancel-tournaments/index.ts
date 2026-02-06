@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             // Add to user's wallet using correct function signature
             const { error: walletError } = await supabase.rpc('admin_adjust_wallet', {
               p_target_user_id: reg.user_id,
-              p_action: 'credit',
+              p_action: 'add',
               p_amount: refundAmount,
               p_reason: `Refund for cancelled tournament: ${tournament.title} (Winner not declared in time)`
             });
