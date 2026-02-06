@@ -70,6 +70,26 @@ const formatCountdown = (ms: number): string => {
   }
 };
 
+const extractYouTubeHandle = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  try {
+    const match = url.match(/(?:youtube\.com\/@|youtube\.com\/channel\/|youtube\.com\/c\/|youtu\.be\/)([^\/\?]+)/i);
+    return match ? `@${match[1].replace('@', '')}` : null;
+  } catch {
+    return null;
+  }
+};
+
+const extractInstagramHandle = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  try {
+    const match = url.match(/instagram\.com\/([^\/\?]+)/i);
+    return match ? `@${match[1]}` : null;
+  } catch {
+    return null;
+  }
+};
+
 const TournamentCard = ({
   tournament,
   isJoined = false,
