@@ -120,14 +120,32 @@ const Wallet = () => {
       setTransactions(txns || []);
 
       // Total Earned (withdrawable): ONLY prize winnings + commissions
-      // Calculated from transactions only - ignoring profiles.withdrawable_balance (may have stale data)
       // admin_credit, deposit, refund, bonus -> go to Total Balance only, NOT here
-      const earningTxns = getWithdrawableEarningTransactions(txns || []);
-      const computedWithdrawable = computeWithdrawableFromTransactions(txns || []);
+      
+      // Calculate directly inline to avoid import issues
+      const earningTxns = (txns || []).filter((t) => {
+        const typeNorm = (t.type || '').toLowerCase().trim();
+        const statusNorm = (t.status || '').toLowerCase().trim();
+        const isComp = statusNorm === 'completed';
+        const isEarn = typeNorm === 'winning' || typeNorm === 'prize' || typeNorm === 'prize_won' || typeNorm.includes('commission');
+        return isComp && isEarn;
+      });
 
-      console.log('[Wallet Debug] All txns count:', (txns || []).length);
-      console.log('[Wallet Debug] Earning txns:', earningTxns.map(t => ({ type: t.type, amount: t.amount, status: t.status })));
-      console.log('[Wallet Debug] Computed withdrawable:', computedWithdrawable);
+      const earningTotal = earningTxns.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+      const withdrawnTotal = (txns || [])
+        .filter((t) => {
+          const typeNorm = (t.type || '').toLowerCase().trim();
+          const statusNorm = (t.status || '').toLowerCase().trim();
+          return statusNorm === 'completed' && typeNorm === 'withdrawal';
+        })
+        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+      const computedWithdrawable = Math.max(0, earningTotal - withdrawnTotal);
+
+      console.log('[Wallet Debug v2] Earning txns:', earningTxns.length, 'Total:', earningTotal);
+      console.log('[Wallet Debug v2] Withdrawn:', withdrawnTotal);
+      console.log('[Wallet Debug v2] Final withdrawable:', computedWithdrawable);
 
       setTotalEarned(computedWithdrawable);
 
