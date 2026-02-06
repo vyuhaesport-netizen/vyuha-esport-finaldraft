@@ -228,6 +228,9 @@ const AdminSettings = () => {
         if (s.setting_key in authMap) {
           authMap[s.setting_key as keyof AuthSettings] = s.setting_value;
         }
+        if (s.setting_key in tournamentLimitMap) {
+          tournamentLimitMap[s.setting_key as keyof TournamentLimitSettings] = s.setting_value;
+        }
       });
 
       setSettings(commissionMap);
@@ -237,6 +240,7 @@ const AdminSettings = () => {
       setMaintenanceSettings(maintenanceMap);
       setWithdrawalSettings(withdrawalMap);
       setAuthSettings(authMap);
+      setTournamentLimitSettings(tournamentLimitMap);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
