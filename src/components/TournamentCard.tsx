@@ -120,6 +120,14 @@ const TournamentCard = ({
   
   const ytHandle = extractYouTubeHandle(tournament.youtube_link);
   const instaHandle = extractInstagramHandle(tournament.instagram_link);
+
+  useEffect(() => {
+    if (!tournament.registration_deadline) {
+      setCountdown('');
+      return;
+    }
+
+    const updateCountdown = () => {
       const deadline = new Date(tournament.registration_deadline!).getTime();
       const now = Date.now();
       const remaining = deadline - now;
