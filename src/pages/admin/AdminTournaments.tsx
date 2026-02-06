@@ -22,7 +22,8 @@ import {
   MapPin,
   TrendingUp,
   Calendar,
-  GraduationCap
+  GraduationCap,
+  Medal
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { generateTournamentDetailPDF, TournamentReportData } from '@/utils/pdfGenerator';
@@ -32,6 +33,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import TournamentRankingsDialog from '@/components/admin/TournamentRankingsDialog';
 
 interface UnifiedTournament {
   id: string;
@@ -84,6 +86,8 @@ const AdminTournaments = () => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'organizer' | 'creator' | 'local' | 'school'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [rankingsDialogOpen, setRankingsDialogOpen] = useState(false);
+  const [selectedTournamentForRankings, setSelectedTournamentForRankings] = useState<UnifiedTournament | null>(null);
   const [commissionSettings, setCommissionSettings] = useState<CommissionSettings>({
     organizer_percent: 10,
     platform_percent: 10,
@@ -601,15 +605,31 @@ const AdminTournaments = () => {
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full mt-3"
-                  onClick={() => handleDownloadPDF(tournament)}
-                >
-                  <FileText className="h-3 w-3 mr-2" />
-                  Download PDF
-                </Button>
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleDownloadPDF(tournament)}
+                  >
+                    <FileText className="h-3 w-3 mr-2" />
+                    PDF
+                  </Button>
+                  {tournament.status === 'completed' && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedTournamentForRankings(tournament);
+                        setRankingsDialogOpen(true);
+                      }}
+                    >
+                      <Medal className="h-3 w-3 mr-2" />
+                      Rankings
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -621,6 +641,17 @@ const AdminTournaments = () => {
             </div>
           )}
         </div>
+
+        {/* Rankings Dialog */}
+        {selectedTournamentForRankings && (
+          <TournamentRankingsDialog
+            open={rankingsDialogOpen}
+            onOpenChange={setRankingsDialogOpen}
+            tournamentId={selectedTournamentForRankings.id}
+            tournamentTitle={selectedTournamentForRankings.title}
+            tournamentType={selectedTournamentForRankings.type}
+          />
+        )}
       </div>
     </AdminLayout>
   );
