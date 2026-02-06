@@ -141,14 +141,14 @@ Deno.serve(async (req) => {
 
         // Refund each participant
         for (const reg of registrations || []) {
-          const refundAmount = reg.amount_paid || parseFloat(tournament.entry_fee?.replace(/[₹,]/g, '') || '0');
+          const refundAmount = reg.amount_paid || tournament.entry_fee || 0;
           
           if (refundAmount > 0) {
             const { error: walletError } = await supabase.rpc('admin_adjust_wallet', {
               p_user_id: reg.user_id,
               p_amount: refundAmount,
               p_type: 'credit',
-              p_description: `Refund for cancelled local tournament: ${tournament.title} (Winner not declared in time)`
+              p_description: `Refund for cancelled local tournament: ${tournament.tournament_name} (Winner not declared in time)`
             });
 
             if (walletError) {
