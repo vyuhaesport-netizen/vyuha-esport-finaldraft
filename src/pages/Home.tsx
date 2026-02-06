@@ -169,7 +169,7 @@ const HomePage = () => {
     try {
       const { data, error } = await supabase
         .from('tournaments')
-        .select('id, title, game, prize_pool, entry_fee, start_date, status, max_participants, tournament_type, joined_users, current_prize_pool, tournament_mode, room_id, room_password, prize_distribution, created_by, registration_deadline, youtube_link, instagram_link, is_giveaway, rules')
+        .select('id, title, game, prize_pool, entry_fee, start_date, status, max_participants, tournament_type, joined_users, current_prize_pool, tournament_mode, room_id, room_password, prize_distribution, created_by, registration_deadline, youtube_link, instagram_link, whatsapp_link, discord_link, is_giveaway, rules')
         .eq('status', 'upcoming')
         .eq('tournament_type', 'organizer')
         .order('start_date', { ascending: true });
