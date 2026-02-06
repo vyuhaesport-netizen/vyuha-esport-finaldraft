@@ -17,16 +17,21 @@ Deno.serve(async (req) => {
 
     console.log('Starting auto-cancel check for tournaments...');
 
-    // Find completed tournaments without winner declaration after 1 hour
+    // Find completed tournaments without winner declaration after 1 hour of being marked completed
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-    // Get regular tournaments that are completed, no winner declared, and completed more than 1 hour ago
+    console.log('Checking for tournaments completed before:', oneHourAgo);
+
+    // Get regular tournaments that are completed, no winner declared, and marked completed more than 1 hour ago
+    // Using updated_at since that's when status changed to 'completed'
     const { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
-      .select('id, title, entry_fee, created_by')
+      .select('id, title, entry_fee, created_by, updated_at')
       .eq('status', 'completed')
       .is('winner_declared_at', null)
-      .lt('end_date', oneHourAgo);
+      .lt('updated_at', oneHourAgo);
+    
+    console.log('Found regular tournaments to cancel:', tournaments?.length || 0, tournaments);
 
     if (tournamentsError) {
       console.error('Error fetching tournaments:', tournamentsError);
