@@ -1502,75 +1502,20 @@ const SchoolTournamentManage = () => {
             </Card>
           </TabsContent>
 
-          {/* Teams Tab */}
+          {/* Teams Tab - Virtualized for performance */}
           <TabsContent value="teams" className="mt-3">
-            <div className="flex justify-end mb-2">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-xs text-muted-foreground">{sortedTeams.length} teams</p>
               <Button size="sm" variant="outline" className="h-8 text-xs" onClick={generateTeamsPDF}>
                 <Download className="h-3 w-3 mr-1" /> Download PDF
               </Button>
             </div>
-            <ScrollArea className="h-[60vh]">
-              <div className="space-y-1.5">
-                {sortedTeams.map((team, _index) => {
-                  // Find team's permanent number (1-indexed based on registration order)
-                  const permanentNumber = teams.findIndex(t => t.id === team.id) + 1;
-                  const leader = playerProfiles[team.leader_id];
-                  const m1 = team.member_1_id ? playerProfiles[team.member_1_id] : null;
-                  const m2 = team.member_2_id ? playerProfiles[team.member_2_id] : null;
-                  const m3 = team.member_3_id ? playerProfiles[team.member_3_id] : null;
-                  
-                  return (
-                    <Card key={team.id} className={team.is_eliminated ? 'opacity-50 border-destructive/30' : ''}>
-                      <CardContent className="p-2.5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
-                              {permanentNumber}
-                            </div>
-                            <div>
-                              <p className="font-medium text-xs">{team.team_name}</p>
-                              <p className="text-[10px] text-muted-foreground">
-                                Round {team.current_round} • {team.registration_method}
-                              </p>
-                            </div>
-                          </div>
-                          {team.is_eliminated ? (
-                            <Badge variant="destructive" className="text-[10px]">Eliminated</Badge>
-                          ) : team.final_rank ? (
-                            <Badge className="text-[10px]">
-                              {team.final_rank === 1 && <Crown className="h-3 w-3 mr-1" />}
-                              #{team.final_rank}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[10px]">Active</Badge>
-                          )}
-                        </div>
-                        
-                        {/* Player Cards */}
-                        <div className="grid grid-cols-2 gap-1">
-                          {[
-                            { label: 'Leader', profile: leader },
-                            { label: 'M2', profile: m1 },
-                            { label: 'M3', profile: m2 },
-                            { label: 'M4', profile: m3 },
-                          ].map((player, pIdx) => (
-                            <div key={pIdx} className="bg-muted/50 rounded p-1.5 text-[10px]">
-                              <p className="text-muted-foreground">{player.label}</p>
-                              <p className="font-medium truncate">
-                                {player.profile?.in_game_name || player.profile?.username || '-'}
-                              </p>
-                              {player.profile?.game_uid && (
-                                <p className="text-muted-foreground truncate">UID: {player.profile.game_uid}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </ScrollArea>
+            <VirtualizedTeamListInline 
+              teams={sortedTeams}
+              allTeams={teams}
+              playerProfiles={playerProfiles}
+              height={Math.min(window.innerHeight - 300, 500)}
+            />
           </TabsContent>
 
           {/* Rooms Tab */}
