@@ -125,6 +125,10 @@ const Wallet = () => {
       const earningTxns = getWithdrawableEarningTransactions(txns || []);
       const computedWithdrawable = computeWithdrawableFromTransactions(txns || []);
 
+      console.log('[Wallet Debug] All txns count:', (txns || []).length);
+      console.log('[Wallet Debug] Earning txns:', earningTxns.map(t => ({ type: t.type, amount: t.amount, status: t.status })));
+      console.log('[Wallet Debug] Computed withdrawable:', computedWithdrawable);
+
       setTotalEarned(computedWithdrawable);
 
       // Breakdown for what contributes to Total Earned
