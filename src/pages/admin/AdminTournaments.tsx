@@ -605,15 +605,31 @@ const AdminTournaments = () => {
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full mt-3"
-                  onClick={() => handleDownloadPDF(tournament)}
-                >
-                  <FileText className="h-3 w-3 mr-2" />
-                  Download PDF
-                </Button>
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleDownloadPDF(tournament)}
+                  >
+                    <FileText className="h-3 w-3 mr-2" />
+                    PDF
+                  </Button>
+                  {tournament.status === 'completed' && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedTournamentForRankings(tournament);
+                        setRankingsDialogOpen(true);
+                      }}
+                    >
+                      <Medal className="h-3 w-3 mr-2" />
+                      Rankings
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -625,6 +641,17 @@ const AdminTournaments = () => {
             </div>
           )}
         </div>
+
+        {/* Rankings Dialog */}
+        {selectedTournamentForRankings && (
+          <TournamentRankingsDialog
+            open={rankingsDialogOpen}
+            onOpenChange={setRankingsDialogOpen}
+            tournamentId={selectedTournamentForRankings.id}
+            tournamentTitle={selectedTournamentForRankings.title}
+            tournamentType={selectedTournamentForRankings.type}
+          />
+        )}
       </div>
     </AdminLayout>
   );
