@@ -186,21 +186,21 @@ const CompleteProfile = () => {
 
   if (checkingProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-md mx-auto pt-8">
+        <div className="bg-card border border-border rounded-2xl shadow-lg p-6">
           {/* Header */}
           <div className="flex flex-col items-center mb-6">
-            <img src={vyuhaLogo} alt="Vyuha Esport" className="h-16 w-16 rounded-full object-cover mb-3" />
-            <h1 className="text-xl font-bold text-gray-900">Complete Your Profile</h1>
-            <p className="text-sm text-gray-600 text-center mt-1">
+            <img src={vyuhaLogo} alt="Vyuha Esport" className="h-16 w-16 rounded-full object-cover mb-3 ring-2 ring-primary/30" />
+            <h1 className="text-xl font-bold text-foreground">Complete Your Profile</h1>
+            <p className="text-sm text-muted-foreground text-center mt-1">
               Please fill in all details to continue
             </p>
           </div>
@@ -208,8 +208,8 @@ const CompleteProfile = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username */}
             <div className="space-y-1.5">
-              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                Username <span className="text-red-500">*</span>
+              <Label htmlFor="username" className="text-sm font-medium text-foreground">
+                Username <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
                 <Input
@@ -226,30 +226,30 @@ const CompleteProfile = () => {
                     }
                   }}
                   placeholder="Choose a unique username"
-                  className={`pr-10 ${errors.username ? 'border-red-500' : usernameAvailable === true ? 'border-green-500' : ''}`}
+                  className={`pr-10 bg-background ${errors.username ? 'border-destructive' : usernameAvailable === true ? 'border-success' : 'border-border'}`}
                   maxLength={20}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {checkingUsername && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                   {!checkingUsername && usernameAvailable === true && formData.username.length >= 3 && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   )}
                   {!checkingUsername && usernameAvailable === false && (
-                    <XCircle className="h-4 w-4 text-red-500" />
+                    <XCircle className="h-4 w-4 text-destructive" />
                   )}
                 </div>
               </div>
-              {errors.username && <p className="text-red-500 text-xs">{errors.username}</p>}
+              {errors.username && <p className="text-destructive text-xs">{errors.username}</p>}
               {!errors.username && usernameAvailable === true && formData.username.length >= 3 && (
-                <p className="text-green-600 text-xs">Username is available!</p>
+                <p className="text-success text-xs">Username is available!</p>
               )}
-              <p className="text-xs text-gray-500">3-20 characters, lowercase letters and numbers only</p>
+              <p className="text-xs text-muted-foreground">3-20 characters, lowercase letters and numbers only</p>
             </div>
 
             {/* Primary Game */}
             <div className="space-y-1.5">
-              <Label htmlFor="preferred_game" className="text-sm font-medium text-gray-700">
-                Primary Game <span className="text-red-500">*</span>
+              <Label htmlFor="preferred_game" className="text-sm font-medium text-foreground">
+                Primary Game <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={formData.preferred_game}
@@ -258,21 +258,21 @@ const CompleteProfile = () => {
                   setErrors({ ...errors, preferred_game: '' });
                 }}
               >
-                <SelectTrigger className={errors.preferred_game ? 'border-red-500' : ''}>
+                <SelectTrigger className={`bg-background ${errors.preferred_game ? 'border-destructive' : 'border-border'}`}>
                   <SelectValue placeholder="Select your main game" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="BGMI">BGMI</SelectItem>
                   <SelectItem value="Free Fire">Free Fire</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.preferred_game && <p className="text-red-500 text-xs">{errors.preferred_game}</p>}
+              {errors.preferred_game && <p className="text-destructive text-xs">{errors.preferred_game}</p>}
             </div>
 
             {/* In-Game Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="in_game_name" className="text-sm font-medium text-gray-700">
-                In-Game Name <span className="text-red-500">*</span>
+              <Label htmlFor="in_game_name" className="text-sm font-medium text-foreground">
+                In-Game Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="in_game_name"
@@ -282,15 +282,15 @@ const CompleteProfile = () => {
                   setErrors({ ...errors, in_game_name: '' });
                 }}
                 placeholder="Your name in the game"
-                className={errors.in_game_name ? 'border-red-500' : ''}
+                className={`bg-background ${errors.in_game_name ? 'border-destructive' : 'border-border'}`}
               />
-              {errors.in_game_name && <p className="text-red-500 text-xs">{errors.in_game_name}</p>}
+              {errors.in_game_name && <p className="text-destructive text-xs">{errors.in_game_name}</p>}
             </div>
 
             {/* Game UID */}
             <div className="space-y-1.5">
-              <Label htmlFor="game_uid" className="text-sm font-medium text-gray-700">
-                Game UID <span className="text-red-500">*</span>
+              <Label htmlFor="game_uid" className="text-sm font-medium text-foreground">
+                Game UID <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="game_uid"
@@ -300,16 +300,16 @@ const CompleteProfile = () => {
                   setErrors({ ...errors, game_uid: '' });
                 }}
                 placeholder="Your unique game ID"
-                className={errors.game_uid ? 'border-red-500' : ''}
+                className={`bg-background ${errors.game_uid ? 'border-destructive' : 'border-border'}`}
               />
-              {errors.game_uid && <p className="text-red-500 text-xs">{errors.game_uid}</p>}
-              <p className="text-xs text-gray-500">This is used for account recovery</p>
+              {errors.game_uid && <p className="text-destructive text-xs">{errors.game_uid}</p>}
+              <p className="text-xs text-muted-foreground">This is used for account recovery</p>
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-black hover:bg-gray-900 text-white font-bold py-3 mt-4"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 mt-4"
             >
               {loading ? (
                 <>
