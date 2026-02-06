@@ -77,8 +77,9 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
   const [seenByDialogOpen, setSeenByDialogOpen] = useState(false);
   const [selectedMessageForSeenBy, setSelectedMessageForSeenBy] = useState<TeamMessage | null>(null);
   const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
-  const [chatBackground, setChatBackground] = useState('default');
-  const [mockMode, setMockMode] = useState(false);
+  const [chatBackground, setChatBackground] = useState(() => {
+    return localStorage.getItem('chat_wallpaper') || 'default';
+  });
    const scrollRef = useRef<HTMLDivElement>(null);
    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
    const lastTypingBroadcast = useRef<number>(0);
@@ -549,23 +550,10 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
     return bg ? bg.style : 'bg-background';
   };
 
-  // Load mock data for testing
-  const loadMockData = async () => {
-    try {
-      const response = await supabase.functions.invoke('mock-chat-data', {
-        body: { teamId: myTeam?.id || 'mock-team', messageCount: 50 },
-      });
-      
-      if (response.data) {
-        setMessages(response.data.messages);
-        setTeamMembers(response.data.members);
-        setMockMode(true);
-        toast({ title: 'Mock Data Loaded', description: '50 messages with 6 members loaded for preview' });
-      }
-    } catch (error) {
-      console.error('Error loading mock data:', error);
-      toast({ title: 'Error', description: 'Failed to load mock data', variant: 'destructive' });
-    }
+  // Save wallpaper to localStorage when it changes
+  const handleSelectBackground = (bgId: string) => {
+    setChatBackground(bgId);
+    localStorage.setItem('chat_wallpaper', bgId);
   };
 
    const canModifyMessage = (msg: TeamMessage) => {
@@ -718,16 +706,15 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
  
    return (
      <div className="h-screen bg-background flex flex-col max-w-lg mx-auto overflow-hidden">
-       {/* WhatsApp-style Header */}
-       <ChatHeader
-         teamName={myTeam.name}
-         memberCount={teamMembers.length}
-         teamAvatars={teamAvatars}
-         onBack={() => navigate(-1)}
-        onViewMembers={() => navigate('/team')}
-        onChangeBackground={() => setBackgroundPickerOpen(true)}
-        onLoadMockData={loadMockData}
-      />
+        {/* WhatsApp-style Header */}
+        <ChatHeader
+          teamName={myTeam.name}
+          memberCount={teamMembers.length}
+          teamAvatars={teamAvatars}
+          onBack={() => navigate(-1)}
+          onViewMembers={() => navigate('/team')}
+          onChangeBackground={() => setBackgroundPickerOpen(true)}
+        />
  
       {/* Messages Area with selected background */}
       <div 
@@ -827,7 +814,7 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
         open={backgroundPickerOpen}
         onOpenChange={setBackgroundPickerOpen}
         currentBackground={chatBackground}
-        onSelectBackground={setChatBackground}
+        onSelectBackground={handleSelectBackground}
       />
      </div>
    );
