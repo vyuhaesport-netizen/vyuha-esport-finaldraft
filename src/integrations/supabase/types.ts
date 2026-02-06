@@ -2943,6 +2943,10 @@ export type Database = {
         Args: { p_admin_notes?: string; p_application_id: string }
         Returns: Json
       }
+      auto_assign_local_tournament_room: {
+        Args: { p_tournament_id: string; p_user_id: string }
+        Returns: Json
+      }
       ban_player_from_report: {
         Args: { p_ban_reason: string; p_report_id: string }
         Returns: Json
