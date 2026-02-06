@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +40,132 @@ import {
   IdCard
 } from 'lucide-react';
 import RoundProgressionChart from '@/components/RoundProgressionChart';
+
+// ============ VIRTUALIZED TEAM LIST (for 2000+ teams performance) ============
+const TEAM_ROW_HEIGHT = 140;
+const OVERSCAN_COUNT = 5;
+
+interface TeamRowProps {
+  team: Team;
+  permanentNumber: number;
+  playerProfiles: Record<string, PlayerProfile>;
+}
+
+const TeamRowComponent = memo(({ team, permanentNumber, playerProfiles }: TeamRowProps) => {
+  const leader = playerProfiles[team.leader_id];
+  const m1 = team.member_1_id ? playerProfiles[team.member_1_id] : null;
+  const m2 = team.member_2_id ? playerProfiles[team.member_2_id] : null;
+  const m3 = team.member_3_id ? playerProfiles[team.member_3_id] : null;
+
+  return (
+    <Card className={team.is_eliminated ? 'opacity-50 border-destructive/30' : ''}>
+      <CardContent className="p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
+              {permanentNumber}
+            </div>
+            <div>
+              <p className="font-medium text-xs">{team.team_name}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Round {team.current_round} • {team.registration_method}
+              </p>
+            </div>
+          </div>
+          {team.is_eliminated ? (
+            <Badge variant="destructive" className="text-[10px]">Eliminated</Badge>
+          ) : team.final_rank ? (
+            <Badge className="text-[10px]">
+              {team.final_rank === 1 && <Crown className="h-3 w-3 mr-1" />}
+              #{team.final_rank}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="text-[10px]">Active</Badge>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-2 gap-1">
+          {[
+            { label: 'Leader', profile: leader },
+            { label: 'M2', profile: m1 },
+            { label: 'M3', profile: m2 },
+            { label: 'M4', profile: m3 },
+          ].map((player, pIdx) => (
+            <div key={pIdx} className="bg-muted/50 rounded p-1.5 text-[10px]">
+              <p className="text-muted-foreground">{player.label}</p>
+              <p className="font-medium truncate">
+                {player.profile?.in_game_name || player.profile?.username || '-'}
+              </p>
+              {player.profile?.game_uid && (
+                <p className="text-muted-foreground truncate">UID: {player.profile.game_uid}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+TeamRowComponent.displayName = 'TeamRowComponent';
+
+interface VirtualizedTeamListInlineProps {
+  teams: Team[];
+  allTeams: Team[];
+  playerProfiles: Record<string, PlayerProfile>;
+  height: number;
+}
+
+const VirtualizedTeamListInline = ({ teams, allTeams, playerProfiles, height }: VirtualizedTeamListInlineProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  const startIndex = Math.max(0, Math.floor(scrollTop / TEAM_ROW_HEIGHT) - OVERSCAN_COUNT);
+  const visibleCount = Math.ceil(height / TEAM_ROW_HEIGHT) + OVERSCAN_COUNT * 2;
+  const endIndex = Math.min(teams.length, startIndex + visibleCount);
+
+  const visibleTeams = teams.slice(startIndex, endIndex);
+  const offsetY = startIndex * TEAM_ROW_HEIGHT;
+
+  return (
+    <div 
+      ref={containerRef}
+      className="overflow-auto rounded-lg"
+      style={{ height }}
+      onScroll={handleScroll}
+    >
+      <div style={{ height: teams.length * TEAM_ROW_HEIGHT, position: 'relative' }}>
+        <div 
+          className="space-y-1.5"
+          style={{ 
+            transform: `translateY(${offsetY}px)`,
+            position: 'absolute',
+            width: '100%',
+            top: 0,
+            left: 0,
+            padding: '0 2px'
+          }}
+        >
+          {visibleTeams.map(team => {
+            const permanentNumber = allTeams.findIndex(t => t.id === team.id) + 1;
+            return (
+              <TeamRowComponent
+                key={team.id}
+                team={team}
+                permanentNumber={permanentNumber}
+                playerProfiles={playerProfiles}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+// ============ END VIRTUALIZED LIST ============
 
 interface Tournament {
   id: string;
@@ -265,7 +391,7 @@ const SchoolTournamentManage = () => {
         setRoomAssignments({});
       }
 
-      // Fetch all player profiles for teams in batches (Supabase .in() has URL length limits)
+      // Fetch all player profiles for teams in PARALLEL batches (much faster)
       if (allTeams.length > 0) {
         const allPlayerIds: string[] = [];
         allTeams.forEach((team: any) => {
@@ -276,21 +402,32 @@ const SchoolTournamentManage = () => {
         });
         const uniqueIds = [...new Set(allPlayerIds)];
         
-        // Batch fetch profiles to avoid URL length limits (max ~300 UUIDs per batch)
-        const BATCH_SIZE = 300;
+        // Parallel batch fetch (100 UUIDs per batch for better URL handling)
+        const BATCH_SIZE = 100;
         const profileMap: Record<string, PlayerProfile> = {};
         
+        const batches: string[][] = [];
         for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
-          const batch = uniqueIds.slice(i, i + BATCH_SIZE);
-          if (batch.length > 0) {
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('user_id, username, full_name, in_game_name, game_uid')
-              .in('user_id', batch);
+          batches.push(uniqueIds.slice(i, i + BATCH_SIZE));
+        }
+        
+        // Fetch all batches in parallel (max 10 concurrent for rate limiting)
+        const MAX_CONCURRENT = 10;
+        for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
+          const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT);
+          const results = await Promise.all(
+            concurrentBatches.map(batch => 
+              supabase
+                .from('profiles')
+                .select('user_id, username, full_name, in_game_name, game_uid')
+                .in('user_id', batch)
+            )
+          );
+          results.forEach(({ data: profiles }) => {
             if (profiles) {
               profiles.forEach(p => { profileMap[p.user_id] = p; });
             }
-          }
+          });
         }
         setPlayerProfiles(profileMap);
       }
@@ -1502,75 +1639,20 @@ const SchoolTournamentManage = () => {
             </Card>
           </TabsContent>
 
-          {/* Teams Tab */}
+          {/* Teams Tab - Virtualized for performance */}
           <TabsContent value="teams" className="mt-3">
-            <div className="flex justify-end mb-2">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-xs text-muted-foreground">{sortedTeams.length} teams</p>
               <Button size="sm" variant="outline" className="h-8 text-xs" onClick={generateTeamsPDF}>
                 <Download className="h-3 w-3 mr-1" /> Download PDF
               </Button>
             </div>
-            <ScrollArea className="h-[60vh]">
-              <div className="space-y-1.5">
-                {sortedTeams.map((team, _index) => {
-                  // Find team's permanent number (1-indexed based on registration order)
-                  const permanentNumber = teams.findIndex(t => t.id === team.id) + 1;
-                  const leader = playerProfiles[team.leader_id];
-                  const m1 = team.member_1_id ? playerProfiles[team.member_1_id] : null;
-                  const m2 = team.member_2_id ? playerProfiles[team.member_2_id] : null;
-                  const m3 = team.member_3_id ? playerProfiles[team.member_3_id] : null;
-                  
-                  return (
-                    <Card key={team.id} className={team.is_eliminated ? 'opacity-50 border-destructive/30' : ''}>
-                      <CardContent className="p-2.5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold">
-                              {permanentNumber}
-                            </div>
-                            <div>
-                              <p className="font-medium text-xs">{team.team_name}</p>
-                              <p className="text-[10px] text-muted-foreground">
-                                Round {team.current_round} • {team.registration_method}
-                              </p>
-                            </div>
-                          </div>
-                          {team.is_eliminated ? (
-                            <Badge variant="destructive" className="text-[10px]">Eliminated</Badge>
-                          ) : team.final_rank ? (
-                            <Badge className="text-[10px]">
-                              {team.final_rank === 1 && <Crown className="h-3 w-3 mr-1" />}
-                              #{team.final_rank}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[10px]">Active</Badge>
-                          )}
-                        </div>
-                        
-                        {/* Player Cards */}
-                        <div className="grid grid-cols-2 gap-1">
-                          {[
-                            { label: 'Leader', profile: leader },
-                            { label: 'M2', profile: m1 },
-                            { label: 'M3', profile: m2 },
-                            { label: 'M4', profile: m3 },
-                          ].map((player, pIdx) => (
-                            <div key={pIdx} className="bg-muted/50 rounded p-1.5 text-[10px]">
-                              <p className="text-muted-foreground">{player.label}</p>
-                              <p className="font-medium truncate">
-                                {player.profile?.in_game_name || player.profile?.username || '-'}
-                              </p>
-                              {player.profile?.game_uid && (
-                                <p className="text-muted-foreground truncate">UID: {player.profile.game_uid}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </ScrollArea>
+            <VirtualizedTeamListInline 
+              teams={sortedTeams}
+              allTeams={teams}
+              playerProfiles={playerProfiles}
+              height={Math.min(window.innerHeight - 300, 500)}
+            />
           </TabsContent>
 
           {/* Rooms Tab */}
