@@ -71,6 +71,10 @@ interface WithdrawalSettings {
   withdrawal_fee_percent: string;
 }
 
+interface AuthSettings {
+  google_auth_enabled: string;
+}
+
 const AdminSettings = () => {
   const [settings, setSettings] = useState<CommissionSettings>({
     organizer_commission_percent: '10',
@@ -104,6 +108,9 @@ const AdminSettings = () => {
     withdrawal_fee_threshold: '1000',
     withdrawal_fee_percent: '2',
   });
+  const [authSettings, setAuthSettings] = useState<AuthSettings>({
+    google_auth_enabled: 'false',
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
@@ -111,6 +118,7 @@ const AdminSettings = () => {
   const [savingSocial, setSavingSocial] = useState(false);
   const [savingMaintenance, setSavingMaintenance] = useState(false);
   const [savingWithdrawal, setSavingWithdrawal] = useState(false);
+  const [savingAuth, setSavingAuth] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
   const [generatingBypassToken, setGeneratingBypassToken] = useState(false);
 
@@ -182,6 +190,10 @@ const AdminSettings = () => {
         withdrawal_fee_percent: '2',
       };
 
+      const authMap: AuthSettings = {
+        google_auth_enabled: 'false',
+      };
+
       data?.forEach((s) => {
         if (s.setting_key in commissionMap) {
           commissionMap[s.setting_key as keyof CommissionSettings] = s.setting_value;
@@ -201,6 +213,9 @@ const AdminSettings = () => {
         if (s.setting_key in withdrawalMap) {
           withdrawalMap[s.setting_key as keyof WithdrawalSettings] = s.setting_value;
         }
+        if (s.setting_key in authMap) {
+          authMap[s.setting_key as keyof AuthSettings] = s.setting_value;
+        }
       });
 
       setSettings(commissionMap);
@@ -209,6 +224,7 @@ const AdminSettings = () => {
       setSocialSettings(socialMap);
       setMaintenanceSettings(maintenanceMap);
       setWithdrawalSettings(withdrawalMap);
+      setAuthSettings(authMap);
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -507,6 +523,39 @@ const AdminSettings = () => {
     }
   };
 
+  const handleToggleGoogleAuth = async (enabled: boolean) => {
+    if (!isSuperAdmin) {
+      toast({ title: 'Access Denied', description: 'Only Super Admin can change settings.', variant: 'destructive' });
+      return;
+    }
+
+    setSavingAuth(true);
+
+    try {
+      const { error } = await supabase
+        .from('platform_settings')
+        .upsert({ 
+          setting_key: 'google_auth_enabled',
+          setting_value: enabled ? 'true' : 'false',
+          updated_by: user?.id,
+        }, { onConflict: 'setting_key' });
+
+      if (error) throw error;
+
+      setAuthSettings(prev => ({ ...prev, google_auth_enabled: enabled ? 'true' : 'false' }));
+      
+      toast({ 
+        title: enabled ? 'Google Auth Enabled' : 'Google Auth Disabled', 
+        description: enabled ? 'Continue with Google button will now show on login.' : 'Google sign in is now hidden.',
+      });
+    } catch (error) {
+      console.error('Error toggling Google auth:', error);
+      toast({ title: 'Error', description: 'Failed to toggle Google auth.', variant: 'destructive' });
+    } finally {
+      setSavingAuth(false);
+    }
+  };
+
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -746,6 +795,60 @@ const AdminSettings = () => {
                 Save Maintenance Settings
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Google Auth Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              Google Authentication
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Enable or disable "Continue with Google" button on login/signup.
+            </p>
+
+            <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Enable Google Sign In</p>
+                  <p className="text-xs text-muted-foreground">Show "Continue with Google" on login page</p>
+                </div>
+                <Switch
+                  checked={authSettings.google_auth_enabled === 'true'}
+                  onCheckedChange={handleToggleGoogleAuth}
+                  disabled={!isSuperAdmin || savingAuth}
+                />
+              </div>
+
+              {authSettings.google_auth_enabled === 'true' && (
+                <div className="pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Note:</span> Make sure you have enabled Google provider in your Supabase project's Authentication settings with correct Client ID and Secret.
+                  </p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
