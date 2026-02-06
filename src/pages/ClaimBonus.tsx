@@ -35,10 +35,10 @@ const ClaimBonus = () => {
 
   // Bonus milestones configuration with enhanced visuals
   const bonusMilestones: BonusMilestone[] = [
-    { points: 50, bonus: 10, name: 'Starter Bonus', icon: <Star className="h-6 w-6" />, color: 'from-blue-500 to-cyan-500' },
-    { points: 100, bonus: 25, name: 'Rising Star', icon: <Zap className="h-6 w-6" />, color: 'from-purple-500 to-pink-500' },
-    { points: 500, bonus: 100, name: 'Pro Player', icon: <Target className="h-6 w-6" />, color: 'from-orange-500 to-amber-500' },
-    { points: 1000, bonus: 500, name: 'Legend Reward', icon: <Crown className="h-6 w-6" />, color: 'from-yellow-400 to-amber-500' },
+    { points: 200, bonus: 10, name: 'Starter Bonus', icon: <Star className="h-6 w-6" />, color: 'from-blue-500 to-cyan-500' },
+    { points: 500, bonus: 25, name: 'Rising Star', icon: <Zap className="h-6 w-6" />, color: 'from-purple-500 to-pink-500' },
+    { points: 1000, bonus: 100, name: 'Pro Player', icon: <Target className="h-6 w-6" />, color: 'from-orange-500 to-amber-500' },
+    { points: 3000, bonus: 500, name: 'Legend Reward', icon: <Crown className="h-6 w-6" />, color: 'from-yellow-400 to-amber-500' },
   ];
 
   useEffect(() => {
