@@ -99,11 +99,16 @@ const AdminBackendStatus = () => {
      checkAdmin();
    }, [user]);
  
-   useEffect(() => {
-     if (isAdmin) {
-       runAllChecks();
-     }
-   }, [isAdmin]);
+    useEffect(() => {
+      if (!isAdmin) return;
+
+      // Avoid duplicate auto-runs (e.g. dev strict-mode remounts / fast re-navigations)
+      const now = Date.now();
+      if (now - lastAutoCheckAt < 2000) return;
+      lastAutoCheckAt = now;
+
+      runAllChecks();
+    }, [isAdmin]);
  
    const checkAdmin = async () => {
      if (!user) {
