@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Loader2, Medal, Award, Crown, TrendingUp, Target, 
-  Gamepad2, Gift, ChevronRight, Users, Trophy, Calendar,
+  Gamepad2, Users, Trophy, Calendar,
   BarChart3, PieChart, Activity, Swords, Star, Crosshair
 } from 'lucide-react';
 import { 
