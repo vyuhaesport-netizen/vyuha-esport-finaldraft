@@ -814,7 +814,7 @@ import BackgroundPicker, { BACKGROUNDS } from '@/components/chat/BackgroundPicke
         open={backgroundPickerOpen}
         onOpenChange={setBackgroundPickerOpen}
         currentBackground={chatBackground}
-        onSelectBackground={setChatBackground}
+        onSelectBackground={handleSelectBackground}
       />
      </div>
    );
