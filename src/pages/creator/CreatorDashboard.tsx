@@ -136,6 +136,7 @@ const CreatorDashboard = () => {
     giveaway_prize_pool: '',
   });
   const [creatorWalletBalance, setCreatorWalletBalance] = useState(0);
+  const [tournamentLimit, setTournamentLimit] = useState(5);
   const [commissionSettings, setCommissionSettings] = useState({
     organizer_percent: 10,
     platform_percent: 10,
