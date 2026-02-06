@@ -39,11 +39,7 @@ import {
   Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
-import {
-  buildWithdrawableBreakdown,
-  computeWithdrawableFromTransactions,
-  getWithdrawableEarningTransactions,
-} from '@/features/wallet/walletEarnings';
+import { buildWithdrawableBreakdown } from '@/features/wallet/walletEarnings';
 
 interface Transaction {
   id: string;
@@ -120,12 +116,22 @@ const Wallet = () => {
       setTransactions(txns || []);
 
       // Total Earned (withdrawable): ONLY prize winnings + commissions
-      // Calculated from transactions only - ignoring profiles.withdrawable_balance (may have stale data)
       // admin_credit, deposit, refund, bonus -> go to Total Balance only, NOT here
-      const earningTxns = getWithdrawableEarningTransactions(txns || []);
-      const computedWithdrawable = computeWithdrawableFromTransactions(txns || []);
+      // NOTE: We don't subtract withdrawals because withdrawals could have been from deposits
+      // The backend tracks actual withdrawable_balance, but we show lifetime earnings here
+      
+      const earningTxns = (txns || []).filter((t) => {
+        const typeNorm = (t.type || '').toLowerCase().trim();
+        const statusNorm = (t.status || '').toLowerCase().trim();
+        const isComp = statusNorm === 'completed';
+        const isEarn = typeNorm === 'winning' || typeNorm === 'prize' || typeNorm === 'prize_won' || typeNorm.includes('commission');
+        return isComp && isEarn;
+      });
 
-      setTotalEarned(computedWithdrawable);
+      const earningTotal = earningTxns.reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+      // Show total earnings (withdrawable balance is tracked by backend)
+      setTotalEarned(earningTotal);
 
       // Breakdown for what contributes to Total Earned
       setEarningsBreakdown(buildWithdrawableBreakdown(earningTxns));
