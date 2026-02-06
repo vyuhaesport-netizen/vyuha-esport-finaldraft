@@ -234,39 +234,46 @@
     }
   };
  
-   const checkPushNotifications = async () => {
-     try {
-       const { error: fnError } = await supabase.functions.invoke('send-push-notification', {
-         method: 'POST',
-         body: { healthCheck: true }
-       });
- 
-       if (fnError) {
-         if (fnError.message?.includes('not configured') || fnError.message?.includes('ONESIGNAL')) {
-           updateIntegration('Push Notifications (OneSignal)', {
-             status: 'warning',
-             message: 'Not configured',
-             details: 'Set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY'
-           });
-         } else {
-           throw fnError;
-         }
-         return;
-       }
- 
-       updateIntegration('Push Notifications (OneSignal)', {
-         status: 'success',
-         message: 'Configured',
-         details: 'Push service is ready'
-       });
-     } catch (error: any) {
-       updateIntegration('Push Notifications (OneSignal)', {
-         status: 'error',
-         message: 'Check failed',
-         details: error.message
-       });
-     }
-   };
+  const checkPushNotifications = async () => {
+    try {
+      const { error: fnError } = await withRetry(
+        () =>
+          withTimeout(
+            supabase.functions.invoke('send-push-notification', {
+              method: 'POST',
+              body: { healthCheck: true }
+            }),
+            15000
+          ),
+        { label: 'Push notifications', retries: 2 }
+      );
+
+      if (fnError) {
+        if (fnError.message?.includes('not configured') || fnError.message?.includes('ONESIGNAL')) {
+          updateIntegration('Push Notifications (OneSignal)', {
+            status: 'warning',
+            message: 'Not configured',
+            details: 'Set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY'
+          });
+        } else {
+          throw fnError;
+        }
+        return;
+      }
+
+      updateIntegration('Push Notifications (OneSignal)', {
+        status: 'success',
+        message: 'Configured',
+        details: 'Push service is ready'
+      });
+    } catch (error: any) {
+      updateIntegration('Push Notifications (OneSignal)', {
+        status: 'error',
+        message: 'Check failed',
+        details: error.message
+      });
+    }
+  };
  
    const checkEdgeFunctions = async () => {
      try {
