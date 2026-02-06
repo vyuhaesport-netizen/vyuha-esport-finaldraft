@@ -89,59 +89,74 @@
     }
   };
  
-   const checkZapUPI = async () => {
-     try {
-       const { data: config, error: configError } = await supabase
-         .from('payment_gateway_config')
-         .select('api_key_id, api_key_secret, is_enabled')
-         .eq('gateway_name', 'zapupi')
-         .maybeSingle();
- 
-       if (configError) throw configError;
- 
-       if (!config) {
-         updateIntegration('ZapUPI Payment Gateway', {
-           status: 'warning',
-           message: 'Not configured',
-           details: 'ZapUPI not found in payment_gateway_config'
-         });
-         return;
-       }
- 
-       if (!config.api_key_id || !config.api_key_secret) {
-         updateIntegration('ZapUPI Payment Gateway', {
-           status: 'warning',
-           message: 'Credentials missing',
-           details: 'API Token or Secret Key not set'
-         });
-         return;
-       }
- 
-       if (!config.is_enabled) {
-         updateIntegration('ZapUPI Payment Gateway', {
-           status: 'warning',
-           message: 'Disabled',
-           details: 'Gateway configured but disabled'
-         });
-         return;
-       }
- 
-       const { data, error } = await supabase.functions.invoke('zapupi-diagnostics', {
-         method: 'POST',
-         body: {}
-       });
- 
-       if (error) throw error;
- 
+  const checkZapUPI = async () => {
+    try {
+      const { data: config, error: configError } = await withRetry(
+        () =>
+          withTimeout(
+            supabase
+              .from('payment_gateway_config')
+              .select('api_key_id, api_key_secret, is_enabled')
+              .eq('gateway_name', 'zapupi')
+              .maybeSingle(),
+            12000
+          ),
+        { label: 'ZapUPI config', retries: 2 }
+      );
+
+      if (configError) throw configError;
+
+      if (!config) {
+        updateIntegration('ZapUPI Payment Gateway', {
+          status: 'warning',
+          message: 'Not configured',
+          details: 'ZapUPI not found in payment_gateway_config'
+        });
+        return;
+      }
+
+      if (!config.api_key_id || !config.api_key_secret) {
+        updateIntegration('ZapUPI Payment Gateway', {
+          status: 'warning',
+          message: 'Credentials missing',
+          details: 'API Token or Secret Key not set'
+        });
+        return;
+      }
+
+      if (!config.is_enabled) {
+        updateIntegration('ZapUPI Payment Gateway', {
+          status: 'warning',
+          message: 'Disabled',
+          details: 'Gateway configured but disabled'
+        });
+        return;
+      }
+
+      const { data, error } = await withRetry(
+        () =>
+          withTimeout(
+            supabase.functions.invoke('zapupi-diagnostics', {
+              method: 'POST',
+              body: {}
+            }),
+            15000
+          ),
+        { label: 'ZapUPI diagnostics', retries: 2 }
+      );
+
+      if (error) throw error;
+
       // ZapUPI API responded - check if it's authentication issue or just test order validation
       if (data?.zapupi_http_ok) {
         // API responded, check the actual error
         const zapupiMsg = data?.zapupi_message || '';
-        const isAuthError = zapupiMsg.toLowerCase().includes('invalid token') || 
-                           zapupiMsg.toLowerCase().includes('invalid key') ||
-                           zapupiMsg.toLowerCase().includes('unauthorized') ||
-                           zapupiMsg.toLowerCase().includes('authentication');
-        
+        const isAuthError =
+          zapupiMsg.toLowerCase().includes('invalid token') ||
+          zapupiMsg.toLowerCase().includes('invalid key') ||
+          zapupiMsg.toLowerCase().includes('unauthorized') ||
+          zapupiMsg.toLowerCase().includes('authentication');
+
         if (isAuthError) {
           updateIntegration('ZapUPI Payment Gateway', {
             status: 'error',
@@ -149,11 +164,11 @@
             details: `Error: ${zapupiMsg}\nOutbound IP: ${data.outbound_ip || 'Unknown'}\n⚠️ Check API Token/Secret or IP Whitelist in ZapUPI Dashboard`
           });
         } else if (data?.zapupi_status === 'success') {
-         updateIntegration('ZapUPI Payment Gateway', {
-           status: 'success',
-           message: 'Working',
-           details: `Outbound IP: ${data.outbound_ip || 'Unknown'}`
-         });
+          updateIntegration('ZapUPI Payment Gateway', {
+            status: 'success',
+            message: 'Working',
+            details: `Outbound IP: ${data.outbound_ip || 'Unknown'}`
+          });
         } else {
           // Other errors like "Invalid OrderId" are actually OK - means API is responding
           updateIntegration('ZapUPI Payment Gateway', {
@@ -162,21 +177,21 @@
             details: `API responding correctly.\nTest response: "${zapupiMsg}"\nOutbound IP: ${data.outbound_ip || 'Unknown'}\n✅ Credentials verified, API accessible`
           });
         }
-       } else {
-         updateIntegration('ZapUPI Payment Gateway', {
-           status: 'error',
+      } else {
+        updateIntegration('ZapUPI Payment Gateway', {
+          status: 'error',
           message: 'API Connection Failed',
           details: `HTTP Error from ZapUPI\nResponse: ${JSON.stringify(data?.zapupi_response || {})}\nOutbound IP: ${data?.outbound_ip || 'Unknown'}\n⚠️ ZapUPI servers may be down or IP not whitelisted`
-         });
-       }
-     } catch (error: any) {
-       updateIntegration('ZapUPI Payment Gateway', {
-         status: 'error',
-         message: 'Check failed',
-        details: `Error: ${error.message}\n⚠️ Edge function may not be deployed or network issue`
-       });
-     }
-   };
+        });
+      }
+    } catch (error: any) {
+      updateIntegration('ZapUPI Payment Gateway', {
+        status: 'error',
+        message: 'Check failed',
+        details: `Error: ${error.message}\n⚠️ Temporary network/cold-start issue ho sakta hai — thodi der baad Run All Checks try karo.`
+      });
+    }
+  };
  
    const checkDeepSeek = async () => {
      try {
