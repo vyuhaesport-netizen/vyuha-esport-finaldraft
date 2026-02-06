@@ -60,7 +60,7 @@ const ClaimBonus = () => {
       // Fetch user stats points
       const { data: userStats } = await supabase
         .from('user_stats')
-        .select('first_place_count, second_place_count, third_place_count')
+        .select('first_place_count, second_place_count, third_place_count, stats_points')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -68,7 +68,8 @@ const ClaimBonus = () => {
         const first = userStats.first_place_count || 0;
         const second = userStats.second_place_count || 0;
         const third = userStats.third_place_count || 0;
-        const points = (first * 10) + (second * 9) + (third * 8);
+        const computedFallback = (first * 10) + (second * 9) + (third * 8);
+        const points = userStats.stats_points ?? computedFallback;
         setTotalPoints(points);
       }
 
