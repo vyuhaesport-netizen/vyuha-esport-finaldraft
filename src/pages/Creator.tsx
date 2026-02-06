@@ -54,6 +54,8 @@ interface Tournament {
   created_by: string | null;
   youtube_link: string | null;
   instagram_link: string | null;
+  whatsapp_link: string | null;
+  discord_link: string | null;
   is_giveaway: boolean | null;
   rules?: string | null;
 }
