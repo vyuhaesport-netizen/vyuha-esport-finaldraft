@@ -24,7 +24,6 @@ import {
   Globe,
   Wrench,
   AlertTriangle,
-  Clock,
   Link,
   Copy,
   RefreshCw,
@@ -61,7 +60,6 @@ interface SocialSettings {
 interface MaintenanceSettings {
   maintenance_mode: string;
   maintenance_message: string;
-  maintenance_end_time: string;
   maintenance_bypass_token: string;
 }
 
@@ -104,7 +102,6 @@ const AdminSettings = () => {
   const [maintenanceSettings, setMaintenanceSettings] = useState<MaintenanceSettings>({
     maintenance_mode: 'false',
     maintenance_message: 'We are currently performing scheduled maintenance. Please check back soon!',
-    maintenance_end_time: '',
     maintenance_bypass_token: '',
   });
   const [withdrawalSettings, setWithdrawalSettings] = useState<WithdrawalSettings>({
@@ -188,7 +185,6 @@ const AdminSettings = () => {
       const maintenanceMap: MaintenanceSettings = {
         maintenance_mode: 'false',
         maintenance_message: 'We are currently performing scheduled maintenance. Please check back soon!',
-        maintenance_end_time: '',
         maintenance_bypass_token: '',
       };
 
@@ -735,22 +731,6 @@ const AdminSettings = () => {
                 <p className="text-xs text-muted-foreground">This message will be displayed on the login page</p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Estimated End Time
-                </Label>
-                <Input
-                  type="datetime-local"
-                  value={maintenanceSettings.maintenance_end_time ? maintenanceSettings.maintenance_end_time.slice(0, 16) : ''}
-                  onChange={(e) => setMaintenanceSettings(prev => ({ 
-                    ...prev, 
-                    maintenance_end_time: e.target.value ? new Date(e.target.value).toISOString() : '' 
-                  }))}
-                  disabled={!isSuperAdmin}
-                />
-                <p className="text-xs text-muted-foreground">Optional: Let users know when the site will be back</p>
-              </div>
             </div>
 
             {/* Bypass Link Section */}
