@@ -732,22 +732,6 @@ const AdminSettings = () => {
                 <p className="text-xs text-muted-foreground">This message will be displayed on the login page</p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Estimated End Time
-                </Label>
-                <Input
-                  type="datetime-local"
-                  value={maintenanceSettings.maintenance_end_time ? maintenanceSettings.maintenance_end_time.slice(0, 16) : ''}
-                  onChange={(e) => setMaintenanceSettings(prev => ({ 
-                    ...prev, 
-                    maintenance_end_time: e.target.value ? new Date(e.target.value).toISOString() : '' 
-                  }))}
-                  disabled={!isSuperAdmin}
-                />
-                <p className="text-xs text-muted-foreground">Optional: Let users know when the site will be back</p>
-              </div>
             </div>
 
             {/* Bypass Link Section */}
